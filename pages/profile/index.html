@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Profile - SuminCreates</title>
+  <!-- FontAwesome for icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="../../style.css">
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+</head>
+<body>
+
+  <!-- Announcement Bar -->
+  <div style="background-color: var(--color-primary); color: #ffffff; text-align: center; padding: 0.5rem; font-size: 0.8rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase;">
+    ✨ Join the newsletter for free aesthetic Canva templates!
+  </div>
+
+  <!-- Header -->
+  <header>
+    <div class="container nav-container">
+      <a href="/" class="logo">SuminCreates</a>
+      
+      <!-- Desktop Navigation -->
+      <nav class="nav-menu">
+        <a href="/" class="nav-link">Home</a>
+        <a href="/collections/paid-products" class="nav-link">Shop</a>
+        <a href="/pages/library" class="nav-link">My Library</a>
+        <a href="/pages/profile" class="nav-link active">Profile</a>
+        <a href="/pages/about" class="nav-link">About</a>
+        <a href="/pages/contact" class="nav-link">Contact</a>
+        <button id="auth-nav-btn" class="btn btn-secondary" style="padding: 0.4rem 1rem; font-size: 0.8rem; margin-left: 10px;">Login</button>
+      </nav>
+
+      <!-- Actions -->
+      <div class="nav-actions">
+        <button class="cart-icon" aria-label="Shopping Cart">
+          <i class="fa-solid fa-bag-shopping"></i>
+          <span class="cart-count">0</span>
+        </button>
+        
+        <!-- Mobile Menu Toggle -->
+        <button class="menu-toggle" aria-label="Toggle Menu">
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="mobile-drawer">
+    <ul>
+      <li><a href="/" class="nav-link">Home</a></li>
+      <li><a href="/collections/paid-products" class="nav-link">Shop</a></li>
+      <li><a href="/pages/library" class="nav-link">My Library</a></li>
+      <li><a href="/pages/profile" class="nav-link active">Profile</a></li>
+      <li><a href="/pages/about" class="nav-link">About</a></li>
+      <li><a href="/pages/contact" class="nav-link">Contact</a></li>
+      <li style="margin-top: 20px;"><a href="#" id="auth-mobile-btn" style="color: var(--color-primary); font-weight: 700;">Login</a></li>
+    </ul>
+  </div>
+  <div class="overlay"></div>
+
+  <main class="container">
+    <section class="section">
+      <!-- Title Header -->
+      <div class="page-header" style="max-width: 600px; margin: 0 auto 3rem auto; text-align: center;">
+        <h1 class="page-title">User Profile</h1>
+        <p class="page-subtitle">Manage your personal details and account information.</p>
+      </div>
+
+      <!-- Profile Container -->
+      <div style="max-width: 500px; margin: 0 auto; background: var(--color-bg-alt); padding: 2.5rem; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.03);">
+        
+        <!-- Auth Required Container -->
+        <div id="profile-auth-required" style="text-align: center; padding: 1.5rem 0;">
+          <i class="fa-solid fa-user-lock" style="font-size: 3rem; color: var(--color-border); margin-bottom: 1.5rem;"></i>
+          <h2 style="font-family: var(--font-heading); font-size: 1.5rem; color: var(--color-primary); margin-bottom: 1rem;">Login Required</h2>
+          <p style="color: var(--color-fg-light); margin-bottom: 1.5rem; line-height: 1.6;">You must be logged in to view or edit your profile details.</p>
+          <button onclick="openAuthModal()" class="btn btn-primary" style="padding: 0.8rem 2rem;">Log In to Account</button>
+        </div>
+
+        <!-- Profile Content Container -->
+        <div id="profile-content-container" style="display: none;">
+          <div style="display: flex; flex-direction: column; align-items: center; margin-bottom: 2rem;">
+            <div id="profile-avatar-container" style="width: 100px; height: 100px; border-radius: 50%; overflow: hidden; background: var(--color-secondary); margin-bottom: 1rem; border: 2px solid var(--color-primary);">
+              <img id="profile-avatar" src="../../assets/placeholder.png" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover;">
+            </div>
+            <h3 id="profile-welcome-title" style="font-family: var(--font-heading); font-size: 1.25rem; color: var(--color-primary); margin: 0;">Welcome!</h3>
+          </div>
+
+          <form id="profile-form" style="display: flex; flex-direction: column; gap: 15px;">
+            <div style="display: flex; flex-direction: column; gap: 5px;">
+              <label for="profile-name" style="font-size: 0.85rem; font-weight: 700; color: var(--color-primary); text-transform: uppercase; letter-spacing: 0.05em;">Full Name</label>
+              <input type="text" id="profile-name" placeholder="Full Name" required 
+                     style="padding: 0.8rem; border: 1px solid var(--color-border); border-radius: 4px; font-family: 'Nunito', sans-serif; font-size: 0.95rem; background: #ffffff;">
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 5px;">
+              <label for="profile-email" style="font-size: 0.85rem; font-weight: 700; color: var(--color-primary); text-transform: uppercase; letter-spacing: 0.05em;">Email Address</label>
+              <input type="email" id="profile-email" placeholder="Email Address" disabled 
+                     style="padding: 0.8rem; border: 1px solid var(--color-border); border-radius: 4px; font-family: 'Nunito', sans-serif; font-size: 0.95rem; background: #f8f9fa; cursor: not-allowed; color: var(--color-fg-light);">
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 5px;">
+              <label for="profile-phone" style="font-size: 0.85rem; font-weight: 700; color: var(--color-primary); text-transform: uppercase; letter-spacing: 0.05em;">Phone Number</label>
+              <input type="tel" id="profile-phone" placeholder="e.g. 017XXXXXXXX"
+                     style="padding: 0.8rem; border: 1px solid var(--color-border); border-radius: 4px; font-family: 'Nunito', sans-serif; font-size: 0.95rem; background: #ffffff;">
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="padding: 0.9rem; margin-top: 10px; font-weight: 600;">Save Changes</button>
+          </form>
+        </div>
+
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container footer-grid">
+      <div class="footer-col">
+        <h4 class="footer-logo">SuminCreates</h4>
+        <p class="footer-about">Aesthetic, clean, and minimal templates to organize your thoughts, content, and scrapbook memories.</p>
+      </div>
+      <div class="footer-col">
+        <h4 class="footer-title">Navigation</h4>
+        <ul class="footer-links">
+          <li><a href="/">Home</a></li>
+          <li><a href="/collections/paid-products">Shop</a></li>
+          <li><a href="/pages/library">My Library</a></li>
+          <li><a href="/pages/about">About Us</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4 class="footer-title">Newsletter</h4>
+        <p class="footer-newsletter-desc">Subscribe to get free aesthetic assets and weekly design updates.</p>
+        <form class="newsletter-form">
+          <input type="email" placeholder="Your Email Address" required>
+          <button type="submit">Subscribe</button>
+        </form>
+      </div>
+    </div>
+    <div class="container footer-bottom">
+      <p>&copy; 2026 SuminCreates. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <!-- Cart Drawer -->
+  <div class="cart-drawer" id="cart-drawer">
+    <div class="cart-drawer-header">
+      <h3 style="font-family: var(--font-heading); font-size: 1.25rem; color: var(--color-primary); margin: 0;">Shopping Bag</h3>
+      <button class="cart-drawer-close" id="cart-drawer-close-btn">&times;</button>
+    </div>
+    <div class="cart-drawer-body">
+      <div id="cart-items-container">
+        <!-- Cart Items Go Here -->
+      </div>
+      <div id="cart-empty-message" style="text-align: center; color: var(--color-fg-light); margin-top: 2rem;">
+        <i class="fa-solid fa-bag-shopping" style="font-size: 2.5rem; color: var(--color-border); margin-bottom: 1rem; display: block;"></i>
+        Your shopping bag is empty.
+      </div>
+    </div>
+    <div class="cart-drawer-footer" id="cart-drawer-footer" style="display: none;">
+      <div class="cart-total-row">
+        <span>Subtotal</span>
+        <span id="cart-subtotal-val">$0.00</span>
+      </div>
+      
+      <!-- Checkout Form -->
+      <form id="checkout-form" style="margin-top: 1.5rem; display: flex; flex-direction: column; gap: 10px;">
+        <h4 style="margin: 0 0 5px 0; font-family: 'DM Sans', sans-serif; font-size: 0.95rem; font-weight: 700; color: var(--color-primary);">Checkout Details</h4>
+        <input type="text" id="checkout-name" placeholder="Full Name" required 
+               style="padding: 0.7rem; border: 1px solid var(--color-border); border-radius: 4px; font-size: 0.9rem; font-family: 'Nunito', sans-serif;">
+        <input type="email" id="checkout-email" placeholder="Email Address" required 
+               style="padding: 0.7rem; border: 1px solid var(--color-border); border-radius: 4px; font-size: 0.9rem; font-family: 'Nunito', sans-serif;">
+        <div style="font-size: 0.8rem; color: var(--color-fg-light); margin: 5px 0; line-height: 1.4;">
+          💡 Pay to Bkash/Nagad: <strong>017XXXXXXXX</strong>. We will approve access within 1-2 hours of placing the order.
+        </div>
+        <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 5px; padding: 0.8rem;">Place Order</button>
+      </form>
+    </div>
+  </div>
+  <div class="cart-drawer-overlay" id="cart-drawer-overlay"></div>
+
+  <!-- Auth Modal Markup -->
+  <div class="auth-modal" id="auth-modal">
+    <div class="auth-modal-card">
+      <div class="auth-modal-header" style="border-bottom: none; padding-bottom: 0; margin-bottom: 1rem;">
+        <h3 style="font-family: var(--font-heading); font-size: 1.25rem; color: var(--color-primary); margin: 0;">Sign In</h3>
+        <button class="auth-modal-close" id="auth-modal-close-btn">&times;</button>
+      </div>
+      <div class="auth-modal-body" style="text-align: center;">
+        <p style="color: var(--color-fg-light); font-size: 0.9rem; margin-bottom: 1.5rem; line-height: 1.4;">Sign in to save items to your bag, place orders, and access your template library.</p>
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <button type="button" class="btn btn-secondary" onclick="loginWithGoogle()" style="display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 0.9rem; padding: 0.75rem; border: 1px solid var(--color-border); background: white; font-family: 'Nunito', sans-serif; cursor: pointer; width: 100%;">
+            <i class="fa-brands fa-google" style="color: #4285F4;"></i> Continue with Google
+          </button>
+          <button type="button" class="btn btn-secondary" onclick="loginWithFacebook()" style="display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 0.9rem; padding: 0.75rem; border: 1px solid var(--color-border); background: white; font-family: 'Nunito', sans-serif; cursor: pointer; width: 100%;">
+            <i class="fa-brands fa-facebook" style="color: #1877F2;"></i> Continue with Facebook
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="auth-modal-overlay" id="auth-modal-overlay"></div>
+
+  <script src="../../script.js"></script>
+</body>
+</html>

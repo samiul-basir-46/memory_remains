@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shop Paid Templates - SuminCreates</title>
+  <!-- FontAwesome for icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="../../style.css">
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+</head>
+<body>
+
+  <!-- Announcement Bar -->
+  <div style="background-color: var(--color-primary); color: #ffffff; text-align: center; padding: 0.5rem; font-size: 0.8rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase;">
+    ✨ Join the newsletter for free aesthetic Canva templates!
+  </div>
+
+  <!-- Header -->
+  <header>
+    <div class="container nav-container">
+      <a href="/" class="logo">SuminCreates</a>
+      
+      <!-- Desktop Navigation -->
+      <nav class="nav-menu">
+        <a href="/" class="nav-link">Home</a>
+        <a href="/collections/paid-products" class="nav-link active">Shop</a>
+        <a href="/pages/library" class="nav-link">My Library</a>
+        <a href="/pages/profile" class="nav-link">Profile</a>
+        <a href="/pages/about" class="nav-link">About</a>
+        <a href="/pages/contact" class="nav-link">Contact</a>
+        <button id="auth-nav-btn" class="btn btn-secondary" style="padding: 0.4rem 1rem; font-size: 0.8rem; margin-left: 10px;">Login</button>
+      </nav>
+
+      <!-- Actions -->
+      <div class="nav-actions">
+        <button class="cart-icon" aria-label="Shopping Cart">
+          <i class="fa-solid fa-bag-shopping"></i>
+          <span class="cart-count">0</span>
+        </button>
+        
+        <!-- Mobile Menu Toggle -->
+        <button class="menu-toggle" aria-label="Toggle Menu">
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="mobile-drawer">
+    <ul>
+      <li><a href="/" class="nav-link">Home</a></li>
+      <li><a href="/collections/paid-products" class="nav-link active">Shop</a></li>
+      <li><a href="/pages/library" class="nav-link">My Library</a></li>
+      <li><a href="/pages/profile" class="nav-link">Profile</a></li>
+      <li><a href="/pages/about" class="nav-link">About</a></li>
+      <li><a href="/pages/contact" class="nav-link">Contact</a></li>
+      <li style="margin-top: 20px;"><a href="#" id="auth-mobile-btn" style="color: var(--color-primary); font-weight: 700;">Login</a></li>
+    </ul>
+  </div>
+  <div class="overlay"></div>
+
+  <main>
+    <section class="section container">
+      <!-- Products Header / Header info -->
+      <div class="page-header">
+        <h1 class="page-title">Paid Products</h1>
+        <p class="page-subtitle">Explore our collection of premium, professionally designed assets. From Instagram stories and carousels to comprehensive planners, all fully customizable in Canva with a free account.</p>
+      </div>
+
+      <!-- Filters & Sorting Row -->
+      <div class="products-section-header" style="align-items: center; justify-content: space-between; border-top: 1px solid var(--color-border); padding-top: var(--spacing-sm);">
+        <p style="font-size: 0.9rem; font-weight: 600; color: var(--color-fg-light);" id="product-count-label">4 products</p>
+        <div style="display: flex; gap: var(--spacing-sm); align-items: center;">
+          <label for="sort-by" style="font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-fg-light);">Sort by:</label>
+          <select id="sort-by" style="padding: 0.4rem 0.8rem; border: 1px solid var(--color-border); border-radius: var(--border-radius-sm); font-family: var(--font-body); font-size: 0.85rem; background-color: #ffffff; color: var(--color-fg); outline: none; cursor: pointer;">
+            <option>Featured</option>
+            <option>Price: Low to High</option>
+            <option>Price: High to Low</option>
+            <option>Alphabetically: A-Z</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Products Grid -->
+      <div class="products-grid" id="templates-grid">
+        <!-- Product 1 -->
+        <div class="product-card">
+          <div class="product-image-container">
+            <span class="product-badge">New</span>
+            <img src="../../assets/instagram_stories_cozy.png" alt="Cozy Autumn Stories" class="product-image">
+          </div>
+          <div class="product-info">
+            <h3 class="product-title">Cozy Autumn Instagram Stories</h3>
+            <p class="product-price">$12.00</p>
+            <button onclick="addToCart('Cozy Autumn Instagram Stories')" class="btn btn-primary" style="margin-top: 1rem; width: 100%; font-size: 0.8rem; padding: 0.6rem;">Add to Bag</button>
+          </div>
+        </div>
+
+        <!-- Product 2 -->
+        <div class="product-card">
+          <div class="product-image-container">
+            <span class="product-badge">Popular</span>
+            <img src="../../assets/instagram_carousel_summer.png" alt="Summer Vibes Carousel" class="product-image">
+          </div>
+          <div class="product-info">
+            <h3 class="product-title">Summer Vibes Instagram Carousel</h3>
+            <p class="product-price">$15.00</p>
+            <button onclick="addToCart('Summer Vibes Instagram Carousel')" class="btn btn-primary" style="margin-top: 1rem; width: 100%; font-size: 0.8rem; padding: 0.6rem;">Add to Bag</button>
+          </div>
+        </div>
+
+        <!-- Product 3 -->
+        <div class="product-card">
+          <div class="product-image-container">
+            <img src="../../assets/aesthetic_planner_pack.png" alt="Aesthetic Journal & Planner Pack" class="product-image">
+          </div>
+          <div class="product-info">
+            <h3 class="product-title">Aesthetic Journal & Planner Pack</h3>
+            <p class="product-price">$18.00</p>
+            <button onclick="addToCart('Aesthetic Journal & Planner Pack')" class="btn btn-primary" style="margin-top: 1rem; width: 100%; font-size: 0.8rem; padding: 0.6rem;">Add to Bag</button>
+          </div>
+        </div>
+
+        <!-- Product 4 -->
+        <div class="product-card">
+          <div class="product-image-container">
+            <img src="../../assets/scrapbook_collage_bundle.png" alt="Cozy Scrapbook Template Bundle" class="product-image">
+          </div>
+          <div class="product-info">
+            <h3 class="product-title">Cozy Scrapbook Template Bundle</h3>
+            <p class="product-price">$24.00</p>
+            <button onclick="addToCart('Cozy Scrapbook Template Bundle')" class="btn btn-primary" style="margin-top: 1rem; width: 100%; font-size: 0.8rem; padding: 0.6rem;">Add to Bag</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Newsletter Section -->
+    <section class="newsletter">
+      <div class="container newsletter-content">
+        <h2>Join the Cozy Creators Club</h2>
+        <p>Sign up to receive free weekly Canva design assets, exclusive templates discounts, and creative mood board inspirations.</p>
+        <form class="newsletter-form">
+          <input type="email" placeholder="Your email address" required aria-label="Email address">
+          <button type="submit" class="btn btn-primary">Subscribe</button>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container footer-grid">
+      <div class="footer-info">
+        <h3>SuminCreates</h3>
+        <p>Creating cozy, aesthetic Canva templates and digital design solutions for creators, writers, and brand builders.</p>
+      </div>
+      <div class="footer-links">
+        <h4>Explore</h4>
+        <ul>
+          <li><a href="/">Home</a></li>
+          <li><a href="/collections/paid-products">Shop Templates</a></li>
+          <li><a href="/pages/about">Brand Story</a></li>
+          <li><a href="/pages/contact">Get in Touch</a></li>
+        </ul>
+      </div>
+      <div class="footer-links">
+        <h4>Follow Us</h4>
+        <ul>
+          <li><a href="https://instagram.com" target="_blank"><i class="fa-brands fa-instagram"></i> Instagram</a></li>
+          <li><a href="https://youtube.com" target="_blank"><i class="fa-brands fa-youtube"></i> YouTube</a></li>
+          <li><a href="https://pinterest.com" target="_blank"><i class="fa-brands fa-pinterest"></i> Pinterest</a></li>
+          <li><a href="https://tiktok.com" target="_blank"><i class="fa-brands fa-tiktok"></i> TikTok</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="container footer-bottom">
+      <p>&copy; 2026 SuminCreates. All rights reserved. Inspired by SuminCreates storefront design.</p>
+      <p>Aesthetic E-commerce Layout</p>
+    </div>
+  </footer>
+
+  <!-- Cart Drawer Markup -->
+  <div class="cart-drawer" id="cart-drawer">
+    <div class="cart-drawer-header">
+      <h3>Your Shopping Bag</h3>
+      <button class="cart-drawer-close" id="cart-drawer-close-btn" aria-label="Close Cart">&times;</button>
+    </div>
+    <div class="cart-drawer-body">
+      <div id="cart-items-container">
+        <!-- Cart Items Go Here -->
+      </div>
+      <div id="cart-empty-message" style="text-align: center; color: var(--color-fg-light); margin-top: 2rem;">
+        <i class="fa-solid fa-bag-shopping" style="font-size: 2.5rem; color: var(--color-border); margin-bottom: 1rem; display: block;"></i>
+        Your shopping bag is empty.
+      </div>
+    </div>
+    <div class="cart-drawer-footer" id="cart-drawer-footer" style="display: none;">
+      <div class="cart-total-row">
+        <span>Subtotal</span>
+        <span id="cart-subtotal-val">$0.00</span>
+      </div>
+      
+      <!-- Checkout Form -->
+      <form id="checkout-form" style="margin-top: 1.5rem; display: flex; flex-direction: column; gap: 10px;">
+        <h4 style="margin: 0 0 5px 0; font-family: 'DM Sans', sans-serif; font-size: 0.95rem; font-weight: 700; color: var(--color-primary);">Checkout Details</h4>
+        <input type="text" id="checkout-name" placeholder="Full Name" required 
+               style="padding: 0.7rem; border: 1px solid var(--color-border); border-radius: 4px; font-size: 0.9rem; font-family: 'Nunito', sans-serif;">
+        <input type="email" id="checkout-email" placeholder="Email Address" required 
+               style="padding: 0.7rem; border: 1px solid var(--color-border); border-radius: 4px; font-size: 0.9rem; font-family: 'Nunito', sans-serif;">
+        <div style="font-size: 0.8rem; color: var(--color-fg-light); margin: 5px 0; line-height: 1.4;">
+          💡 Pay to Bkash/Nagad: <strong>017XXXXXXXX</strong>. We will approve access within 1-2 hours of placing the order.
+        </div>
+        <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 5px; padding: 0.8rem;">Place Order</button>
+      </form>
+    </div>
+  </div>
+  <div class="cart-drawer-overlay" id="cart-drawer-overlay"></div>
+
+  <!-- Auth Modal Markup -->
+  <div class="auth-modal" id="auth-modal">
+    <div class="auth-modal-card">
+      <div class="auth-modal-header" style="border-bottom: none; padding-bottom: 0; margin-bottom: 1rem;">
+        <h3 style="font-family: var(--font-heading); font-size: 1.25rem; color: var(--color-primary); margin: 0;">Sign In</h3>
+        <button class="auth-modal-close" id="auth-modal-close-btn">&times;</button>
+      </div>
+      <div class="auth-modal-body" style="text-align: center;">
+        <p style="color: var(--color-fg-light); font-size: 0.9rem; margin-bottom: 1.5rem; line-height: 1.4;">Sign in to save items to your bag, place orders, and access your template library.</p>
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <button type="button" class="btn btn-secondary" onclick="loginWithGoogle()" style="display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 0.9rem; padding: 0.75rem; border: 1px solid var(--color-border); background: white; font-family: 'Nunito', sans-serif; cursor: pointer; width: 100%;">
+            <i class="fa-brands fa-google" style="color: #4285F4;"></i> Continue with Google
+          </button>
+          <button type="button" class="btn btn-secondary" onclick="loginWithFacebook()" style="display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 0.9rem; padding: 0.75rem; border: 1px solid var(--color-border); background: white; font-family: 'Nunito', sans-serif; cursor: pointer; width: 100%;">
+            <i class="fa-brands fa-facebook" style="color: #1877F2;"></i> Continue with Facebook
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="auth-modal-overlay" id="auth-modal-overlay"></div>
+
+  <script src="../../script.js"></script>
+</body>
+</html>
