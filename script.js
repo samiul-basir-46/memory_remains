@@ -378,6 +378,51 @@ document.addEventListener('DOMContentLoaded', () => {
       cartDrawer.classList.add('open');
       cartOverlay.classList.add('visible');
       updateCartDrawer();
+
+      // Dynamically inject checkout-purchase-type if not already there
+      const emailInput = document.getElementById('checkout-email');
+      if (emailInput && !document.getElementById('checkout-purchase-type')) {
+        const selectContainer = document.createElement('div');
+        selectContainer.style.display = 'flex';
+        selectContainer.style.flexDirection = 'column';
+        selectContainer.style.gap = '4px';
+        selectContainer.style.marginTop = '10px';
+        selectContainer.style.marginBottom = '5px';
+
+        const label = document.createElement('label');
+        label.textContent = 'Order Type:';
+        label.style.fontFamily = "'DM Sans', sans-serif";
+        label.style.fontSize = '0.85rem';
+        label.style.fontWeight = '700';
+        label.style.color = 'var(--color-primary)';
+
+        const select = document.createElement('select');
+        select.id = 'checkout-purchase-type';
+        select.required = true;
+        select.style.padding = '0.7rem';
+        select.style.border = '1px solid var(--color-border)';
+        select.style.borderRadius = '4px';
+        select.style.fontSize = '0.9rem';
+        select.style.fontFamily = "'Nunito', sans-serif";
+        select.style.background = 'white';
+        select.style.color = 'var(--color-fg)';
+
+        const option1 = document.createElement('option');
+        option1.value = 'template';
+        option1.textContent = 'Buy Ready-Made Template';
+
+        const option2 = document.createElement('option');
+        option2.value = 'customOrder';
+        option2.textContent = 'Custom Order (Upload My Photos)';
+
+        select.appendChild(option1);
+        select.appendChild(option2);
+
+        selectContainer.appendChild(label);
+        selectContainer.appendChild(select);
+
+        emailInput.after(selectContainer);
+      }
     }
   }
 
@@ -584,6 +629,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const name = document.getElementById('checkout-name').value.trim();
       const email = user.email; // Use logged-in user email directly
+      const purchaseType = document.getElementById('checkout-purchase-type')?.value || 'template';
       
       const submitBtn = checkoutForm.querySelector('button[type="submit"]');
       const originalText = submitBtn.textContent;
@@ -599,7 +645,13 @@ document.addEventListener('DOMContentLoaded', () => {
             pricePaid: Number(item.price || 0),
             purchaseDate: firebase.firestore.FieldValue.serverTimestamp(),
             status: "pending",
-            buyerName: name
+            buyerName: name,
+            type: purchaseType,
+            templateId: item.id || '',
+            requiredImageCount: Number(item.requiredImageCount || 40),
+            imageUrls: [],
+            paymentStatus: "pending",
+            userId: user.uid
           });
         });
 
@@ -639,48 +691,89 @@ document.addEventListener('DOMContentLoaded', () => {
     if (db) {
       db.collection('purchases')
         .where('email', '==', email)
-        .where('status', '==', 'completed')
         .get()
         .then(purchaseSnapshot => {
           if (purchaseSnapshot.empty) {
-            statusMsg.textContent = 'No confirmed templates found for this account. Please verify payment or contact support.';
+            statusMsg.textContent = 'No orders or purchased templates found for this account.';
             return;
           }
 
-          // Fetch templates to find the matching Canva URL
+          // Fetch templates to find matching Canva URLs or images
           db.collection('templates').get().then(templateSnapshot => {
             const templatesDb = {};
             templateSnapshot.forEach(doc => {
               const data = doc.data();
+              templatesDb[doc.id] = data;
               templatesDb[data.title] = data;
             });
 
             const listHTML = [];
             purchaseSnapshot.forEach(doc => {
               const purchase = doc.data();
+              const purchaseId = doc.id;
               const productName = purchase.productName;
+              const status = purchase.status || 'pending';
+              const type = purchase.type || 'template';
+              const imageUrls = purchase.imageUrls || [];
+              const requiredCount = purchase.requiredImageCount || 40;
               
-              // Retrieve original template from DB for image/canvaLink
-              const template = templatesDb[productName];
+              const template = templatesDb[productName] || templatesDb[purchase.templateId];
               const imageSrc = template ? template.imageUrl : '../../assets/placeholder.png';
               const canvaUrl = template ? template.canvaUrl : 'https://canva.com';
+
+              let badgeColor = '#ffc107';
+              let badgeText = 'PENDING';
+              let actionHtml = '';
+
+              if (status === 'cancelled') {
+                badgeColor = '#dc3545';
+                badgeText = 'CANCELLED';
+                actionHtml = `<button class="btn btn-secondary" disabled style="width: 100%; font-size: 0.8rem; padding: 0.6rem;">Order Cancelled</button>`;
+              } else if (type === 'template') {
+                if (status === 'completed') {
+                  badgeColor = '#28a745';
+                  badgeText = 'APPROVED';
+                  actionHtml = `<a href="${canvaUrl}" target="_blank" class="btn btn-primary" style="display: block; font-size: 0.8rem; padding: 0.6rem; text-align: center; text-decoration: none;">Get Template</a>`;
+                } else {
+                  badgeColor = '#ffc107';
+                  badgeText = 'PENDING APPROVAL';
+                  actionHtml = `<button class="btn btn-secondary" disabled style="width: 100%; font-size: 0.8rem; padding: 0.6rem;">Verifying Payment...</button>`;
+                }
+              } else {
+                // customOrder
+                if (status === 'completed') {
+                  if (imageUrls.length < requiredCount) {
+                    badgeColor = '#007bff';
+                    badgeText = 'UPLOAD REQUIRED';
+                    actionHtml = `<button onclick="openPhotoUploader('${purchaseId}', ${requiredCount}, '${productName.replace(/'/g, "\\'")}')" class="btn btn-primary" style="width: 100%; font-size: 0.8rem; padding: 0.6rem;"><i class="fa-solid fa-cloud-arrow-up"></i> Upload ${requiredCount} Photos</button>`;
+                  } else {
+                    badgeColor = '#28a745';
+                    badgeText = 'PHOTOS SUBMITTED';
+                    actionHtml = `<button class="btn btn-secondary" disabled style="width: 100%; font-size: 0.8rem; padding: 0.6rem;">Customizing Template...</button>`;
+                  }
+                } else {
+                  badgeColor = '#ffc107';
+                  badgeText = 'UNPAID / PENDING';
+                  actionHtml = `<div style="font-size: 0.75rem; color: var(--color-fg-light); line-height: 1.3; margin-top: 5px;">Verify payment first to unlock uploader.</div>`;
+                }
+              }
 
               listHTML.push(`
                 <div class="product-card" style="box-shadow: 0 4px 15px rgba(0,0,0,0.05); border: 1px solid var(--color-border);">
                   <div class="product-image-container" style="padding-top: 100%; position: relative; background: var(--color-secondary);">
-                    <span class="product-badge" style="background: #28a745; color: white;">APPROVED</span>
+                    <span class="product-badge" style="background: ${badgeColor}; color: white; text-transform: uppercase;">${badgeText}</span>
                     <img src="${imageSrc}" alt="${productName}" class="product-image" style="position: absolute; top:0; left:0; width:100%; height:100%; object-fit:cover;" onerror="this.src='../../assets/instagram_stories_cozy.png';">
                   </div>
                   <div class="product-info" style="padding: 1.2rem; text-align: center;">
-                    <h3 class="product-title" style="font-size: 1rem; margin-bottom: 0.5rem;">${productName}</h3>
-                    <p class="product-price" style="font-size: 0.9rem; font-weight: 600; color: var(--color-primary); margin-bottom: 1rem;">Available</p>
-                    <a href="${canvaUrl}" target="_blank" class="btn btn-primary" style="display: block; font-size: 0.8rem; padding: 0.6rem; text-align: center; text-decoration: none;">Get Template</a>
+                    <h3 class="product-title" style="font-size: 1.0rem; margin-bottom: 0.5rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${productName}</h3>
+                    <p style="font-size: 0.75rem; color: var(--color-fg-light); margin-bottom: 0.8rem;">Type: ${type === 'customOrder' ? 'Custom Photo' : 'Ready-Made'}</p>
+                    ${actionHtml}
                   </div>
                 </div>
               `);
             });
 
-            statusMsg.textContent = `Found ${listHTML.length} confirmed template(s) in your library!`;
+            statusMsg.textContent = `Found ${listHTML.length} item(s) in your library!`;
             resultsGrid.innerHTML = listHTML.join('');
             resultsGrid.style.display = 'grid';
           });
@@ -916,4 +1009,233 @@ document.addEventListener('DOMContentLoaded', () => {
       mainImage.style.opacity = '1';
     }, 200);
   };
+
+  // --- Dynamic Photo Uploader Markup & Logics ---
+  if (!document.getElementById('upload-modal')) {
+    const uploadModalHtml = `
+      <div class="upload-modal" id="upload-modal">
+        <div class="upload-modal-card">
+          <div class="upload-modal-header">
+            <h3>Upload Custom Order Photos</h3>
+            <button class="upload-modal-close" id="upload-modal-close-btn">&times;</button>
+          </div>
+          <div class="upload-modal-body">
+            <p id="upload-instruction" style="color: var(--color-fg-light); font-size: 0.85rem; margin-bottom: 1rem; line-height: 1.4;">
+              Please select exactly <strong id="upload-target-count">40</strong> photos.
+            </p>
+            <div class="upload-dropzone" id="upload-dropzone">
+              <i class="fa-solid fa-cloud-arrow-up"></i>
+              <p>Drag & drop photos here or click to browse</p>
+              <span>Only PNG, JPG, JPEG formats are supported</span>
+            </div>
+            <input type="file" id="upload-file-input" multiple accept="image/png, image/jpeg, image/jpg" style="display: none;">
+            
+            <div id="upload-preview-header" style="display: none; font-size: 0.85rem; font-weight: 700; color: var(--color-primary); margin: 15px 0 8px 0;">Selected Previews (<span id="upload-selected-count">0</span>)</div>
+            <div class="upload-previews-grid" id="upload-previews-grid" style="display: none;"></div>
+            
+            <div class="upload-progress-container" id="upload-progress-container" style="display: none; margin-top: 15px;">
+              <div class="upload-progress-bar-bg">
+                <div class="upload-progress-bar-fill" id="upload-progress-bar-fill"></div>
+              </div>
+              <div class="upload-progress-status" id="upload-progress-status">Uploading...</div>
+            </div>
+            
+            <button type="button" class="btn btn-primary" id="upload-submit-btn" disabled style="width: 100%; margin-top: 1.5rem; padding: 0.8rem; display: block;">
+              Upload & Submit
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="upload-modal-overlay" id="upload-modal-overlay"></div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', uploadModalHtml);
+  }
+
+  let selectedFiles = [];
+  let currentUploadPurchaseId = '';
+  let currentUploadTargetCount = 40;
+
+  const uploadModal = document.getElementById('upload-modal');
+  const uploadOverlay = document.getElementById('upload-modal-overlay');
+  const uploadCloseBtn = document.getElementById('upload-modal-close-btn');
+  const uploadFileInput = document.getElementById('upload-file-input');
+  const uploadDropzone = document.getElementById('upload-dropzone');
+  const uploadSubmitBtn = document.getElementById('upload-submit-btn');
+  const uploadPreviewsGrid = document.getElementById('upload-previews-grid');
+  const uploadPreviewHeader = document.getElementById('upload-preview-header');
+  const uploadProgressContainer = document.getElementById('upload-progress-container');
+  const uploadProgressBarFill = document.getElementById('upload-progress-bar-fill');
+  const uploadProgressStatus = document.getElementById('upload-progress-status');
+
+  window.openPhotoUploader = function(purchaseId, requiredCount, templateName) {
+    currentUploadPurchaseId = purchaseId;
+    currentUploadTargetCount = requiredCount;
+    selectedFiles = [];
+    
+    document.getElementById('upload-target-count').textContent = requiredCount;
+    document.getElementById('upload-selected-count').textContent = '0';
+    if (uploadSubmitBtn) {
+      uploadSubmitBtn.disabled = true;
+      uploadSubmitBtn.textContent = 'Upload & Submit';
+    }
+    if (uploadPreviewsGrid) {
+      uploadPreviewsGrid.innerHTML = '';
+      uploadPreviewsGrid.style.display = 'none';
+    }
+    if (uploadPreviewHeader) uploadPreviewHeader.style.display = 'none';
+    if (uploadProgressContainer) uploadProgressContainer.style.display = 'none';
+    if (uploadProgressBarFill) uploadProgressBarFill.style.width = '0%';
+    
+    if (uploadModal && uploadOverlay) {
+      uploadModal.classList.add('open');
+      uploadOverlay.classList.add('visible');
+    }
+  };
+
+  window.closePhotoUploader = function() {
+    if (uploadModal && uploadOverlay) {
+      uploadModal.classList.remove('open');
+      uploadOverlay.classList.remove('visible');
+    }
+  };
+
+  if (uploadCloseBtn) uploadCloseBtn.addEventListener('click', window.closePhotoUploader);
+  if (uploadOverlay) uploadOverlay.addEventListener('click', window.closePhotoUploader);
+
+  if (uploadDropzone && uploadFileInput) {
+    uploadDropzone.addEventListener('click', () => uploadFileInput.click());
+    
+    uploadDropzone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      uploadDropzone.style.borderColor = 'var(--color-primary)';
+      uploadDropzone.style.backgroundColor = 'var(--color-secondary)';
+    });
+    uploadDropzone.addEventListener('dragleave', () => {
+      uploadDropzone.style.borderColor = 'var(--color-border)';
+      uploadDropzone.style.backgroundColor = 'var(--color-bg)';
+    });
+    uploadDropzone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      uploadDropzone.style.borderColor = 'var(--color-border)';
+      uploadDropzone.style.backgroundColor = 'var(--color-bg)';
+      if (e.dataTransfer.files) {
+        handleFileSelection(e.dataTransfer.files);
+      }
+    });
+
+    uploadFileInput.addEventListener('change', (e) => {
+      if (e.target.files) {
+        handleFileSelection(e.target.files);
+      }
+    });
+  }
+
+  function handleFileSelection(files) {
+    const list = Array.from(files);
+    const validFiles = list.filter(file => {
+      const type = file.type.toLowerCase();
+      return type === 'image/png' || type === 'image/jpeg' || type === 'image/jpg';
+    });
+
+    if (validFiles.length !== currentUploadTargetCount) {
+      alert(`Please select exactly ${currentUploadTargetCount} images. You selected ${validFiles.length}.`);
+      selectedFiles = [];
+      if (uploadSubmitBtn) uploadSubmitBtn.disabled = true;
+      if (uploadPreviewsGrid) uploadPreviewsGrid.style.display = 'none';
+      if (uploadPreviewHeader) uploadPreviewHeader.style.display = 'none';
+      return;
+    }
+
+    selectedFiles = validFiles;
+    document.getElementById('upload-selected-count').textContent = selectedFiles.length;
+    if (uploadSubmitBtn) uploadSubmitBtn.disabled = false;
+    
+    if (uploadPreviewsGrid) {
+      uploadPreviewsGrid.innerHTML = '';
+      uploadPreviewsGrid.style.display = 'grid';
+    }
+    if (uploadPreviewHeader) uploadPreviewHeader.style.display = 'block';
+
+    selectedFiles.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const div = document.createElement('div');
+        div.className = 'preview-thumb-container';
+        div.innerHTML = `<img src="${e.target.result}" alt="Preview">`;
+        if (uploadPreviewsGrid) uploadPreviewsGrid.appendChild(div);
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  if (uploadSubmitBtn) {
+    uploadSubmitBtn.addEventListener('click', async () => {
+      if (selectedFiles.length !== currentUploadTargetCount) return;
+      
+      const user = firebase.auth().currentUser;
+      if (!user) {
+        alert("You must be logged in to upload photos!");
+        return;
+      }
+
+      uploadSubmitBtn.disabled = true;
+      if (uploadProgressContainer) uploadProgressContainer.style.display = 'block';
+      
+      const cloudinaryUrl = "https://api.cloudinary.com/v1_1/cmpl84gp/image/upload";
+      const uploadPreset = "memory-remains";
+      const uploadedUrls = [];
+
+      for (let i = 0; i < selectedFiles.length; i++) {
+        const formData = new FormData();
+        formData.append('file', selectedFiles[i]);
+        formData.append('upload_preset', uploadPreset);
+        formData.append('folder', `user_orders/${user.uid}`);
+
+        try {
+          let percentComplete = Math.round((i / selectedFiles.length) * 100);
+          if (uploadProgressStatus) uploadProgressStatus.innerText = `Uploading photo ${i + 1} of ${selectedFiles.length}...`;
+          if (uploadProgressBarFill) uploadProgressBarFill.style.width = `${percentComplete}%`;
+
+          let response = await fetch(cloudinaryUrl, {
+            method: 'POST',
+            body: formData
+          });
+
+          if (!response.ok) throw new Error('Upload failed');
+
+          let data = await response.json();
+          uploadedUrls.push(data.secure_url);
+        } catch (error) {
+          console.error(`Error uploading file ${i + 1}:`, error);
+          if (uploadProgressStatus) uploadProgressStatus.innerText = `Error uploading photo ${i + 1}. Please try again.`;
+          uploadSubmitBtn.disabled = false;
+          alert(`Failed to upload photo ${i + 1}. The upload process has been stopped. Please try again.`);
+          return;
+        }
+      }
+
+      if (uploadedUrls.length === currentUploadTargetCount) {
+        if (uploadProgressStatus) uploadProgressStatus.innerText = "All photos uploaded. Saving order...";
+        if (uploadProgressBarFill) uploadProgressBarFill.style.width = '100%';
+
+        try {
+          await db.collection('purchases').doc(currentUploadPurchaseId).update({
+            imageUrls: uploadedUrls,
+            photoSubmittedAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
+
+          if (uploadProgressStatus) uploadProgressStatus.innerText = "Successfully submitted!";
+          showToast("Photos submitted successfully! Access updated.");
+          setTimeout(() => {
+            window.closePhotoUploader();
+            loadUserLibrary(user.email);
+          }, 1000);
+        } catch (firestoreError) {
+          console.error("Firestore Error updating purchase: ", firestoreError);
+          if (uploadProgressStatus) uploadProgressStatus.innerText = "Error completing order. Contact support.";
+          uploadSubmitBtn.disabled = false;
+        }
+      }
+    });
+  }
 });
