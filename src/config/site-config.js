@@ -5,7 +5,7 @@ export const SITE_CONFIG = {
   supportPhoneHref: 'tel:9250303360',
   primaryCtaLabel: 'Shop Now',
   navLinks: [
-    { href: '/', label: 'Featured Products', page: 'home' },
+    { href: '/pages/featured', label: 'Featured Products', page: 'featured' },
     { href: '/collections/paid-products', label: 'Categories', page: 'categories' },
     { href: '/collections/paid-products', label: 'Collections', page: 'collections' },
     { href: '/collections/paid-products', label: 'All Products', page: 'shop' }

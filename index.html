@@ -14,30 +14,124 @@
   <div id="site-shell"></div>
 
   <main>
-    <section class="section">
+    <!-- 1. Featured Products Slider -->
+    <section id="featured-products-section" class="section" style="background: var(--color-primary); color: white; padding: 3rem 0;">
       <div class="container">
         <div class="page-intro" style="text-align: center; margin-bottom: 2rem;">
-          <h1 style="font-size: clamp(2rem, 4vw, 3rem); font-family: var(--font-heading);">Magazine & Newspaper</h1>
+          <h2 style="font-size: clamp(2rem, 4vw, 3rem); font-family: var(--font-heading); color: white; margin-bottom: 0.5rem; text-shadow: 0 2px 4px rgba(0,0,0,0.1);">Featured Products</h2>
+          <p style="color: rgba(255,255,255,0.9);">Check out our newest addition to the store!</p>
         </div>
-        
-        <div class="shop-controls" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-          <div class="shop-filters" style="display: flex; gap: 0.5rem;">
-            <button class="pill-button pill-button--ghost" type="button" style="padding: 0.4rem 1rem; font-size: 0.85rem; border-color: var(--color-primary); color: var(--color-primary);">Filter <i class="fa-solid fa-sliders" style="margin-left: 0.5rem;"></i></button>
-            <button class="pill-button pill-button--ghost" type="button" style="padding: 0.4rem 1rem; font-size: 0.85rem; background-color: var(--color-bg-elevated); border: none; color: var(--color-primary);">In Stock <i class="fa-solid fa-xmark" style="margin-left: 0.5rem;"></i></button>
-            <button type="button" style="background: none; border: none; color: var(--color-primary); font-size: 0.85rem; padding: 0.4rem 1rem; cursor: pointer;">Clear Filters</button>
+        <div class="featured-carousel-wrapper" style="position: relative; display: flex; align-items: center; gap: 1rem;">
+          <button id="prev-featured-btn" class="carousel-btn" style="position: absolute; left: -1.25rem; z-index: 10; background: white; border: none; width: 44px; height: 44px; border-radius: 50%; box-shadow: 0 4px 12px rgba(0,0,0,0.15); display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--color-primary); font-size: 1.25rem;"><i class="fa-solid fa-chevron-left"></i></button>
+          
+          <div id="featured-carousel" style="display: flex; gap: 1.5rem; overflow-x: auto; scroll-behavior: smooth; width: 100%; padding: 1rem 0; -webkit-overflow-scrolling: touch; scroll-snap-type: x mandatory;">
+            <!-- Featured product cards rendered dynamically -->
           </div>
-          <div class="shop-sort">
-            <select id="sort-by" class="pill-button pill-button--ghost" style="padding: 0.4rem 1rem; font-size: 0.85rem; border-color: var(--color-primary); color: var(--color-primary); appearance: none; background: transparent; cursor: pointer;">
-              <option value="Recommended">Sort By : Recommended</option>
-              <option value="Price: Low to High">Price: Low to High</option>
-              <option value="Price: High to Low">Price: High to Low</option>
-              <option value="Alphabetically: A-Z">Alphabetically: A-Z</option>
-              <option value="Newest First">Newest First</option>
-            </select>
-          </div>
+          
+          <button id="next-featured-btn" class="carousel-btn" style="position: absolute; right: -1.25rem; z-index: 10; background: white; border: none; width: 44px; height: 44px; border-radius: 50%; box-shadow: 0 4px 12px rgba(0,0,0,0.15); display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--color-primary); font-size: 1.25rem;"><i class="fa-solid fa-chevron-right"></i></button>
         </div>
+      </div>
+    </section>
 
-        <div id="templates-grid" class="products-grid"></div>
+    <!-- 2. Shop by Collection -->
+    <section id="shop-by-collection-section" class="section" style="background: white; padding: 4rem 0;">
+      <div class="container collections-container">
+        <div class="collection-intro">
+          <h2 style="font-size: clamp(2rem, 4vw, 3.2rem); font-family: var(--font-heading); color: #3b1c1c; margin-bottom: 1rem;">Shop by Collection</h2>
+          <p style="color: var(--color-text-soft); font-size: 1.05rem;">We have everything you need to turn your home garden into a paradise on earth!</p>
+        </div>
+        <div class="collection-slider-wrapper" style="position: relative; display: flex; align-items: center; flex: 1;">
+          <div id="collections-grid" style="display: flex; gap: 1.2rem; overflow-x: auto; width: 100%; padding: 1rem 0; -webkit-overflow-scrolling: touch;">
+            <!-- Collection cards rendered dynamically -->
+          </div>
+          <button id="next-col-btn" class="carousel-btn" style="position: absolute; right: -1rem; z-index: 10; background: white; border: 1px solid var(--color-border); width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--color-primary); box-shadow: 0 2px 6px rgba(0,0,0,0.1);"><i class="fa-solid fa-chevron-right"></i></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. Trust Badges -->
+    <section id="trust-badges-section" class="section section--tight" style="background: var(--color-bg-elevated); padding: 2.5rem 0;">
+      <div class="container" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); text-align: center; gap: 2rem;" id="trust-badges-grid">
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 0.75rem;">
+          <div style="width: 64px; height: 64px; border-radius: 50%; background: white; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(220,60,113,0.15);">
+            <i class="fa-solid fa-wallet" style="font-size: 1.5rem; color: var(--color-primary);"></i>
+          </div>
+          <strong style="color: #3b1c1c; font-size: 1.05rem;">Secure Payments</strong>
+        </div>
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 0.75rem;">
+          <div style="width: 64px; height: 64px; border-radius: 50%; background: white; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(220,60,113,0.15);">
+            <i class="fa-solid fa-circle-check" style="font-size: 1.5rem; color: var(--color-primary);"></i>
+          </div>
+          <strong style="color: #3b1c1c; font-size: 1.05rem;">Assured Quality</strong>
+        </div>
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 0.75rem;">
+          <div style="width: 64px; height: 64px; border-radius: 50%; background: white; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(220,60,113,0.15);">
+            <i class="fa-solid fa-map-pin" style="font-size: 1.5rem; color: var(--color-primary);"></i>
+          </div>
+          <strong style="color: #3b1c1c; font-size: 1.05rem;">Made In India</strong>
+        </div>
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 0.75rem;">
+          <div style="width: 64px; height: 64px; border-radius: 50%; background: white; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(220,60,113,0.15);">
+            <i class="fa-solid fa-truck" style="font-size: 1.5rem; color: var(--color-primary);"></i>
+          </div>
+          <strong style="color: #3b1c1c; font-size: 1.05rem;">Timely Delivery</strong>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. Best Selling Highlight -->
+    <section id="best-selling-section" class="section" style="background: var(--color-accent); color: white; padding: 4rem 0;">
+      <div class="container">
+        <div class="page-intro" style="text-align: left; margin-bottom: 2.5rem; max-width: 100%;">
+          <h2 style="font-size: clamp(2rem, 4vw, 3.2rem); font-family: var(--font-heading); color: white; margin-bottom: 0.5rem;">Best selling</h2>
+          <p style="color: rgba(255,255,255,0.9); font-size: 1.05rem;">Check out our newest addition to the store!</p>
+        </div>
+        <div id="best-selling-highlight"></div>
+      </div>
+    </section>
+
+    <!-- 5. Premium Magazine - Vogue Highlight -->
+    <section id="vogue-section" class="section" style="background: var(--color-primary); color: white; padding: 4rem 0;">
+      <div class="container">
+        <div class="page-intro" style="text-align: left; margin-bottom: 2.5rem; max-width: 100%;">
+          <h2 style="font-size: clamp(2rem, 4vw, 3.2rem); font-family: var(--font-heading); color: white; margin-bottom: 0.5rem;">Premium Magazine</h2>
+          <p style="color: rgba(255,255,255,0.9); font-size: 1.05rem;">Vogue Collection</p>
+        </div>
+        <div id="vogue-highlight"></div>
+      </div>
+    </section>
+
+    <!-- 6. Premium Magazine - Soulmate Highlight -->
+    <section id="soulmate-section" class="section" style="background: var(--color-accent); color: white; padding: 4rem 0;">
+      <div class="container">
+        <div class="page-intro" style="text-align: left; margin-bottom: 2.5rem; max-width: 100%;">
+          <h2 style="font-size: clamp(2rem, 4vw, 3.2rem); font-family: var(--font-heading); color: white; margin-bottom: 0.5rem;">Premium Magazine</h2>
+          <p style="color: rgba(255,255,255,0.9); font-size: 1.05rem;">Soulmate Collection</p>
+        </div>
+        <div id="soulmate-highlight"></div>
+      </div>
+    </section>
+
+    <!-- 7. Premium Magazine - Couple Highlight -->
+    <section id="couple-section" class="section" style="background: var(--color-primary); color: white; padding: 4rem 0;">
+      <div class="container">
+        <div class="page-intro" style="text-align: left; margin-bottom: 2.5rem; max-width: 100%;">
+          <h2 style="font-size: clamp(2rem, 4vw, 3.2rem); font-family: var(--font-heading); color: white; margin-bottom: 0.5rem;">Premium Magazine</h2>
+          <p style="color: rgba(255,255,255,0.9); font-size: 1.05rem;">Soulmate Collection</p>
+        </div>
+        <div id="couple-highlight"></div>
+      </div>
+    </section>
+
+    <!-- 8. Our Categories -->
+    <section id="categories-section" class="section" style="background: white; padding: 4rem 0 2rem;">
+      <div class="container">
+        <div class="page-intro" style="text-align: center; margin-bottom: 2rem;">
+          <h2 style="font-size: clamp(2rem, 4vw, 3rem); font-family: var(--font-heading); color: #3b1c1c; margin-bottom: 0.5rem;">Our Categories</h2>
+        </div>
+        <div id="categories-circle-grid" style="display: flex; justify-content: center; gap: 2rem;">
+          <!-- Categories circular cards rendered dynamically -->
+        </div>
       </div>
     </section>
   </main>

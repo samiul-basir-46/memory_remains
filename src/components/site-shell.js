@@ -98,12 +98,12 @@ export function renderSiteShell(pageId) {
   shell.innerHTML = `
     <div class="announcement-bar">${SITE_CONFIG.announcement}</div>
     <header class="site-header">
-      <div class="container site-header__inner" style="display: grid; grid-template-columns: 1fr 2fr 1fr; align-items: center; gap: 1rem;">
+      <div class="container site-header__inner">
         <a class="site-logo" href="/" style="display: flex; align-items: center; gap: 0.5rem; text-decoration: none;">
           <div style="width: 48px; height: 48px; border-radius: 50%; background: #3b1c1c; display: flex; align-items: center; justify-content: center; overflow: hidden;">
             <span style="color: #fff; font-family: 'Yeseva One', serif; font-size: 0.6rem; text-align: center; line-height: 1.1;">Hearts &<br>Beans</span>
           </div>
-          <span style="font-family: 'Yeseva One', serif; font-size: 1.35rem; color: #3b1c1c;">${SITE_CONFIG.brandName}</span>
+          <span class="site-logo__text">${SITE_CONFIG.brandName}</span>
         </a>
         
         <!-- Search bar -->
@@ -157,7 +157,7 @@ export function renderSiteShell(pageId) {
     document.body.appendChild(footer);
   }
   footer.innerHTML = `
-    <div class="container site-footer__top" style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 1rem; padding: 3rem 0; color: white;">
+    <div class="container site-footer__top">
       <div class="footer-brand" style="padding-right: 2rem;">
         <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1.5rem;">
           <div style="width: 48px; height: 48px; border-radius: 50%; background: #3b1c1c; display: flex; align-items: center; justify-content: center; overflow: hidden;">
@@ -184,14 +184,12 @@ export function renderSiteShell(pageId) {
           ${renderSocialLinks()}
         </div>
       </div>
-      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 2rem; grid-column: span 3;">
-        ${SITE_CONFIG.footerGroups.map(renderFooterGroup).join('')}
-      </div>
+      ${SITE_CONFIG.footerGroups.map(renderFooterGroup).join('')}
     </div>
     
     <div style="border-top: 1px solid rgba(255,255,255,0.2); margin: 0 2rem;"></div>
     
-    <div class="container site-footer__bottom" style="display: flex; justify-content: space-between; align-items: center; padding: 1.5rem 0; color: white; font-size: 0.8rem;">
+    <div class="container site-footer__bottom" style="padding: 1.5rem 0; color: white; font-size: 0.8rem;">
       <div style="display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap;">
         <strong>We accept</strong>
         <span style="font-weight:bold; font-size: 1rem;">VISA</span>
