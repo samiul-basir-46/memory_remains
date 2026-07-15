@@ -5,7 +5,7 @@ import { createToast, escapeHtml, formatCurrency, qs, qsa, safeJsonParse } from 
 const CART_STORAGE_KEY = 'memory_remains_cart_v2';
 const CLOUDINARY_UPLOAD_URL = 'https://api.cloudinary.com/v1_1/cmpl84gp/image/upload';
 const CLOUDINARY_UPLOAD_PRESET = 'memory-remains';
-const FALLBACK_IMAGE = '/assets/instagram_stories_cozy.png';
+const FALLBACK_IMAGE = '/assets/product_placeholder.png';
 
 const staticProducts = {
   'Cozy Autumn Instagram Stories': { title: 'Cozy Autumn Instagram Stories', price: 12, compareAtPrice: 24, imageUrl: '/assets/instagram_stories_cozy.png', badge: 'Featured' },
@@ -326,24 +326,199 @@ export function createAppController(pageId) {
     container.innerHTML = categories.map((item) => `<a class="category-chip" href="/collections/paid-products">${escapeHtml(item)}</a>`).join('');
   }
 
-  async function renderHomePage() {
-    const grid = qs('#templates-grid');
-    if (!grid) return;
+  function renderFeaturedCarousel(templates) {
+    const carousel = qs('#featured-carousel');
+    if (!carousel) return;
 
+    // Use the first 5 templates as featured products
+    const featured = templates.slice(0, 5);
+    carousel.innerHTML = featured.map(renderProductCard).join('');
+    setupLazyCloudinaryImages(carousel);
+
+    // Wire up scroll buttons
+    const prevBtn = qs('#prev-featured-btn');
+    const nextBtn = qs('#next-featured-btn');
+
+    prevBtn?.addEventListener('click', () => {
+      carousel.scrollLeft -= 320;
+    });
+    nextBtn?.addEventListener('click', () => {
+      carousel.scrollLeft += 320;
+    });
+  }
+
+  function renderCollectionsSection() {
+    const container = qs('#collections-grid');
+    if (!container) return;
+
+    const collections = [
+      { title: 'FOR HER', text: 'FOR HER' },
+      { title: 'I Love My Self', text: 'I LOVE<br>MY SELF' },
+      { title: 'Best Selling', text: 'BEST<br>SELLING' },
+      { title: 'Birthday Special', text: 'BIRTHDAY<br>SPECIAL' },
+      { title: 'FOR HIM', text: 'FOR HIM' }
+    ];
+
+    container.innerHTML = collections.map((col) => `
+      <a href="/collections/paid-products" class="megamenu-card" style="min-width: 170px; max-width: 220px; flex: 1;">
+        <div class="megamenu-card-bg" style="aspect-ratio: 1 / 1; height: auto;">
+          <span>${col.text}</span>
+        </div>
+        <span class="megamenu-card-title" style="display: block; margin-top: 0.6rem; text-align: center; font-family: var(--font-heading); color: #3b1c1c; font-size: 0.95rem;">${escapeHtml(col.title)}</span>
+      </a>
+    `).join('');
+
+    const nextColBtn = qs('#next-col-btn');
+    nextColBtn?.addEventListener('click', () => {
+      container.scrollLeft += 200;
+    });
+  }
+
+  function renderHighlightSection(selector, template, customBackground, detailsHtml) {
+    const container = qs(selector);
+    if (!container || !template) return;
+
+    const price = Number(template.price || 0);
+    const compare = comparePrice(template);
+    const discount = discountPercent(template);
+    const detailsUrl = `/pages/product-details?id=${template.id}`;
+    const gallery = [template.imageUrl, ...(template.galleryUrls || [])].filter(Boolean);
+
+    state.highlightSlides = state.highlightSlides || {};
+    state.highlightSlides[template.id] = 0;
+
+    const updateSlideImage = () => {
+      const activeIdx = state.highlightSlides[template.id];
+      const imgUrl = gallery[activeIdx] || FALLBACK_IMAGE;
+      const imgContainer = container.querySelector('.highlight-image-container');
+      if (imgContainer) {
+        imgContainer.innerHTML = imageMarkup(imgUrl, template.title, 'highlight-main-img');
+        setupLazyCloudinaryImages(imgContainer);
+      }
+      // Update dot indicators
+      const dots = container.querySelectorAll('.highlight-dot');
+      dots.forEach((dot, index) => {
+        dot.style.background = index === activeIdx ? 'var(--color-primary)' : '#ccc';
+      });
+    };
+
+    const dotsMarkup = gallery.map((_, idx) => `
+      <span class="highlight-dot" style="width: 8px; height: 8px; border-radius: 50%; background: ${idx === 0 ? 'var(--color-primary)' : '#ccc'}; transition: background var(--transition);"></span>
+    `).join('');
+
+    container.innerHTML = `
+      <div class="highlight-card" style="background: ${customBackground};">
+        <div class="highlight-image-side" style="position: relative;">
+          <div class="highlight-image-container" style="width: 100%; height: 100%;">
+            ${imageMarkup(gallery[0] || FALLBACK_IMAGE, template.title, 'highlight-main-img')}
+          </div>
+          ${gallery.length > 1 ? `
+            <button class="carousel-btn prev-highlight-btn" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); background: white; border: none; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.15); cursor: pointer; color: var(--color-primary);"><i class="fa-solid fa-chevron-left"></i></button>
+            <button class="carousel-btn next-highlight-btn" style="position: absolute; right: 1rem; top: 50%; transform: translateY(-50%); background: white; border: none; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.15); cursor: pointer; color: var(--color-primary);"><i class="fa-solid fa-chevron-right"></i></button>
+          ` : ''}
+          <div style="position: absolute; bottom: 1rem; left: 50%; transform: translateX(-50%); display: flex; gap: 0.4rem;">
+            ${dotsMarkup}
+          </div>
+        </div>
+        
+        <div class="highlight-details-side">
+          <h3 style="margin-bottom: 0.5rem;">${escapeHtml(template.title)}</h3>
+          
+          <div class="product-price-row" style="margin-bottom: 0.2rem;">
+            <strong style="font-size: 1.5rem;">₹${price}</strong>
+            ${compare ? `<span style="font-size: 1.1rem; color: var(--color-text-soft); text-decoration: line-through;">₹${compare}</span>` : ''}
+            ${discount ? `<span class="discount-pill">${discount}% Off</span>` : ''}
+          </div>
+          <p style="font-size: 0.85rem; color: var(--color-text-soft); margin-bottom: 1.5rem;">Incl. of all taxes</p>
+          
+          <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.5rem;">
+            <button class="pill-button pill-button--ghost add-to-bag-highlight-btn" style="flex: 1; min-width: 140px; padding: 0.8rem 1rem;">Add To Cart</button>
+            <button class="pill-button buy-now-highlight-btn" style="flex: 1; min-width: 140px; padding: 0.8rem 1rem;">Buy Now</button>
+          </div>
+          
+          <div style="display: flex; flex-direction: column; gap: 0.8rem; border-top: 1px solid var(--color-border); padding-top: 1.5rem; font-size: 0.9rem; color: var(--color-text-soft);">
+            <div style="display: flex; align-items: center; gap: 0.6rem;">
+              <i class="fa-solid fa-truck" style="color: var(--color-primary);"></i>
+              <span>Delivered in 3-15 Days</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.6rem;">
+              <i class="fa-solid fa-percent" style="color: var(--color-primary);"></i>
+              <span>Free Delivery on all purchases above ₹999</span>
+            </div>
+            <p style="font-size: 0.85rem; color: var(--color-text-soft); font-style: italic; margin-top: 0.5rem; line-height: 1.4;">${detailsHtml}</p>
+          </div>
+          
+          <a href="${detailsUrl}" style="color: var(--color-primary); font-weight: 500; text-decoration: underline; font-size: 0.95rem; margin-top: 1.25rem; display: inline-block;">View More</a>
+        </div>
+      </div>
+    `;
+
+    setupLazyCloudinaryImages(container);
+
+    // Event listeners
+    container.querySelector('.add-to-bag-highlight-btn')?.addEventListener('click', () => addTemplateToCart(template));
+    container.querySelector('.buy-now-highlight-btn')?.addEventListener('click', () => {
+      addTemplateToCart(template);
+      openCartDrawer();
+    });
+
+    if (gallery.length > 1) {
+      container.querySelector('.prev-highlight-btn')?.addEventListener('click', () => {
+        state.highlightSlides[template.id] = (state.highlightSlides[template.id] - 1 + gallery.length) % gallery.length;
+        updateSlideImage();
+      });
+      container.querySelector('.next-highlight-btn')?.addEventListener('click', () => {
+        state.highlightSlides[template.id] = (state.highlightSlides[template.id] + 1) % gallery.length;
+        updateSlideImage();
+      });
+    }
+  }
+
+  function renderCategoriesCircleGrid() {
+    const container = qs('#categories-circle-grid');
+    if (!container) return;
+
+    container.innerHTML = `
+      <a href="/collections/paid-products" class="category-circle-card">
+        <div class="category-circle-image">
+          <span>MAGAZINE<br>&<br>NEWSPAPER</span>
+        </div>
+        <span class="category-circle-title">Magazine & Newspaper</span>
+      </a>
+    `;
+  }
+
+  async function renderHomePage() {
     try {
       state.templates = await fetchTemplates(db, { orderByCreated: false });
-      
-      const renderCurrent = () => {
-        const value = qs('#sort-by')?.value || 'Recommended';
-        grid.innerHTML = sortTemplates(value).map(renderProductCard).join('');
-        setupLazyCloudinaryImages(grid);
-      };
 
-      qs('#sort-by')?.addEventListener('change', renderCurrent);
-      renderCurrent();
+      // 1. Featured Products
+      renderFeaturedCarousel(state.templates);
+
+      // 2. Shop by Collection
+      renderCollectionsSection();
+
+      // 3. Best Selling Highlight
+      const bestSellingTemplate = state.templates.find(t => t.title?.toLowerCase().includes('birthday magazine') && !t.title?.toLowerCase().includes('vogue') && !t.title?.toLowerCase().includes('couple')) || state.templates[0];
+      renderHighlightSection('#best-selling-highlight', bestSellingTemplate, '#fffdf9', '38 pictures after placing order click on WhatsApp icon to share details (92503 03360)');
+
+      // 4. Vogue Highlight
+      const vogueTemplate = state.templates.find(t => t.title?.toLowerCase().includes('vogue')) || state.templates[1] || state.templates[0];
+      renderHighlightSection('#vogue-highlight', vogueTemplate, '#fffdf9', 'Vogue : Her/Him Edition<br>Share 10-30 pictures<br>After placing your order on WhatsApp +91 74084 65203');
+
+      // 5. Soulmate Highlight
+      const soulmateTemplate = state.templates.find(t => t.title?.toLowerCase().includes('couple edition') || t.title?.toLowerCase().includes('soulmate') || t.title?.toLowerCase().includes('vougue')) || state.templates[2] || state.templates[0];
+      renderHighlightSection('#soulmate-highlight', soulmateTemplate, '#fffdf9', 'Vougue - Couple Edition<br>Share 10-30 pictures<br>After placing your order on WhatsApp +91 74084 65203');
+
+      // 6. Couple Highlight
+      const coupleTemplate = state.templates.find(t => t.title?.toLowerCase().includes('customize couple') || (t.title?.toLowerCase().includes('couple') && !t.title?.toLowerCase().includes('vogue') && !t.title?.toLowerCase().includes('edition'))) || state.templates[3] || state.templates[0];
+      renderHighlightSection('#couple-highlight', coupleTemplate, '#fffdf9', 'Customize Couple Magazine<br>Share 10-30 pictures<br>After placing your order on WhatsApp +91 74084 65203');
+
+      // 7. Categories Circle
+      renderCategoriesCircleGrid();
+
     } catch (error) {
       console.error('Failed to load home templates:', error);
-      grid.innerHTML = '<p>Unable to load products right now.</p>';
     }
   }
 
@@ -1044,8 +1219,54 @@ export function createAppController(pageId) {
     });
   }
 
+  async function renderFeaturedPage() {
+    const grid = qs('#templates-grid');
+    if (!grid) return;
+
+    try {
+      state.templates = await fetchTemplates(db, { orderByCreated: false });
+
+      // Filter only featured/bestseller/magazine templates
+      const featuredTemplates = state.templates.filter((t) => {
+        const badge = (t.badge || '').toLowerCase();
+        const title = (t.title || '').toLowerCase();
+        return badge.includes('featured') || badge.includes('bestseller') || title.includes('magazine');
+      });
+
+      const label = qs('#product-count-label');
+      if (label) label.textContent = `${featuredTemplates.length} products`;
+
+      const renderCurrent = () => {
+        const value = qs('#sort-by')?.value || 'Featured';
+        const sorted = sortTemplatesList(featuredTemplates, value);
+        grid.innerHTML = sorted.map(renderProductCard).join('');
+        setupLazyCloudinaryImages(grid);
+      };
+
+      qs('#sort-by')?.addEventListener('change', renderCurrent);
+      renderCurrent();
+    } catch (error) {
+      console.error('Failed to load featured templates:', error);
+      grid.innerHTML = '<p>Unable to load products right now.</p>';
+    }
+  }
+
+  function sortTemplatesList(list, criteria) {
+    const templates = [...list];
+    if (criteria === 'Price: Low to High') templates.sort((a, b) => Number(a.price || 0) - Number(b.price || 0));
+    else if (criteria === 'Price: High to Low') templates.sort((a, b) => Number(b.price || 0) - Number(a.price || 0));
+    else if (criteria === 'Alphabetically: A-Z') templates.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
+    else templates.sort((a, b) => {
+      const aDate = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0;
+      const bDate = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
+      return bDate - aDate;
+    });
+    return templates;
+  }
+
   async function initPage() {
     if (pageId === 'home') await renderHomePage();
+    if (pageId === 'featured') await renderFeaturedPage();
     if (pageId === 'shop') await renderShopPage();
     if (pageId === 'product-details') await renderProductDetailsPage();
     if (pageId === 'library') {
@@ -1056,7 +1277,7 @@ export function createAppController(pageId) {
       qs('#profile-auth-required')?.classList.add('auth-required');
       qs('#profile-content-container')?.setAttribute('hidden', 'hidden');
     }
-    if (pageId === 'about' || pageId === 'contact') {
+    if (pageId === 'about' || pageId === 'contact' || pageId === 'featured') {
       setupLazyCloudinaryImages(document);
     }
   }

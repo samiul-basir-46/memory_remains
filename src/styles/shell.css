@@ -18,9 +18,9 @@
 }
 
 .site-header__inner {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr 2fr 1fr;
   align-items: center;
-  justify-content: space-between;
   gap: 1.5rem;
   min-height: 84px;
 }
@@ -29,6 +29,13 @@
   font-family: var(--font-heading);
   font-size: 1.85rem;
   color: var(--color-primary);
+}
+
+.site-logo__text {
+  font-family: 'Yeseva One', serif;
+  font-size: 1.35rem;
+  color: #3b1c1c;
+  transition: font-size var(--transition);
 }
 
 /* Search bar styling */
@@ -312,6 +319,7 @@
   display: grid;
   grid-template-columns: 1.5fr 1fr 1fr 1fr;
   gap: 1.5rem;
+  padding: 3rem 0;
 }
 
 .footer-brand h3,
@@ -371,6 +379,13 @@
 }
 
 @media (max-width: 960px) {
+  .site-header__inner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+  }
+
   .header-search,
   .location-btn,
   .auth-text-link,
@@ -394,5 +409,11 @@
 
   .site-footer__top {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .site-logo__text {
+    font-size: 1.1rem;
   }
 }
