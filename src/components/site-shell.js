@@ -97,8 +97,8 @@ export function renderSiteShell(pageId) {
     document.body.appendChild(footer);
   }
   footer.innerHTML = `
-    <div class="container site-footer__top" style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 2rem; padding: 3rem 0; color: white;">
-      <div class="footer-brand">
+    <div class="container site-footer__top" style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 1rem; padding: 3rem 0; color: white;">
+      <div class="footer-brand" style="padding-right: 2rem;">
         <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1.5rem;">
           <div style="width: 48px; height: 48px; border-radius: 50%; background: #3b1c1c; display: flex; align-items: center; justify-content: center; overflow: hidden;">
             <span style="color: #fff; font-family: 'Yeseva One', serif; font-size: 0.6rem; text-align: center; line-height: 1.1;">Hearts &<br>Beans</span>
@@ -124,7 +124,9 @@ export function renderSiteShell(pageId) {
           ${renderSocialLinks()}
         </div>
       </div>
-      ${SITE_CONFIG.footerGroups.map(renderFooterGroup).join('')}
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 2rem; grid-column: span 3;">
+        ${SITE_CONFIG.footerGroups.map(renderFooterGroup).join('')}
+      </div>
     </div>
     
     <div style="border-top: 1px solid rgba(255,255,255,0.2); margin: 0 2rem;"></div>
