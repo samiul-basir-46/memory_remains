@@ -146,6 +146,14 @@
   overflow: hidden;
 }
 
+/* Cards inside featured carousel need fixed width so they don't get squeezed */
+#featured-carousel .product-card {
+  min-width: 240px;
+  max-width: 280px;
+  flex-shrink: 0;
+  scroll-snap-align: start;
+}
+
 .product-card__media {
   position: relative;
   aspect-ratio: 1 / 1;
