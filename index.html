@@ -3,246 +3,122 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SuminCreates Inspired Minimalist Storefront</title>
-  <!-- FontAwesome for icons -->
+  <title>Hearts and Beans | Premium Memory Storefront</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="./style.css">
-  <!-- Firebase SDKs -->
+  <link rel="stylesheet" href="/src/styles/main.css">
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
 </head>
-<body>
-
-  <!-- Announcement Bar -->
-  <div style="background-color: var(--color-primary); color: #ffffff; text-align: center; padding: 0.5rem; font-size: 0.8rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase;">
-    ✨ Join the newsletter for free aesthetic Canva templates!
-  </div>
-
-  <!-- Header -->
-  <header>
-    <div class="container nav-container">
-      <a href="/" class="logo">SuminCreates</a>
-      
-      <!-- Desktop Navigation -->
-      <nav class="nav-menu">
-        <a href="/" class="nav-link">Home</a>
-        <a href="/collections/paid-products" class="nav-link">Shop</a>
-        <a href="/pages/library" class="nav-link">My Library</a>
-        <a href="/pages/profile" class="nav-link">Profile</a>
-        <a href="/pages/about" class="nav-link">About</a>
-        <a href="/pages/contact" class="nav-link">Contact</a>
-        <button id="auth-nav-btn" class="btn btn-secondary" style="padding: 0.4rem 1rem; font-size: 0.8rem; margin-left: 10px;">Login</button>
-      </nav>
-
-      <!-- Actions -->
-      <div class="nav-actions">
-        <button class="cart-icon" aria-label="Shopping Cart">
-          <i class="fa-solid fa-bag-shopping"></i>
-          <span class="cart-count">0</span>
-        </button>
-        
-        <!-- Mobile Menu Toggle -->
-        <button class="menu-toggle" aria-label="Toggle Menu">
-          <span></span>
-          <span></span>
-          <span></span>
-        </button>
-      </div>
-    </div>
-  </header>
-
-  <div class="mobile-drawer">
-    <ul>
-      <li><a href="/" class="nav-link">Home</a></li>
-      <li><a href="/collections/paid-products" class="nav-link">Shop</a></li>
-      <li><a href="/pages/library" class="nav-link">My Library</a></li>
-      <li><a href="/pages/profile" class="nav-link">Profile</a></li>
-      <li><a href="/pages/about" class="nav-link">About</a></li>
-      <li><a href="/pages/contact" class="nav-link">Contact</a></li>
-      <li style="margin-top: 20px;"><a href="#" id="auth-mobile-btn" style="color: var(--color-primary); font-weight: 700;">Login</a></li>
-    </ul>
-  </div>
-  <div class="overlay"></div>
+<body data-page="home">
+  <div id="site-shell"></div>
 
   <main>
-    <!-- Hero Section -->
-    <section class="hero container">
-      <div class="hero-content">
-        <h1>Cozy Minimalist Templates for Digital Creators</h1>
-        <p>Elevate your social media, journal pages, and digital brand with pre-made, easily customizable Canva templates. Crafted with soft warm tones, polaroid frames, and beautiful line layouts.</p>
-        <a href="./collections/paid-products/index.html" class="btn btn-primary">Explore Templates</a>
-      </div>
-    </section>
-
-    <!-- Featured Products Section -->
-    <section class="section container" style="padding-top: 2rem;">
-      <div class="products-section-header">
-        <h2 style="font-size: 2rem; color: var(--color-primary);">Featured Templates</h2>
-        <a href="./collections/paid-products/index.html" class="btn btn-secondary" style="padding: 0.5rem 1.2rem; font-size: 0.8rem;">View All</a>
-      </div>
-      
-      <div class="products-grid" id="featured-templates-grid">
-        <!-- Product 1 -->
-        <div class="product-card">
-          <div class="product-image-container">
-            <span class="product-badge">New</span>
-            <img src="./assets/instagram_stories_cozy.png" alt="Cozy Autumn Stories" class="product-image">
+    <section class="section">
+      <div class="container hero-grid">
+        <div class="hero-copy">
+          <span class="eyebrow">Inspired by premium memory stores</span>
+          <h1>Give your memories a premium, emotional storefront experience</h1>
+          <p>Clean sections, stronger product storytelling, and organized purchase flows now make the site feel closer to a modern gift-first memory store, while keeping your Firebase admin connection intact.</p>
+          <div class="hero-actions">
+            <a href="/collections/paid-products" class="pill-button">Shop All Products</a>
+            <a href="/pages/about" class="pill-button pill-button--ghost">How It Works</a>
           </div>
-          <div class="product-info">
-            <h3 class="product-title">Cozy Autumn Instagram Stories</h3>
-            <p class="product-price">$12.00</p>
-            <button onclick="addToCart('Cozy Autumn Instagram Stories')" class="btn btn-primary" style="margin-top: 1rem; width: 100%; font-size: 0.8rem; padding: 0.6rem;">Add to Bag</button>
+          <div class="metric-grid">
+            <div class="metric-card"><strong>Admin Connected</strong><span>Products still load from Firebase.</span></div>
+            <div class="metric-card"><strong>Optimized Uploads</strong><span>Cloudinary uploads are compressed before delivery.</span></div>
+            <div class="metric-card"><strong>Clean Structure</strong><span>Shared layout and modular services keep things maintainable.</span></div>
           </div>
         </div>
-
-        <!-- Product 2 -->
-        <div class="product-card">
-          <div class="product-image-container">
-            <span class="product-badge">Popular</span>
-            <img src="./assets/instagram_carousel_summer.png" alt="Summer Vibes Carousel" class="product-image">
+        <div>
+          <div class="showcase-card showcase-main">
+            <img src="/assets/scrapbook_collage_bundle.png" alt="Premium memory collection">
+            <div class="showcase-caption">
+              <span class="eyebrow">Best Selling Feel</span>
+              <h3>Personalized stories, premium layout, stronger first impression</h3>
+            </div>
           </div>
-          <div class="product-info">
-            <h3 class="product-title">Summer Vibes Instagram Carousel</h3>
-            <p class="product-price">$15.00</p>
-            <button onclick="addToCart('Summer Vibes Instagram Carousel')" class="btn btn-primary" style="margin-top: 1rem; width: 100%; font-size: 0.8rem; padding: 0.6rem;">Add to Bag</button>
-          </div>
-        </div>
-
-        <!-- Product 3 -->
-        <div class="product-card">
-          <div class="product-image-container">
-            <img src="./assets/scrapbook_collage_bundle.png" alt="Cozy Scrapbook Template Bundle" class="product-image">
-          </div>
-          <div class="product-info">
-            <h3 class="product-title">Cozy Scrapbook Template Bundle</h3>
-            <p class="product-price">$24.00</p>
-            <button onclick="addToCart('Cozy Scrapbook Template Bundle')" class="btn btn-primary" style="margin-top: 1rem; width: 100%; font-size: 0.8rem; padding: 0.6rem;">Add to Bag</button>
+          <div class="showcase-stack">
+            <div class="showcase-card"><img src="/assets/instagram_carousel_summer.png" alt="Gift-ready collection"></div>
+            <div class="showcase-card"><img src="/assets/aesthetic_planner_pack.png" alt="Curated product layouts"></div>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- Editorial Block -->
-    <section class="container">
-      <div class="editorial-block">
-        <div class="editorial-grid">
-          <div class="editorial-image">
-            <img src="./assets/aesthetic_planner_pack.png" alt="Designing cozy digital products">
+    <section class="section section--tight">
+      <div class="container">
+        <div class="section-heading">
+          <div class="section-copy">
+            <span class="eyebrow">Featured Products</span>
+            <h2>Check out our newest addition to the store</h2>
+            <p>Dynamic featured products are still fetched from Firestore, but now displayed in a cleaner premium grid.</p>
           </div>
-          <div class="editorial-content">
-            <h2>Made for Effortless Storytelling</h2>
-            <p>Our templates are created to feel like a warm cup of coffee on a rainy afternoon. We focus on high-whitespace configurations, polaroid overlays, hand-drawn botanicals, and warm earth-toned colors. Each asset is fully editable in Canva, allowing you to drag-and-drop your photography and edit text to tell your own story beautifully.</p>
-            <a href="/pages/about" class="btn btn-primary">Read Our Brand Story</a>
+          <a href="/collections/paid-products" class="pill-button pill-button--ghost">View All</a>
+        </div>
+        <div id="featured-templates-grid" class="products-grid"></div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <div class="section-heading">
+          <div class="section-copy">
+            <span class="eyebrow">Shop By Collection</span>
+            <h2>Curated sections that feel easier to browse</h2>
+            <p>This flow follows the reference site’s collection-led browsing pattern without cloning it exactly.</p>
           </div>
+        </div>
+        <div id="collection-highlight-grid" class="collection-grid"></div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container story-grid feature-band">
+        <div class="story-copy">
+          <span class="eyebrow" style="color:#fff7f0">Best Selling</span>
+          <h2>A richer story section before people reach checkout</h2>
+          <p>Visitors now get a better trust-building flow before purchase, with clear signals around product type, collections, and supported delivery flow.</p>
+          <ul class="feature-list">
+            <li>Featured-first shopping flow</li>
+            <li>Collection-led browsing blocks</li>
+            <li>Cloudinary-aware image loading and upload compression</li>
+            <li>Existing login, cart, checkout, and library preserved</li>
+          </ul>
+          <a href="/pages/contact" class="pill-button pill-button--ghost">Talk to Us</a>
+        </div>
+        <div class="media-card">
+          <img src="/assets/aesthetic_planner_pack.png" alt="Premium story driven product section">
         </div>
       </div>
     </section>
 
-    <!-- Newsletter Section -->
-    <section class="newsletter">
-      <div class="container newsletter-content">
-        <h2>Join the Cozy Creators Club</h2>
-        <p>Sign up to receive free weekly Canva design assets, exclusive templates discounts, and creative mood board inspirations.</p>
-        <form class="newsletter-form">
+    <section class="section section--tight">
+      <div class="container">
+        <div class="section-copy" style="margin-bottom:1rem">
+          <span class="eyebrow">Our Categories</span>
+          <h2>Quick entry points for visitors</h2>
+        </div>
+        <div id="category-chip-list" class="chip-list"></div>
+      </div>
+    </section>
+
+    <section class="section section--tight">
+      <div class="container card-panel" style="padding:2rem">
+        <div class="page-intro" style="margin-bottom:0">
+          <span class="eyebrow">Stay Connected</span>
+          <h1 style="font-size:clamp(2rem,4vw,3rem)">Join the Cozy Creators Club</h1>
+          <p>Sign up to receive free weekly Canva design assets, exclusive discounts, and creator-focused design updates.</p>
+        </div>
+        <form class="newsletter-form stack-form" style="max-width:560px;margin:1.5rem auto 0">
           <input type="email" placeholder="Your email address" required aria-label="Email address">
-          <button type="submit" class="btn btn-primary">Subscribe</button>
+          <button type="submit" class="pill-button">Subscribe</button>
         </form>
       </div>
     </section>
   </main>
 
-  <!-- Footer -->
-  <footer>
-    <div class="container footer-grid">
-      <div class="footer-info">
-        <h3>SuminCreates</h3>
-        <p>Creating cozy, aesthetic Canva templates and digital design solutions for creators, writers, and brand builders.</p>
-      </div>
-      <div class="footer-links">
-        <h4>Explore</h4>
-        <ul>
-          <li><a href="/">Home</a></li>
-          <li><a href="/collections/paid-products">Shop Templates</a></li>
-          <li><a href="/pages/about">Brand Story</a></li>
-          <li><a href="/pages/contact">Get in Touch</a></li>
-        </ul>
-      </div>
-      <div class="footer-links">
-        <h4>Follow Us</h4>
-        <ul>
-          <li><a href="https://instagram.com" target="_blank"><i class="fa-brands fa-instagram"></i> Instagram</a></li>
-          <li><a href="https://youtube.com" target="_blank"><i class="fa-brands fa-youtube"></i> YouTube</a></li>
-          <li><a href="https://pinterest.com" target="_blank"><i class="fa-brands fa-pinterest"></i> Pinterest</a></li>
-          <li><a href="https://tiktok.com" target="_blank"><i class="fa-brands fa-tiktok"></i> TikTok</a></li>
-        </ul>
-      </div>
-    </div>
-    <div class="container footer-bottom">
-      <p>&copy; 2026 SuminCreates. All rights reserved. Inspired by SuminCreates storefront design.</p>
-      <p>Aesthetic E-commerce Layout</p>
-    </div>
-  </footer>
-
-  <!-- Cart Drawer Markup -->
-  <div class="cart-drawer" id="cart-drawer">
-    <div class="cart-drawer-header">
-      <h3>Your Shopping Bag</h3>
-      <button class="cart-drawer-close" id="cart-drawer-close-btn" aria-label="Close Cart">&times;</button>
-    </div>
-    <div class="cart-drawer-body">
-      <div id="cart-items-container">
-        <!-- Cart Items Go Here -->
-      </div>
-      <div id="cart-empty-message" style="text-align: center; color: var(--color-fg-light); margin-top: 2rem;">
-        <i class="fa-solid fa-bag-shopping" style="font-size: 2.5rem; color: var(--color-border); margin-bottom: 1rem; display: block;"></i>
-        Your shopping bag is empty.
-      </div>
-    </div>
-    <div class="cart-drawer-footer" id="cart-drawer-footer" style="display: none;">
-      <div class="cart-total-row">
-        <span>Subtotal</span>
-        <span id="cart-subtotal-val">$0.00</span>
-      </div>
-      
-      <!-- Checkout Form -->
-      <form id="checkout-form" style="margin-top: 1.5rem; display: flex; flex-direction: column; gap: 10px;">
-        <h4 style="margin: 0 0 5px 0; font-family: 'DM Sans', sans-serif; font-size: 0.95rem; font-weight: 700; color: var(--color-primary);">Checkout Details</h4>
-        <input type="text" id="checkout-name" placeholder="Full Name" required 
-               style="padding: 0.7rem; border: 1px solid var(--color-border); border-radius: 4px; font-size: 0.9rem; font-family: 'Nunito', sans-serif;">
-        <input type="email" id="checkout-email" placeholder="Email Address" required 
-               style="padding: 0.7rem; border: 1px solid var(--color-border); border-radius: 4px; font-size: 0.9rem; font-family: 'Nunito', sans-serif;">
-        <div style="font-size: 0.8rem; color: var(--color-fg-light); margin: 5px 0; line-height: 1.4;">
-          💡 Pay to Bkash/Nagad: <strong>017XXXXXXXX</strong>. We will approve access within 1-2 hours of placing the order.
-        </div>
-        <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 5px; padding: 0.8rem;">Place Order</button>
-      </form>
-    </div>
-  </div>
-  <div class="cart-drawer-overlay" id="cart-drawer-overlay"></div>
-
-  <!-- Auth Modal Markup -->
-  <div class="auth-modal" id="auth-modal">
-    <div class="auth-modal-card">
-      <div class="auth-modal-header" style="border-bottom: none; padding-bottom: 0; margin-bottom: 1rem;">
-        <h3 style="font-family: var(--font-heading); font-size: 1.25rem; color: var(--color-primary); margin: 0;">Sign In</h3>
-        <button class="auth-modal-close" id="auth-modal-close-btn">&times;</button>
-      </div>
-      <div class="auth-modal-body" style="text-align: center;">
-        <p style="color: var(--color-fg-light); font-size: 0.9rem; margin-bottom: 1.5rem; line-height: 1.4;">Sign in to save items to your bag, place orders, and access your template library.</p>
-        <div style="display: flex; flex-direction: column; gap: 10px;">
-          <button type="button" class="btn btn-secondary" onclick="loginWithGoogle()" style="display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 0.9rem; padding: 0.75rem; border: 1px solid var(--color-border); background: white; font-family: 'Nunito', sans-serif; cursor: pointer; width: 100%;">
-            <i class="fa-brands fa-google" style="color: #4285F4;"></i> Continue with Google
-          </button>
-          <button type="button" class="btn btn-secondary" onclick="loginWithFacebook()" style="display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 0.9rem; padding: 0.75rem; border: 1px solid var(--color-border); background: white; font-family: 'Nunito', sans-serif; cursor: pointer; width: 100%;">
-            <i class="fa-brands fa-facebook" style="color: #1877F2;"></i> Continue with Facebook
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-  <div class="auth-modal-overlay" id="auth-modal-overlay"></div>
-
-  <script src="./script.js"></script>
+  <div id="site-overlays"></div>
+  <script type="module" src="/src/app/main.js"></script>
 </body>
 </html>

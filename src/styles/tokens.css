@@ -1,0 +1,35 @@
+:root {
+  --font-body: 'Roboto', sans-serif;
+  --font-heading: 'Yeseva One', serif;
+
+  --color-bg: #ffffff;
+  --color-bg-elevated: #F9E7EF;
+  --color-surface: #ffffff;
+  --color-surface-soft: rgba(255, 255, 255, 0.9);
+  --color-text: #2A2A2A;
+  --color-text-soft: #5C5C5C;
+  --color-primary: #DC3C71;
+  --color-primary-strong: #B52F5B;
+  --color-accent: #0a6586;
+  --color-border: rgba(220, 60, 113, 0.15);
+  --color-shadow: rgba(220, 60, 113, 0.08);
+  --color-success: #2f8f54;
+  --color-warning: #b96c15;
+  --color-danger: #c74141;
+
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+
+  --space-1: 0.5rem;
+  --space-2: 0.75rem;
+  --space-3: 1rem;
+  --space-4: 1.5rem;
+  --space-5: 2rem;
+  --space-6: 3rem;
+  --space-7: 4.5rem;
+  --container: 1240px;
+
+  --transition: 180ms ease;
+}

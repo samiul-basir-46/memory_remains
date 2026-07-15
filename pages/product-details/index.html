@@ -3,217 +3,57 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Product Details - SuminCreates</title>
-  <!-- FontAwesome for icons -->
+  <title>Product Details - Hearts and Beans</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="../../style.css">
-  <!-- Firebase SDKs -->
+  <link rel="stylesheet" href="/src/styles/main.css">
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
 </head>
-<body>
+<body data-page="product-details">
+  <div id="site-shell"></div>
 
-  <!-- Announcement Bar -->
-  <div style="background-color: var(--color-primary); color: #ffffff; text-align: center; padding: 0.5rem; font-size: 0.8rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase;">
-    ✨ Join the newsletter for free aesthetic Canva templates!
-  </div>
-
-  <!-- Header -->
-  <header>
-    <div class="container nav-container">
-      <a href="/" class="logo">SuminCreates</a>
-      
-      <!-- Desktop Navigation -->
-      <nav class="nav-menu">
-        <a href="/" class="nav-link">Home</a>
-        <a href="/collections/paid-products" class="nav-link">Shop</a>
-        <a href="/pages/library" class="nav-link">My Library</a>
-        <a href="/pages/profile" class="nav-link">Profile</a>
-        <a href="/pages/about" class="nav-link">About</a>
-        <a href="/pages/contact" class="nav-link">Contact</a>
-        <button id="auth-nav-btn" class="btn btn-secondary" style="padding: 0.4rem 1rem; font-size: 0.8rem; margin-left: 10px;">Login</button>
-      </nav>
-
-      <!-- Actions -->
-      <div class="nav-actions">
-        <button class="cart-icon" aria-label="Shopping Cart">
-          <i class="fa-solid fa-bag-shopping"></i>
-          <span class="cart-count">0</span>
-        </button>
-        
-        <!-- Mobile Menu Toggle -->
-        <button class="menu-toggle" aria-label="Toggle Menu">
-          <span></span>
-          <span></span>
-          <span></span>
-        </button>
-      </div>
-    </div>
-  </header>
-
-  <!-- Mobile Drawer -->
-  <div class="mobile-drawer">
-    <ul>
-      <li><a href="/" class="nav-link">Home</a></li>
-      <li><a href="/collections/paid-products" class="nav-link">Shop</a></li>
-      <li><a href="/pages/library" class="nav-link">My Library</a></li>
-      <li><a href="/pages/profile" class="nav-link">Profile</a></li>
-      <li><a href="/pages/about" class="nav-link">About</a></li>
-      <li><a href="/pages/contact" class="nav-link">Contact</a></li>
-      <li style="margin-top: 20px;"><a href="#" id="auth-mobile-btn" style="color: var(--color-primary); font-weight: 700;">Login</a></li>
-    </ul>
-  </div>
-  <div class="overlay"></div>
-
-  <!-- Main Content -->
-  <main class="container" style="margin-top: 3rem; margin-bottom: 5rem;">
-    <!-- Loading State -->
-    <div id="details-loading-state" style="text-align: center; padding: 5rem 0;">
-      <i class="fa-solid fa-spinner fa-spin" style="font-size: 3rem; color: var(--color-primary); margin-bottom: 1.5rem;"></i>
-      <p style="color: var(--color-fg-light);">Loading template details...</p>
-    </div>
-
-    <!-- Product Details Container -->
-    <div id="details-content-container" style="display: none; grid-template-columns: 1fr 1fr; gap: 4rem; align-items: start;">
-      
-      <!-- Left: Image Gallery -->
-      <div>
-        <div id="gallery-main-container" style="position: relative; width: 100%; padding-top: 100%; border-radius: 8px; overflow: hidden; background: var(--color-secondary); box-shadow: 0 4px 20px rgba(0,0,0,0.03);">
-          <img id="details-main-image" src="" alt="Main Template View" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; transition: opacity 0.3s ease;">
-          <span id="details-badge" class="product-badge" style="position: absolute; top: 15px; left: 15px; background: var(--color-primary); color: white; padding: 4px 10px; font-size: 0.75rem; border-radius: 4px; font-weight: 700;"></span>
-        </div>
-        
-        <!-- Showcase Thumbnails -->
-        <div id="details-thumbnails-gallery" style="display: flex; gap: 10px; margin-top: 15px; overflow-x: auto; padding-bottom: 5px;">
-          <!-- Populated dynamically -->
-        </div>
-      </div>
-
-      <!-- Right: Product Info -->
-      <div style="padding-top: 1rem;">
-        <span id="details-category" style="font-size: 0.85rem; font-weight: 700; color: var(--color-primary); text-transform: uppercase; letter-spacing: 0.05em;"></span>
-        <h1 id="details-title" style="font-family: var(--font-heading); font-size: 2.2rem; color: var(--color-primary); margin: 0.5rem 0 1rem 0; line-height: 1.2;"></h1>
-        <p id="details-price" style="font-size: 1.5rem; font-weight: 600; color: var(--color-primary); margin-bottom: 1.5rem;"></p>
-        
-        <p id="details-description" style="color: var(--color-fg-light); line-height: 1.7; margin-bottom: 2rem; font-size: 0.95rem;"></p>
-        
-        <!-- Checklist Features -->
-        <div style="border-top: 1px solid var(--color-border); border-bottom: 1px solid var(--color-border); padding: 1.5rem 0; margin-bottom: 2rem;">
-          <h4 style="font-family: var(--font-body); font-weight: 700; color: var(--color-primary); margin-bottom: 10px; font-size: 0.9rem; text-transform: uppercase;">What is included:</h4>
-          <ul style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px;">
-            <li style="display: flex; align-items: center; gap: 10px; font-size: 0.9rem; color: var(--color-fg-light);">
-              <i class="fa-solid fa-check" style="color: #28a745;"></i> Fully customizable Canva Templates
-            </li>
-            <li style="display: flex; align-items: center; gap: 10px; font-size: 0.9rem; color: var(--color-fg-light);">
-              <i class="fa-solid fa-check" style="color: #28a745;"></i> Drag-and-drop image placeholders
-            </li>
-            <li style="display: flex; align-items: center; gap: 10px; font-size: 0.9rem; color: var(--color-fg-light);">
-              <i class="fa-solid fa-check" style="color: #28a745;"></i> Access link delivered to "My Library" after approval
-            </li>
-            <li style="display: flex; align-items: center; gap: 10px; font-size: 0.9rem; color: var(--color-fg-light);">
-              <i class="fa-solid fa-check" style="color: #28a745;"></i> Responsive customer support
-            </li>
-          </ul>
+  <main>
+    <section class="section">
+      <div class="container">
+        <div id="details-loading-state" class="page-intro">
+          <span class="eyebrow">Loading</span>
+          <h1 style="font-size:clamp(2rem,4vw,3rem)">Loading template details...</h1>
+          <p>Please wait while we fetch the latest product data from Firebase.</p>
         </div>
 
-        <!-- Add to Bag Button -->
-        <button id="details-add-to-bag-btn" class="btn btn-primary" style="padding: 1rem 3rem; font-size: 0.95rem; width: 100%;">Add to Bag</button>
-      </div>
+        <div id="details-content-container" hidden>
+          <div class="details-grid">
+            <div>
+              <div id="gallery-main-container" class="gallery-main showcase-card" style="position:relative">
+                <img id="details-main-image" src="/assets/instagram_stories_cozy.png" alt="Main product image">
+                <span id="details-badge" class="product-badge"></span>
+              </div>
+              <div id="details-thumbnails-gallery" class="gallery-thumbs"></div>
+            </div>
 
-    </div>
+            <div class="detail-card">
+              <span id="details-category" class="eyebrow"></span>
+              <h1 id="details-title" style="font-size:clamp(2rem,4vw,3.2rem);color:var(--color-primary);margin-bottom:1rem"></h1>
+              <p id="details-price" style="font-size:1.35rem;font-weight:700;color:var(--color-primary);margin-bottom:1rem"></p>
+              <p id="details-description" style="color:var(--color-text-soft);margin-bottom:1.5rem"></p>
+
+              <ul class="feature-list" style="color:var(--color-text);margin-top:0">
+                <li>Fully customizable Canva templates</li>
+                <li>Delivery through your library after approval</li>
+                <li>Cloudinary-aware optimized gallery loading</li>
+                <li>Responsive customer support</li>
+              </ul>
+
+              <button id="details-add-to-bag-btn" class="pill-button" type="button" style="width:100%">Add to Bag</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
   </main>
 
-  <!-- Footer -->
-  <footer>
-    <div class="container footer-grid">
-      <div class="footer-info">
-        <h3>SuminCreates</h3>
-        <p>Creating cozy, aesthetic Canva templates and digital design solutions for creators, writers, and brand builders.</p>
-      </div>
-      <div class="footer-links">
-        <h4>Explore</h4>
-        <ul>
-          <li><a href="/">Home</a></li>
-          <li><a href="/collections/paid-products">Shop Templates</a></li>
-          <li><a href="/pages/library">My Library</a></li>
-          <li><a href="/pages/about">Brand Story</a></li>
-        </ul>
-      </div>
-      <div class="footer-links">
-        <h4>Follow Us</h4>
-        <ul>
-          <li><a href="https://instagram.com" target="_blank"><i class="fa-brands fa-instagram"></i> Instagram</a></li>
-          <li><a href="https://youtube.com" target="_blank"><i class="fa-brands fa-youtube"></i> YouTube</a></li>
-          <li><a href="https://pinterest.com" target="_blank"><i class="fa-brands fa-pinterest"></i> Pinterest</a></li>
-          <li><a href="https://tiktok.com" target="_blank"><i class="fa-brands fa-tiktok"></i> TikTok</a></li>
-        </ul>
-      </div>
-    </div>
-    <div class="container footer-bottom">
-      <p>&copy; 2026 SuminCreates. All rights reserved.</p>
-    </div>
-  </footer>
-
-  <!-- Cart Drawer -->
-  <div class="cart-drawer" id="cart-drawer">
-    <div class="cart-drawer-header">
-      <h3 style="font-family: var(--font-heading); font-size: 1.25rem; color: var(--color-primary); margin: 0;">Shopping Bag</h3>
-      <button class="cart-drawer-close" id="cart-drawer-close-btn">&times;</button>
-    </div>
-    <div class="cart-drawer-body">
-      <div id="cart-items-container">
-        <!-- Cart Items Go Here -->
-      </div>
-      <div id="cart-empty-message" style="text-align: center; color: var(--color-fg-light); margin-top: 2rem;">
-        <i class="fa-solid fa-bag-shopping" style="font-size: 2.5rem; color: var(--color-border); margin-bottom: 1rem; display: block;"></i>
-        Your shopping bag is empty.
-      </div>
-    </div>
-    <div class="cart-drawer-footer" id="cart-drawer-footer" style="display: none;">
-      <div class="cart-total-row">
-        <span>Subtotal</span>
-        <span id="cart-subtotal-val">$0.00</span>
-      </div>
-      
-      <!-- Checkout Form -->
-      <form id="checkout-form" style="margin-top: 1.5rem; display: flex; flex-direction: column; gap: 10px;">
-        <h4 style="margin: 0 0 5px 0; font-family: 'DM Sans', sans-serif; font-size: 0.95rem; font-weight: 700; color: var(--color-primary);">Checkout Details</h4>
-        <input type="text" id="checkout-name" placeholder="Full Name" required 
-               style="padding: 0.7rem; border: 1px solid var(--color-border); border-radius: 4px; font-size: 0.9rem; font-family: 'Nunito', sans-serif;">
-        <input type="email" id="checkout-email" placeholder="Email Address" required 
-               style="padding: 0.7rem; border: 1px solid var(--color-border); border-radius: 4px; font-size: 0.9rem; font-family: 'Nunito', sans-serif;">
-        <div style="font-size: 0.8rem; color: var(--color-fg-light); margin: 5px 0; line-height: 1.4;">
-          💡 Pay to Bkash/Nagad: <strong>017XXXXXXXX</strong>. We will approve access within 1-2 hours of placing the order.
-        </div>
-        <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 5px; padding: 0.8rem;">Place Order</button>
-      </form>
-    </div>
-  </div>
-  <div class="cart-drawer-overlay" id="cart-drawer-overlay"></div>
-
-  <!-- Auth Modal Markup -->
-  <div class="auth-modal" id="auth-modal">
-    <div class="auth-modal-card">
-      <div class="auth-modal-header" style="border-bottom: none; padding-bottom: 0; margin-bottom: 1rem;">
-        <h3 style="font-family: var(--font-heading); font-size: 1.25rem; color: var(--color-primary); margin: 0;">Sign In</h3>
-        <button class="auth-modal-close" id="auth-modal-close-btn">&times;</button>
-      </div>
-      <div class="auth-modal-body" style="text-align: center;">
-        <p style="color: var(--color-fg-light); font-size: 0.9rem; margin-bottom: 1.5rem; line-height: 1.4;">Sign in to save items to your bag, place orders, and access your template library.</p>
-        <div style="display: flex; flex-direction: column; gap: 10px;">
-          <button type="button" class="btn btn-secondary" onclick="loginWithGoogle()" style="display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 0.9rem; padding: 0.75rem; border: 1px solid var(--color-border); background: white; font-family: 'Nunito', sans-serif; cursor: pointer; width: 100%;">
-            <i class="fa-brands fa-google" style="color: #4285F4;"></i> Continue with Google
-          </button>
-          <button type="button" class="btn btn-secondary" onclick="loginWithFacebook()" style="display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 0.9rem; padding: 0.75rem; border: 1px solid var(--color-border); background: white; font-family: 'Nunito', sans-serif; cursor: pointer; width: 100%;">
-            <i class="fa-brands fa-facebook" style="color: #1877F2;"></i> Continue with Facebook
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-  <div class="auth-modal-overlay" id="auth-modal-overlay"></div>
-
-  <script src="../../script.js"></script>
+  <div id="site-overlays"></div>
+  <script type="module" src="/src/app/main.js"></script>
 </body>
 </html>
