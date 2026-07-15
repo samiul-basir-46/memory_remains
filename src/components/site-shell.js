@@ -59,7 +59,7 @@ function renderNavLinks(pageId, isMobile = false) {
     }
     
     return `
-      <div class="nav-item-wrapper ${isDropdown ? 'has-dropdown' : ''}" style="position: ${isMobile ? 'static' : 'relative'};">
+      <div class="nav-item-wrapper ${isDropdown ? 'has-dropdown' : ''}" style="position: static;">
         <a href="${link.href}" class="nav-link ${activeClass}" style="color: #3b1c1c; text-decoration: none; display: inline-flex; align-items: center; height: 100%;">
           ${link.label}${icon}
         </a>

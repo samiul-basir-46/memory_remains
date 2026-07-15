@@ -148,7 +148,7 @@
 
 .product-card__media {
   position: relative;
-  aspect-ratio: 3 / 4;
+  aspect-ratio: 1 / 1;
   background: linear-gradient(180deg, #f3eadf 0%, #e5d1bd 100%);
 }
 
