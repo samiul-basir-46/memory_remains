@@ -58,11 +58,12 @@ function setCart(cart) {
 
 function imageMarkup(url, alt, className = '', widthHint = 720) {
   const escapedAlt = escapeHtml(alt || 'Product image');
-  const optimizedUrl = buildCloudinaryDeliveryUrl(url, { width: widthHint });
-  if (url?.includes('res.cloudinary.com')) {
-    return `<img class="${className}" src="${FALLBACK_IMAGE}" data-cld-src="${optimizedUrl}" alt="${escapedAlt}" loading="lazy" decoding="async">`;
+  const effectiveUrl = (url && url.trim()) ? url : FALLBACK_IMAGE;
+  const optimizedUrl = buildCloudinaryDeliveryUrl(effectiveUrl, { width: widthHint });
+  if (effectiveUrl.includes('res.cloudinary.com')) {
+    return `<img class="${className}" src="${FALLBACK_IMAGE}" data-cld-src="${optimizedUrl}" alt="${escapedAlt}" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='${FALLBACK_IMAGE}'">`;
   }
-  return `<img class="${className}" src="${url || FALLBACK_IMAGE}" alt="${escapedAlt}" loading="lazy" decoding="async">`;
+  return `<img class="${className}" src="${effectiveUrl}" alt="${escapedAlt}" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='${FALLBACK_IMAGE}'">`;
 }
 
 async function fetchTemplates(db, { limit, orderByCreated = true } = {}) {
@@ -97,7 +98,7 @@ function renderProductCard(template = {}) {
     <article class="product-card" data-product-card>
       <a href="${detailsUrl}" class="product-card__media">
         <span class="product-badge">${escapeHtml(badge)}</span>
-        ${imageMarkup(template.imageUrl || FALLBACK_IMAGE, template.title, 'product-card__image')}
+        ${imageMarkup(template.imageUrl, template.title, 'product-card__image')}
       </a>
       <div class="product-card__body">
         <h3 class="product-card__title" style="font-size: 0.95rem; font-weight: 500; color: #2a2a2a; margin: 0 0 6px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: var(--font-body);">${escapeHtml(template.title || 'Untitled product')}</h3>
