@@ -1,5 +1,6 @@
 {
   "hosting": {
+    "site": "memory-remains",
     "public": ".",
     "ignore": [
       "firebase.json",

@@ -3,243 +3,67 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Get In Touch - SuminCreates</title>
-  <!-- FontAwesome for icons -->
+  <title>Get In Touch - Hearts and Beans</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="../../style.css">
-  <!-- Firebase SDKs -->
+  <link rel="stylesheet" href="/src/styles/main.css">
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
 </head>
-<body>
+<body data-page="contact">
+  <div id="site-shell"></div>
 
-  <!-- Announcement Bar -->
-  <div style="background-color: var(--color-primary); color: #ffffff; text-align: center; padding: 0.5rem; font-size: 0.8rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase;">
-    ✨ Join the newsletter for free aesthetic Canva templates!
-  </div>
-
-  <!-- Header -->
-  <header>
-    <div class="container nav-container">
-      <a href="/" class="logo">SuminCreates</a>
-      
-      <!-- Desktop Navigation -->
-      <nav class="nav-menu">
-        <a href="/" class="nav-link">Home</a>
-        <a href="/collections/paid-products" class="nav-link">Shop</a>
-        <a href="/pages/library" class="nav-link">My Library</a>
-        <a href="/pages/profile" class="nav-link">Profile</a>
-        <a href="/pages/about" class="nav-link">About</a>
-        <a href="/pages/contact" class="nav-link active">Contact</a>
-        <button id="auth-nav-btn" class="btn btn-secondary" style="padding: 0.4rem 1rem; font-size: 0.8rem; margin-left: 10px;">Login</button>
-      </nav>
-
-      <!-- Actions -->
-      <div class="nav-actions">
-        <button class="cart-icon" aria-label="Shopping Cart">
-          <i class="fa-solid fa-bag-shopping"></i>
-          <span class="cart-count">0</span>
-        </button>
-        
-        <!-- Mobile Menu Toggle -->
-        <button class="menu-toggle" aria-label="Toggle Menu">
-          <span></span>
-          <span></span>
-          <span></span>
-        </button>
-      </div>
-    </div>
-  </header>
-
-  <div class="mobile-drawer">
-    <ul>
-      <li><a href="/" class="nav-link">Home</a></li>
-      <li><a href="/collections/paid-products" class="nav-link">Shop</a></li>
-      <li><a href="/pages/library" class="nav-link">My Library</a></li>
-      <li><a href="/pages/profile" class="nav-link">Profile</a></li>
-      <li><a href="/pages/about" class="nav-link">About</a></li>
-      <li><a href="/pages/contact" class="nav-link active">Contact</a></li>
-      <li style="margin-top: 20px;"><a href="#" id="auth-mobile-btn" style="color: var(--color-primary); font-weight: 700;">Login</a></li>
-    </ul>
-  </div>
-  <div class="overlay"></div>
-
-  <main class="container">
+  <main>
     <section class="section">
-      <!-- Title Header -->
-      <div class="page-header">
-        <h1 class="page-title">Get In Touch</h1>
-        <p class="page-subtitle">Have a question about our Canva templates, need help customizing your design, or looking to collaborate? Drop us a line below and we will get back to you as soon as possible.</p>
-      </div>
+      <div class="container">
+        <div class="page-intro">
+          <span class="eyebrow">Get In Touch</span>
+          <h1>Need help with templates, custom uploads, or order status?</h1>
+          <p>Reach out for support, custom gifting workflow questions, or project-related feedback.</p>
+        </div>
 
-      <!-- Contact Content Grid -->
-      <div class="contact-grid">
-        <!-- Info Column -->
-        <div class="contact-info-section">
-          <h2>Contact Information</h2>
-          <p style="color: var(--color-fg-light); margin-bottom: var(--spacing-lg); line-height: 1.7;">Whether you want to share your designed templates using SuminCreates, ask for template customization guidelines, or chat about collaborations—we would love to hear from you.</p>
-          
-          <ul class="contact-details">
-            <li>
-              <i class="fa-solid fa-envelope"></i>
+        <div class="contact-grid content-split">
+          <div class="card-panel" style="padding:1.5rem">
+            <div class="info-list">
               <div>
-                <p style="font-weight: 600; color: var(--color-fg);">Email Us</p>
-                <p style="color: var(--color-fg-light);">hello@sumincreates.com</p>
+                <i class="fa-solid fa-envelope"></i>
+                <div>
+                  <strong>Email us</strong>
+                  <p>support@heartsandbeans.smartbiz.in</p>
+                </div>
               </div>
-            </li>
-            <li>
-              <i class="fa-solid fa-clock"></i>
               <div>
-                <p style="font-weight: 600; color: var(--color-fg);">Customer Support Hours</p>
-                <p style="color: var(--color-fg-light);">Monday – Friday, 9:00 AM – 5:00 PM (AEST)</p>
-                <p style="font-size: 0.85rem; color: var(--color-fg-light); font-style: italic; margin-top: 2px;">We usually reply within 24-48 hours.</p>
+                <i class="fa-solid fa-clock"></i>
+                <div>
+                  <strong>Support hours</strong>
+                  <p>Monday to Friday, 9:00 AM to 5:00 PM</p>
+                </div>
               </div>
-            </li>
-          </ul>
+              <div>
+                <i class="fa-solid fa-cloud"></i>
+                <div>
+                  <strong>Upload guidance</strong>
+                  <p>We can help with Cloudinary upload questions, delivery issues, and payment verification.</p>
+                </div>
+              </div>
+            </div>
+          </div>
 
-          <h2 style="font-size: 1.5rem; margin-top: var(--spacing-lg); margin-bottom: var(--spacing-sm);">Follow the Creative Journey</h2>
-          <div class="social-links">
-            <a href="https://instagram.com" target="_blank" class="social-icon" aria-label="Instagram"><i class="fa-brands fa-instagram"></i></a>
-            <a href="https://youtube.com" target="_blank" class="social-icon" aria-label="YouTube"><i class="fa-brands fa-youtube"></i></a>
-            <a href="https://pinterest.com" target="_blank" class="social-icon" aria-label="Pinterest"><i class="fa-brands fa-pinterest"></i></a>
-            <a href="https://tiktok.com" target="_blank" class="social-icon" aria-label="TikTok"><i class="fa-brands fa-tiktok"></i></a>
+          <div class="form-card">
+            <form id="contact-form" class="stack-form">
+              <input id="contact-name" type="text" placeholder="Your name" required>
+              <input id="contact-email" type="email" placeholder="Email address" required>
+              <input id="contact-subject" type="text" placeholder="Subject" required>
+              <textarea id="contact-message" rows="5" placeholder="Write your message here" required></textarea>
+              <button type="submit" class="pill-button">Send Message</button>
+            </form>
           </div>
         </div>
-
-        <!-- Form Column -->
-        <div>
-          <form id="contact-form" class="contact-form">
-            <div class="form-group">
-              <label for="name">Your Name</label>
-              <input type="text" id="name" required placeholder="Enter your full name">
-            </div>
-            
-            <div class="form-group">
-              <label for="email">Email Address</label>
-              <input type="email" id="email" required placeholder="Enter your email address">
-            </div>
-
-            <div class="form-group">
-              <label for="subject">Subject</label>
-              <input type="text" id="subject" required placeholder="How can we help you?">
-            </div>
-
-            <div class="form-group">
-              <label for="message">Message</label>
-              <textarea id="message" rows="5" required placeholder="Write your message here..."></textarea>
-            </div>
-
-            <button type="submit" class="btn btn-primary" style="width: 100%; font-size: 0.9rem; padding: 0.9rem; border-radius: var(--border-radius-sm);">Send Message</button>
-          </form>
-        </div>
-      </div>
-    </section>
-
-    <!-- Newsletter Section -->
-    <section class="newsletter" style="margin-left: calc(-50vw + 50%); margin-right: calc(-50vw + 50%); width: 100vw; position: relative; left: 50%; right: 50%; transform: translateX(-50%);">
-      <div class="container newsletter-content">
-        <h2>Join the Cozy Creators Club</h2>
-        <p>Sign up to receive free weekly Canva design assets, exclusive templates discounts, and creative mood board inspirations.</p>
-        <form class="newsletter-form">
-          <input type="email" placeholder="Your email address" required aria-label="Email address">
-          <button type="submit" class="btn btn-primary">Subscribe</button>
-        </form>
       </div>
     </section>
   </main>
 
-  <!-- Footer -->
-  <footer>
-    <div class="container footer-grid">
-      <div class="footer-info">
-        <h3>SuminCreates</h3>
-        <p>Creating cozy, aesthetic Canva templates and digital design solutions for creators, writers, and brand builders.</p>
-      </div>
-      <div class="footer-links">
-        <h4>Explore</h4>
-        <ul>
-          <li><a href="/">Home</a></li>
-          <li><a href="/collections/paid-products">Shop Templates</a></li>
-          <li><a href="/pages/about">Brand Story</a></li>
-          <li><a href="/pages/contact">Get in Touch</a></li>
-        </ul>
-      </div>
-      <div class="footer-links">
-        <h4>Follow Us</h4>
-        <ul>
-          <li><a href="https://instagram.com" target="_blank"><i class="fa-brands fa-instagram"></i> Instagram</a></li>
-          <li><a href="https://youtube.com" target="_blank"><i class="fa-brands fa-youtube"></i> YouTube</a></li>
-          <li><a href="https://pinterest.com" target="_blank"><i class="fa-brands fa-pinterest"></i> Pinterest</a></li>
-          <li><a href="https://tiktok.com" target="_blank"><i class="fa-brands fa-tiktok"></i> TikTok</a></li>
-        </ul>
-      </div>
-    </div>
-    <div class="container footer-bottom">
-      <p>&copy; 2026 SuminCreates. All rights reserved. Inspired by SuminCreates storefront design.</p>
-      <p>Aesthetic E-commerce Layout</p>
-    </div>
-  </footer>
-
-  <!-- Cart Drawer -->
-  <div class="cart-drawer" id="cart-drawer">
-    <div class="cart-drawer-header">
-      <h3 style="font-family: var(--font-heading); font-size: 1.25rem; color: var(--color-primary); margin: 0;">Shopping Bag</h3>
-      <button class="cart-drawer-close" id="cart-drawer-close-btn">&times;</button>
-    </div>
-    <div class="cart-drawer-body">
-      <div id="cart-items-container">
-        <!-- Cart Items Go Here -->
-      </div>
-      <div id="cart-empty-message" style="text-align: center; color: var(--color-fg-light); margin-top: 2rem;">
-        <i class="fa-solid fa-bag-shopping" style="font-size: 2.5rem; color: var(--color-border); margin-bottom: 1rem; display: block;"></i>
-        Your shopping bag is empty.
-      </div>
-    </div>
-    <div class="cart-drawer-footer" id="cart-drawer-footer" style="display: none;">
-      <div class="cart-total-row">
-        <span>Subtotal</span>
-        <span id="cart-subtotal-val">$0.00</span>
-      </div>
-      
-      <!-- Checkout Form -->
-      <form id="checkout-form" style="margin-top: 1.5rem; display: flex; flex-direction: column; gap: 10px;">
-        <h4 style="margin: 0 0 5px 0; font-family: 'DM Sans', sans-serif; font-size: 0.95rem; font-weight: 700; color: var(--color-primary);">Checkout Details</h4>
-        <input type="text" id="checkout-name" placeholder="Full Name" required 
-               style="padding: 0.7rem; border: 1px solid var(--color-border); border-radius: 4px; font-size: 0.9rem; font-family: 'Nunito', sans-serif;">
-        <input type="email" id="checkout-email" placeholder="Email Address" required 
-               style="padding: 0.7rem; border: 1px solid var(--color-border); border-radius: 4px; font-size: 0.9rem; font-family: 'Nunito', sans-serif;">
-        <div style="font-size: 0.8rem; color: var(--color-fg-light); margin: 5px 0; line-height: 1.4;">
-          💡 Pay to Bkash/Nagad: <strong>017XXXXXXXX</strong>. We will approve access within 1-2 hours of placing the order.
-        </div>
-        <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 5px; padding: 0.8rem;">Place Order</button>
-      </form>
-    </div>
-  </div>
-  <div class="cart-drawer-overlay" id="cart-drawer-overlay"></div>
-
-  <!-- Auth Modal Markup -->
-  <div class="auth-modal" id="auth-modal">
-    <div class="auth-modal-card">
-      <div class="auth-modal-header" style="border-bottom: none; padding-bottom: 0; margin-bottom: 1rem;">
-        <h3 style="font-family: var(--font-heading); font-size: 1.25rem; color: var(--color-primary); margin: 0;">Sign In</h3>
-        <button class="auth-modal-close" id="auth-modal-close-btn">&times;</button>
-      </div>
-      <div class="auth-modal-body" style="text-align: center;">
-        <p style="color: var(--color-fg-light); font-size: 0.9rem; margin-bottom: 1.5rem; line-height: 1.4;">Sign in to save items to your bag, place orders, and access your template library.</p>
-        <div style="display: flex; flex-direction: column; gap: 10px;">
-          <button type="button" class="btn btn-secondary" onclick="loginWithGoogle()" style="display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 0.9rem; padding: 0.75rem; border: 1px solid var(--color-border); background: white; font-family: 'Nunito', sans-serif; cursor: pointer; width: 100%;">
-            <i class="fa-brands fa-google" style="color: #4285F4;"></i> Continue with Google
-          </button>
-          <button type="button" class="btn btn-secondary" onclick="loginWithFacebook()" style="display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 0.9rem; padding: 0.75rem; border: 1px solid var(--color-border); background: white; font-family: 'Nunito', sans-serif; cursor: pointer; width: 100%;">
-            <i class="fa-brands fa-facebook" style="color: #1877F2;"></i> Continue with Facebook
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-  <div class="auth-modal-overlay" id="auth-modal-overlay"></div>
-
-  <script src="../../script.js"></script>
+  <div id="site-overlays"></div>
+  <script type="module" src="/src/app/main.js"></script>
 </body>
 </html>
