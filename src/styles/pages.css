@@ -140,19 +140,22 @@
 .product-card {
   display: flex;
   flex-direction: column;
-  background: var(--color-bg-elevated);
+  background: #fffdf9;
+  border: 1px solid #e2dcd6;
+  border-radius: var(--radius-md);
+  overflow: hidden;
 }
 
 .product-card__media {
   position: relative;
-  aspect-ratio: 1 / 1;
+  aspect-ratio: 3 / 4;
   background: linear-gradient(180deg, #f3eadf 0%, #e5d1bd 100%);
 }
 
 .product-card__body {
   display: grid;
-  gap: 0.6rem;
-  padding: 1.15rem;
+  gap: 0.4rem;
+  padding: 1rem 1rem 1.25rem 1rem;
 }
 
 .product-meta {

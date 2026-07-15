@@ -94,13 +94,13 @@ function renderProductCard(template = {}) {
   const detailsUrl = template.id ? `/pages/product-details?id=${template.id}` : '#';
 
   return `
-    <article class="product-card" data-product-card style="background: #fffafa; border: 1px solid #f2e3db; border-radius: 12px; overflow: hidden;">
-      <a href="${detailsUrl}" class="product-card__media" style="position: relative; display: block;">
-        <span class="product-badge" style="position: absolute; top: 12px; left: 12px; padding: 4px 10px; border-radius: 6px; background: var(--color-primary); color: #fff; font-size: 0.75rem; font-weight: 600; text-transform: none; z-index: 2;">${escapeHtml(badge)}</span>
+    <article class="product-card" data-product-card>
+      <a href="${detailsUrl}" class="product-card__media">
+        <span class="product-badge">${escapeHtml(badge)}</span>
         ${imageMarkup(template.imageUrl || FALLBACK_IMAGE, template.title, 'product-card__image')}
       </a>
-      <div class="product-card__body" style="padding: 12px 14px;">
-        <h3 style="font-size: 0.95rem; font-weight: 500; color: #2a2a2a; margin: 0 0 6px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: var(--font-body);">${escapeHtml(template.title || 'Untitled product')}</h3>
+      <div class="product-card__body">
+        <h3 class="product-card__title" style="font-size: 0.95rem; font-weight: 500; color: #2a2a2a; margin: 0 0 6px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: var(--font-body);">${escapeHtml(template.title || 'Untitled product')}</h3>
         <div class="product-price-row" style="display: flex; gap: 0.4rem; align-items: baseline; margin: 0;">
           <strong style="color: var(--color-primary); font-size: 1rem; font-weight: 600;">₹${price}</strong>
           ${compare ? `<span style="color: #888; text-decoration: line-through; font-size: 0.8rem;">₹${compare}</span>` : ''}

@@ -3,9 +3,69 @@ import { SITE_CONFIG } from '../config/site-config.js';
 function renderNavLinks(pageId, isMobile = false) {
   return SITE_CONFIG.navLinks.map((link) => {
     const activeClass = link.page === pageId ? 'is-active' : '';
-    const isDropdown = !isMobile && link.label !== 'All Products';
-    const icon = isDropdown ? ' <i class="fa-solid fa-chevron-down" style="font-size:0.7em; margin-left:4px; color: var(--color-text-soft);"></i>' : '';
-    return `<a href="${link.href}" class="nav-link ${activeClass}" style="color: #3b1c1c; text-decoration: none;">${link.label}${icon}</a>`;
+    const isDropdown = !isMobile && (link.label === 'Categories' || link.label === 'Collections');
+    const hasChevron = !isMobile && link.label !== 'All Products';
+    const icon = hasChevron ? ' <i class="fa-solid fa-chevron-down" style="font-size:0.7em; margin-left:4px; color: var(--color-text-soft);"></i>' : '';
+    
+    let dropdownHtml = '';
+    if (isDropdown) {
+      if (link.label === 'Categories') {
+        dropdownHtml = `
+          <div class="megamenu-dropdown">
+            <div class="megamenu-inner container">
+              <div class="megamenu-grid" style="grid-template-columns: repeat(4, 1fr);">
+                <a href="/collections/paid-products" class="megamenu-card">
+                  <div class="megamenu-card-bg">
+                    <span>MAGAZINE<br>&<br>NEWSPAPER</span>
+                  </div>
+                  <span class="megamenu-card-title">Magazine & Newspaper</span>
+                </a>
+              </div>
+            </div>
+          </div>
+        `;
+      } else if (link.label === 'Collections') {
+        dropdownHtml = `
+          <div class="megamenu-dropdown">
+            <div class="megamenu-inner container" style="display: flex; gap: 2rem;">
+              <div class="megamenu-grid" style="flex: 1; grid-template-columns: repeat(4, 1fr);">
+                <a href="/collections/paid-products" class="megamenu-card">
+                  <div class="megamenu-card-bg"><span>FOR HER</span></div>
+                  <span class="megamenu-card-title">FOR HER</span>
+                </a>
+                <a href="/collections/paid-products" class="megamenu-card">
+                  <div class="megamenu-card-bg"><span>I LOVE<br>MY SELF</span></div>
+                  <span class="megamenu-card-title">I Love My Self</span>
+                </a>
+                <a href="/collections/paid-products" class="megamenu-card">
+                  <div class="megamenu-card-bg"><span>BEST<br>SELLING</span></div>
+                  <span class="megamenu-card-title">Best Selling</span>
+                </a>
+                <a href="/collections/paid-products" class="megamenu-card">
+                  <div class="megamenu-card-bg"><span>BIRTHDAY<br>SPECIAL</span></div>
+                  <span class="megamenu-card-title">Birthday Special</span>
+                </a>
+              </div>
+              <div class="megamenu-sidebar" style="width: 250px; border-left: 1px solid var(--color-border); padding-left: 2rem;">
+                <h4 style="font-size: 0.9rem; margin-bottom: 1rem; color: var(--color-text-soft); font-weight: 500;">Other Collections</h4>
+                <ul style="list-style: none; padding: 0; margin: 0; display: grid; gap: 0.75rem;">
+                  <li><a href="/collections/paid-products" style="color: var(--color-text); text-decoration: none; font-size: 0.9rem;">FOR HIM</a></li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+    }
+    
+    return `
+      <div class="nav-item-wrapper ${isDropdown ? 'has-dropdown' : ''}" style="position: ${isMobile ? 'static' : 'relative'};">
+        <a href="${link.href}" class="nav-link ${activeClass}" style="color: #3b1c1c; text-decoration: none; display: inline-flex; align-items: center; height: 100%;">
+          ${link.label}${icon}
+        </a>
+        ${dropdownHtml}
+      </div>
+    `;
   }).join('');
 }
 
