@@ -1,7 +1,7 @@
 export const SITE_CONFIG = {
   brandName: 'Hearts and Beans',
   announcement: '₹100 is additional for the COD method, which you’ve to pay in advance',
-  supportPhoneLabel: '+91 92503 03360',
+  supportPhoneLabel: '+91 9250303360',
   supportPhoneHref: 'tel:9250303360',
   primaryCtaLabel: 'Shop Now',
   navLinks: [
@@ -14,32 +14,31 @@ export const SITE_CONFIG = {
     {
       title: 'Help',
       links: [
-        { href: '/pages/contact', label: 'Talk to us' },
-        { href: '/pages/library', label: 'Track your order' },
-        { href: '/pages/about', label: 'How it works' }
+        { href: '/pages/policy', label: 'Store Policies' },
+        { href: '/pages/library', label: 'Track your Order' },
+        { href: '/pages/contact', label: 'Request Return' },
+        { href: '/pages/policy', label: 'Return Policy' },
+        { href: '/pages/policy', label: 'Privacy Policy' }
       ]
     },
     {
       title: 'Shop',
       links: [
-        { href: '/collections/paid-products', label: 'All products' },
-        { href: '/collections/paid-products', label: 'Best selling' },
-        { href: '/collections/paid-products', label: 'Birthday special' }
+        { href: '/', label: 'Magazine & Newspaper' }
       ]
     },
     {
       title: 'Explore',
       links: [
-        { href: '/pages/about', label: 'Brand story' },
-        { href: '/pages/contact', label: 'Support' },
-        { href: '/', label: 'Home' }
+        { href: '/collections/paid-products', label: 'Birthday Special' },
+        { href: '/collections/paid-products', label: 'FOR HIM' },
+        { href: '/collections/paid-products', label: 'FOR HER' },
+        { href: '/collections/paid-products', label: 'Best Selling' },
+        { href: '/collections/paid-products', label: 'I Love My Self' }
       ]
     }
   ],
   socialLinks: [
-    { href: 'https://www.instagram.com/heartsabeanss', label: 'Instagram', icon: 'fa-instagram' },
-    { href: 'https://youtube.com', label: 'YouTube', icon: 'fa-youtube' },
-    { href: 'https://pinterest.com', label: 'Pinterest', icon: 'fa-pinterest' },
-    { href: 'https://tiktok.com', label: 'TikTok', icon: 'fa-tiktok' }
+    { href: 'https://www.instagram.com/heartsabeanss', label: 'Instagram', icon: 'fa-instagram' }
   ]
 };

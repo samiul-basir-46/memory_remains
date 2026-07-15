@@ -1,9 +1,11 @@
 import { SITE_CONFIG } from '../config/site-config.js';
 
-function renderNavLinks(pageId) {
+function renderNavLinks(pageId, isMobile = false) {
   return SITE_CONFIG.navLinks.map((link) => {
     const activeClass = link.page === pageId ? 'is-active' : '';
-    return `<a href="${link.href}" class="nav-link ${activeClass}">${link.label}</a>`;
+    const isDropdown = !isMobile && link.label !== 'All Products';
+    const icon = isDropdown ? ' <i class="fa-solid fa-chevron-down" style="font-size:0.7em; margin-left:4px; color: var(--color-text-soft);"></i>' : '';
+    return `<a href="${link.href}" class="nav-link ${activeClass}" style="color: #3b1c1c; text-decoration: none;">${link.label}${icon}</a>`;
   }).join('');
 }
 
@@ -36,27 +38,31 @@ export function renderSiteShell(pageId) {
   shell.innerHTML = `
     <div class="announcement-bar">${SITE_CONFIG.announcement}</div>
     <header class="site-header">
-      <div class="container site-header__inner">
-        <a class="site-logo" href="/">${SITE_CONFIG.brandName}</a>
+      <div class="container site-header__inner" style="display: grid; grid-template-columns: 1fr 2fr 1fr; align-items: center; gap: 1rem;">
+        <a class="site-logo" href="/" style="display: flex; align-items: center; gap: 0.5rem; text-decoration: none;">
+          <div style="width: 48px; height: 48px; border-radius: 50%; background: #3b1c1c; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+            <span style="color: #fff; font-family: 'Yeseva One', serif; font-size: 0.6rem; text-align: center; line-height: 1.1;">Hearts &<br>Beans</span>
+          </div>
+          <span style="font-family: 'Yeseva One', serif; font-size: 1.35rem; color: #3b1c1c;">${SITE_CONFIG.brandName}</span>
+        </a>
         
         <!-- Search bar -->
-        <div class="header-search">
-          <input type="text" id="header-search-input" placeholder="Search anything..." aria-label="Search">
-          <i class="fa-solid fa-magnifying-glass"></i>
+        <div class="header-search" style="max-width: 600px; margin: 0 auto; width: 100%;">
+          <input type="text" id="header-search-input" placeholder="Search anything..." aria-label="Search" style="border-radius: 8px; border: 1px solid #ddd; padding: 0.6rem 1rem; width: 100%;">
         </div>
         
-        <div class="site-actions">
-          <button id="location-btn" class="pill-button location-btn" type="button">
+        <div class="site-actions" style="justify-content: flex-end;">
+          <button id="location-btn" class="pill-button location-btn" type="button" style="background: var(--color-primary); color: white; border: none; font-size: 0.85rem; padding: 0.6rem 1.2rem;">
             <i class="fa-solid fa-map-pin"></i>
             <span>Check Location</span>
           </button>
           
-          <button class="cart-icon" type="button" aria-label="Shopping Cart">
-            <i class="fa-solid fa-bag-shopping"></i>
+          <button class="cart-icon" type="button" aria-label="Shopping Cart" style="color: #3b1c1c; font-size: 1.1rem; margin: 0 0.5rem;">
+            <i class="fa-solid fa-cart-shopping"></i>
             <span class="cart-count">0</span>
           </button>
           
-          <button id="auth-nav-btn" class="auth-text-link" type="button">Sign In</button>
+          <button id="auth-nav-btn" class="auth-text-link" type="button" style="color: #3b1c1c; font-size: 0.9rem;">Sign In</button>
           
           <button class="menu-toggle" type="button" aria-label="Toggle Menu">
             <span></span><span></span><span></span>
@@ -65,8 +71,8 @@ export function renderSiteShell(pageId) {
       </div>
       
       <!-- Sub navigation row -->
-      <nav class="site-sub-nav" aria-label="Primary">
-        <div class="container site-sub-nav__inner">
+      <nav class="site-sub-nav" aria-label="Primary" style="border-top: none; padding-top: 1rem; padding-bottom: 1rem;">
+        <div class="container site-sub-nav__inner" style="justify-content: space-around; max-width: 900px; margin: 0 auto; font-family: 'Yeseva One', serif; font-size: 0.9rem;">
           ${renderNavLinks(pageId)}
         </div>
       </nav>
@@ -91,21 +97,57 @@ export function renderSiteShell(pageId) {
     document.body.appendChild(footer);
   }
   footer.innerHTML = `
-    <div class="container site-footer__top">
+    <div class="container site-footer__top" style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 2rem; padding: 3rem 0; color: white;">
       <div class="footer-brand">
-        <h3>${SITE_CONFIG.brandName}</h3>
-        <p>Premium customized magazines and keepsakes designed to capture your most core memories. Handcrafted with love.</p>
-        <a class="footer-phone" href="${SITE_CONFIG.supportPhoneHref}">
+        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1.5rem;">
+          <div style="width: 48px; height: 48px; border-radius: 50%; background: #3b1c1c; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+            <span style="color: #fff; font-family: 'Yeseva One', serif; font-size: 0.6rem; text-align: center; line-height: 1.1;">Hearts &<br>Beans</span>
+          </div>
+          <h3 style="font-family: 'Yeseva One', serif; font-size: 1.35rem; margin: 0; color: white;">${SITE_CONFIG.brandName}</h3>
+        </div>
+        
+        <div style="display: flex; gap: 0.8rem; margin-bottom: 1rem; align-items: flex-start; font-size: 0.85rem;">
+          <i class="fa-solid fa-location-dot" style="margin-top: 0.2rem;"></i>
+          <p style="margin: 0;">heartsabeans, Tulsipur, Prayagraj, Uttar Pradesh, 211003</p>
+        </div>
+        
+        <div style="display: flex; gap: 0.8rem; margin-bottom: 1.5rem; align-items: center; font-size: 0.85rem;">
           <i class="fa-solid fa-phone"></i>
-          <span>${SITE_CONFIG.supportPhoneLabel}</span>
-        </a>
+          <div>
+            <div style="font-size: 0.75rem; opacity: 0.9;">Talk to us</div>
+            <div>${SITE_CONFIG.supportPhoneLabel}</div>
+          </div>
+        </div>
+        
+        <div style="display: flex; align-items: center; gap: 0.8rem; font-size: 0.85rem; font-weight: bold;">
+          Connect with us 
+          ${renderSocialLinks()}
+        </div>
       </div>
       ${SITE_CONFIG.footerGroups.map(renderFooterGroup).join('')}
     </div>
-    <div class="container site-footer__bottom">
-      <div class="footer-socials">${renderSocialLinks()}</div>
-      <p>&copy; 2026 ${SITE_CONFIG.brandName}. All rights reserved.</p>
+    
+    <div style="border-top: 1px solid rgba(255,255,255,0.2); margin: 0 2rem;"></div>
+    
+    <div class="container site-footer__bottom" style="display: flex; justify-content: space-between; align-items: center; padding: 1.5rem 0; color: white; font-size: 0.8rem;">
+      <div style="display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap;">
+        <strong>We accept</strong>
+        <span style="font-weight:bold; font-size: 1rem;">VISA</span>
+        <span style="display: inline-block; width: 24px; height: 16px; background: #ff5f00; border-radius: 2px; position:relative; overflow:hidden;"><span style="position:absolute; width:16px; height:16px; background:#eb001b; border-radius:50%; left:-4px;"></span><span style="position:absolute; width:16px; height:16px; background:#f79e1b; border-radius:50%; right:-4px;"></span></span>
+        <span style="font-weight:bold; color: #5f6368;">G Pay</span>
+        <span style="font-weight:bold;">BHIM UPI</span>
+        <span style="display:flex; align-items:center; gap:0.2rem;"><i class="fa-solid fa-building-columns"></i> Net Banking</span>
+        <span style="display:flex; align-items:center; gap:0.2rem;"><i class="fa-solid fa-wallet"></i> Wallet</span>
+        <span style="display:flex; align-items:center; gap:0.2rem;"><i class="fa-solid fa-money-bill-1"></i> Cash on Delivery</span>
+      </div>
+      <div>
+        Built with <span style="font-family: 'Yeseva One', serif; font-size: 1.1rem; display:inline-flex; align-items:baseline; gap:0.2rem;">smart<span style="color:#f79e1b;">biz</span></span> <span style="font-size:0.6rem; vertical-align:middle;">by amazon</span>
+      </div>
     </div>
+    
+    <a href="https://wa.me/919250303360" target="_blank" rel="noreferrer" class="whatsapp-float" style="position: fixed; bottom: 20px; right: 20px; background-color: #25d366; color: white; border-radius: 50%; width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; font-size: 2rem; box-shadow: 0 4px 10px rgba(0,0,0,0.3); z-index: 100;">
+      <i class="fa-brands fa-whatsapp"></i>
+    </a>
   `;
 
   overlays.innerHTML = `

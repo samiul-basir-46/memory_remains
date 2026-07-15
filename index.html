@@ -15,105 +15,29 @@
 
   <main>
     <section class="section">
-      <div class="container hero-grid">
-        <div class="hero-copy">
-          <span class="eyebrow">Inspired by premium memory stores</span>
-          <h1>Give your memories a premium, emotional storefront experience</h1>
-          <p>Clean sections, stronger product storytelling, and organized purchase flows now make the site feel closer to a modern gift-first memory store, while keeping your Firebase admin connection intact.</p>
-          <div class="hero-actions">
-            <a href="/collections/paid-products" class="pill-button">Shop All Products</a>
-            <a href="/pages/about" class="pill-button pill-button--ghost">How It Works</a>
-          </div>
-          <div class="metric-grid">
-            <div class="metric-card"><strong>Admin Connected</strong><span>Products still load from Firebase.</span></div>
-            <div class="metric-card"><strong>Optimized Uploads</strong><span>Cloudinary uploads are compressed before delivery.</span></div>
-            <div class="metric-card"><strong>Clean Structure</strong><span>Shared layout and modular services keep things maintainable.</span></div>
-          </div>
-        </div>
-        <div>
-          <div class="showcase-card showcase-main">
-            <img src="/assets/scrapbook_collage_bundle.png" alt="Premium memory collection">
-            <div class="showcase-caption">
-              <span class="eyebrow">Best Selling Feel</span>
-              <h3>Personalized stories, premium layout, stronger first impression</h3>
-            </div>
-          </div>
-          <div class="showcase-stack">
-            <div class="showcase-card"><img src="/assets/instagram_carousel_summer.png" alt="Gift-ready collection"></div>
-            <div class="showcase-card"><img src="/assets/aesthetic_planner_pack.png" alt="Curated product layouts"></div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section class="section section--tight">
       <div class="container">
-        <div class="section-heading">
-          <div class="section-copy">
-            <span class="eyebrow">Featured Products</span>
-            <h2>Check out our newest addition to the store</h2>
-            <p>Dynamic featured products are still fetched from Firestore, but now displayed in a cleaner premium grid.</p>
+        <div class="page-intro" style="text-align: center; margin-bottom: 2rem;">
+          <h1 style="font-size: clamp(2rem, 4vw, 3rem); font-family: var(--font-heading);">Magazine & Newspaper</h1>
+        </div>
+        
+        <div class="shop-controls" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+          <div class="shop-filters" style="display: flex; gap: 0.5rem;">
+            <button class="pill-button pill-button--ghost" type="button" style="padding: 0.4rem 1rem; font-size: 0.85rem; border-color: var(--color-primary); color: var(--color-primary);">Filter <i class="fa-solid fa-sliders" style="margin-left: 0.5rem;"></i></button>
+            <button class="pill-button pill-button--ghost" type="button" style="padding: 0.4rem 1rem; font-size: 0.85rem; background-color: var(--color-bg-elevated); border: none; color: var(--color-primary);">In Stock <i class="fa-solid fa-xmark" style="margin-left: 0.5rem;"></i></button>
+            <button type="button" style="background: none; border: none; color: var(--color-primary); font-size: 0.85rem; padding: 0.4rem 1rem; cursor: pointer;">Clear Filters</button>
           </div>
-          <a href="/collections/paid-products" class="pill-button pill-button--ghost">View All</a>
-        </div>
-        <div id="featured-templates-grid" class="products-grid"></div>
-      </div>
-    </section>
-
-    <section class="section">
-      <div class="container">
-        <div class="section-heading">
-          <div class="section-copy">
-            <span class="eyebrow">Shop By Collection</span>
-            <h2>Curated sections that feel easier to browse</h2>
-            <p>This flow follows the reference site’s collection-led browsing pattern without cloning it exactly.</p>
+          <div class="shop-sort">
+            <select id="sort-by" class="pill-button pill-button--ghost" style="padding: 0.4rem 1rem; font-size: 0.85rem; border-color: var(--color-primary); color: var(--color-primary); appearance: none; background: transparent; cursor: pointer;">
+              <option value="Recommended">Sort By : Recommended</option>
+              <option value="Price: Low to High">Price: Low to High</option>
+              <option value="Price: High to Low">Price: High to Low</option>
+              <option value="Alphabetically: A-Z">Alphabetically: A-Z</option>
+              <option value="Newest First">Newest First</option>
+            </select>
           </div>
         </div>
-        <div id="collection-highlight-grid" class="collection-grid"></div>
-      </div>
-    </section>
 
-    <section class="section">
-      <div class="container story-grid feature-band">
-        <div class="story-copy">
-          <span class="eyebrow" style="color:#fff7f0">Best Selling</span>
-          <h2>A richer story section before people reach checkout</h2>
-          <p>Visitors now get a better trust-building flow before purchase, with clear signals around product type, collections, and supported delivery flow.</p>
-          <ul class="feature-list">
-            <li>Featured-first shopping flow</li>
-            <li>Collection-led browsing blocks</li>
-            <li>Cloudinary-aware image loading and upload compression</li>
-            <li>Existing login, cart, checkout, and library preserved</li>
-          </ul>
-          <a href="/pages/contact" class="pill-button pill-button--ghost">Talk to Us</a>
-        </div>
-        <div class="media-card">
-          <img src="/assets/aesthetic_planner_pack.png" alt="Premium story driven product section">
-        </div>
-      </div>
-    </section>
-
-    <section class="section section--tight">
-      <div class="container">
-        <div class="section-copy" style="margin-bottom:1rem">
-          <span class="eyebrow">Our Categories</span>
-          <h2>Quick entry points for visitors</h2>
-        </div>
-        <div id="category-chip-list" class="chip-list"></div>
-      </div>
-    </section>
-
-    <section class="section section--tight">
-      <div class="container card-panel" style="padding:2rem">
-        <div class="page-intro" style="margin-bottom:0">
-          <span class="eyebrow">Stay Connected</span>
-          <h1 style="font-size:clamp(2rem,4vw,3rem)">Join the Cozy Creators Club</h1>
-          <p>Sign up to receive free weekly Canva design assets, exclusive discounts, and creator-focused design updates.</p>
-        </div>
-        <form class="newsletter-form stack-form" style="max-width:560px;margin:1.5rem auto 0">
-          <input type="email" placeholder="Your email address" required aria-label="Email address">
-          <button type="submit" class="pill-button">Subscribe</button>
-        </form>
+        <div id="templates-grid" class="products-grid"></div>
       </div>
     </section>
   </main>

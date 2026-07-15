@@ -94,23 +94,18 @@ function renderProductCard(template = {}) {
   const detailsUrl = template.id ? `/pages/product-details?id=${template.id}` : '#';
 
   return `
-    <article class="product-card" data-product-card>
-      <a href="${detailsUrl}" class="product-card__media">
-        <span class="product-badge">${escapeHtml(badge)}</span>
+    <article class="product-card" data-product-card style="background: #fffafa; border: 1px solid #f2e3db; border-radius: 12px; overflow: hidden;">
+      <a href="${detailsUrl}" class="product-card__media" style="position: relative; display: block;">
+        <span class="product-badge" style="position: absolute; top: 12px; left: 12px; padding: 4px 10px; border-radius: 6px; background: var(--color-primary); color: #fff; font-size: 0.75rem; font-weight: 600; text-transform: none; z-index: 2;">${escapeHtml(badge)}</span>
         ${imageMarkup(template.imageUrl || FALLBACK_IMAGE, template.title, 'product-card__image')}
       </a>
-      <div class="product-card__body">
-        <div class="product-meta">
-          <span>${escapeHtml(collection)}</span>
-          <span>Instant Access</span>
+      <div class="product-card__body" style="padding: 12px 14px;">
+        <h3 style="font-size: 0.95rem; font-weight: 500; color: #2a2a2a; margin: 0 0 6px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: var(--font-body);">${escapeHtml(template.title || 'Untitled product')}</h3>
+        <div class="product-price-row" style="display: flex; gap: 0.4rem; align-items: baseline; margin: 0;">
+          <strong style="color: var(--color-primary); font-size: 1rem; font-weight: 600;">₹${price}</strong>
+          ${compare ? `<span style="color: #888; text-decoration: line-through; font-size: 0.8rem;">₹${compare}</span>` : ''}
+          ${discount ? `<span style="color: #4caf50; font-size: 0.8rem; font-weight: 500; margin-left: 0.2rem;">${discount}% Off</span>` : ''}
         </div>
-        <h3>${escapeHtml(template.title || 'Untitled product')}</h3>
-        <div class="product-price-row">
-          <strong>${formatCurrency(price)}</strong>
-          ${compare ? `<span>${formatCurrency(compare)}</span>` : ''}
-        </div>
-        ${discount ? `<span class="discount-pill">${discount}% off</span>` : ''}
-        <button class="pill-button add-to-cart-btn" type="button" data-product='${encoded}'>Add to Bag</button>
       </div>
     </article>
   `;
@@ -332,18 +327,23 @@ export function createAppController(pageId) {
   }
 
   async function renderHomePage() {
-    const featuredGrid = qs('#featured-templates-grid');
-    if (!featuredGrid) return;
+    const grid = qs('#templates-grid');
+    if (!grid) return;
 
     try {
-      const templates = await fetchTemplates(db, { limit: 12 });
-      state.templates = templates;
-      featuredGrid.innerHTML = templates.slice(0, 4).map(renderProductCard).join('');
-      renderCollectionGrid(qs('#collection-highlight-grid'), buildCollectionCards(templates));
-      renderCategoryChips(qs('#category-chip-list'), templates);
-      setupLazyCloudinaryImages(featuredGrid);
+      state.templates = await fetchTemplates(db, { orderByCreated: false });
+      
+      const renderCurrent = () => {
+        const value = qs('#sort-by')?.value || 'Recommended';
+        grid.innerHTML = sortTemplates(value).map(renderProductCard).join('');
+        setupLazyCloudinaryImages(grid);
+      };
+
+      qs('#sort-by')?.addEventListener('change', renderCurrent);
+      renderCurrent();
     } catch (error) {
       console.error('Failed to load home templates:', error);
+      grid.innerHTML = '<p>Unable to load products right now.</p>';
     }
   }
 

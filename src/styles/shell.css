@@ -237,10 +237,8 @@
 
 .site-footer {
   margin-top: var(--space-7);
-  padding: var(--space-6) 0 var(--space-4);
   background: var(--color-accent);
   color: #ffffff;
-  border-top: 1px solid rgba(220, 60, 113, 0.15);
 }
 
 .site-footer__top {
