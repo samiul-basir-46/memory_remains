@@ -3,9 +3,24 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Hearts and Beans | Premium Memory Storefront</title>
+  <title>Petty Bloom | Premium Memory Storefront</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="/src/styles/main.css">
+  <style>
+    html, body {
+      overflow-x: hidden !important;
+    }
+    #collections-grid .megamenu-card {
+      flex-shrink: 0 !important;
+    }
+    @media (max-width: 960px) {
+      #prev-featured-btn,
+      #next-featured-btn,
+      #next-col-btn {
+        display: none !important;
+      }
+    }
+  </style>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
@@ -129,7 +144,7 @@
         <div class="page-intro" style="text-align: center; margin-bottom: 2rem;">
           <h2 style="font-size: clamp(2rem, 4vw, 3rem); font-family: var(--font-heading); color: #3b1c1c; margin-bottom: 0.5rem;">Our Categories</h2>
         </div>
-        <div id="categories-circle-grid" style="display: flex; justify-content: center; gap: 2rem;">
+        <div id="categories-circle-grid" style="display: flex; justify-content: center; gap: 2rem; flex-wrap: wrap;">
           <!-- Categories circular cards rendered dynamically -->
         </div>
       </div>

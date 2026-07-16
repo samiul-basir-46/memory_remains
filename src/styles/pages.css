@@ -705,3 +705,15 @@
   }
 }
 
+@media (max-width: 960px) {
+  #prev-featured-btn,
+  #next-featured-btn,
+  #next-col-btn {
+    display: none !important;
+  }
+}
+
+#collections-grid .megamenu-card {
+  flex-shrink: 0;
+}
+

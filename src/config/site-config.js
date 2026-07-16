@@ -1,5 +1,5 @@
 export const SITE_CONFIG = {
-  brandName: 'Hearts and Beans',
+  brandName: 'Petty Bloom',
   announcement: '₹100 is additional for the COD method, which you’ve to pay in advance',
   supportPhoneLabel: '+91 9250303360',
   supportPhoneHref: 'tel:9250303360',

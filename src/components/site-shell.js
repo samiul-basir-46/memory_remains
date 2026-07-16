@@ -101,7 +101,7 @@ export function renderSiteShell(pageId) {
       <div class="container site-header__inner">
         <a class="site-logo" href="/" style="display: flex; align-items: center; gap: 0.5rem; text-decoration: none;">
           <div style="width: 48px; height: 48px; border-radius: 50%; background: #3b1c1c; display: flex; align-items: center; justify-content: center; overflow: hidden;">
-            <span style="color: #fff; font-family: 'Yeseva One', serif; font-size: 0.6rem; text-align: center; line-height: 1.1;">Hearts &<br>Beans</span>
+            <img src="/assets/IMG-20260715-WA0003.jpg" alt="${SITE_CONFIG.brandName} Logo" style="width: 100%; height: 100%; object-fit: cover;">
           </div>
           <span class="site-logo__text">${SITE_CONFIG.brandName}</span>
         </a>
@@ -161,7 +161,7 @@ export function renderSiteShell(pageId) {
       <div class="footer-brand" style="padding-right: 2rem;">
         <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1.5rem;">
           <div style="width: 48px; height: 48px; border-radius: 50%; background: #3b1c1c; display: flex; align-items: center; justify-content: center; overflow: hidden;">
-            <span style="color: #fff; font-family: 'Yeseva One', serif; font-size: 0.6rem; text-align: center; line-height: 1.1;">Hearts &<br>Beans</span>
+            <img src="/assets/IMG-20260715-WA0003.jpg" alt="${SITE_CONFIG.brandName} Logo" style="width: 100%; height: 100%; object-fit: cover;">
           </div>
           <h3 style="font-family: 'Yeseva One', serif; font-size: 1.35rem; margin: 0; color: white;">${SITE_CONFIG.brandName}</h3>
         </div>
