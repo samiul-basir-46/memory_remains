@@ -13,6 +13,10 @@ export function setCart(cart) {
   localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
 }
 
+export function clearCart() {
+  localStorage.removeItem(CART_STORAGE_KEY);
+}
+
 export function updateCartCount() {
   const cart = getCart();
   const totalItems = cart.reduce((sum, item) => sum + (item.quantity || 1), 0);
@@ -48,22 +52,22 @@ export function renderCartDrawer() {
     const itemImg = item.imageUrl || FALLBACK_IMAGE;
 
     return `
-      <div class="cart-item-row" style="display: flex; gap: 1rem; align-items: center; margin-bottom: 1.25rem; padding-bottom: 1rem; border-bottom: 1px solid #f0f0f0;">
-        <div style="width: 70px; height: 70px; border-radius: 8px; overflow: hidden; background: #f7f7f7; flex-shrink: 0;">
-          ${imageMarkup(itemImg, item.title, '', 160)}
+      <div class="cart-item-row flex gap-4 items-center mb-4 pb-4 border-b border-gray-100">
+        <div class="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+          ${imageMarkup(itemImg, item.title, 'w-full h-full object-cover', 160)}
         </div>
-        <div style="flex: 1; min-width: 0;">
-          <h4 style="margin: 0 0 4px 0; font-size: 0.95rem; color: var(--color-primary); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(item.title)}</h4>
-          <p style="margin: 0 0 6px 0; font-size: 0.9rem; color: #666;">${formatCurrency(itemPrice)} &times; ${itemQty}</p>
-          <div style="display: flex; align-items: center; gap: 0.5rem;">
-            <button type="button" class="cart-remove-btn" data-cart-title="${escapeHtml(item.title)}" style="background: none; border: none; padding: 0; color: #d82b58; font-size: 0.8rem; cursor: pointer; text-decoration: underline;">Remove</button>
+        <div class="flex-1 min-w-0">
+          <h4 class="m-0 text-sm font-semibold text-primary truncate">${escapeHtml(item.title)}</h4>
+          <p class="m-0 text-xs text-gray-500">৳${itemPrice} &times; ${itemQty}</p>
+          <div class="flex items-center gap-2 mt-1">
+            <button type="button" class="cart-remove-btn text-xs text-primary underline cursor-pointer" data-cart-title="${escapeHtml(item.title)}">Remove</button>
           </div>
         </div>
       </div>
     `;
   }).join('');
 
-  if (totalEl) totalEl.textContent = formatCurrency(totalSum);
+  if (totalEl) totalEl.textContent = `৳${totalSum}`;
 
   qsa('.cart-remove-btn', listEl).forEach((btn) => {
     btn.addEventListener('click', () => {
@@ -71,6 +75,14 @@ export function renderCartDrawer() {
       removeFromCart(title);
     });
   });
+
+  const checkoutBtn = qs('#checkout-btn');
+  if (checkoutBtn && !checkoutBtn.dataset.bound) {
+    checkoutBtn.dataset.bound = 'true';
+    checkoutBtn.addEventListener('click', () => {
+      window.location.href = '/pages/cart';
+    });
+  }
 }
 
 export function addTemplateToCart(template = {}) {
@@ -91,15 +103,7 @@ export function addTemplateToCart(template = {}) {
 
   setCart(cart);
   updateCartCount();
-  renderCartDrawer();
   createToast(`Added "${template.title || 'Item'}" to bag.`);
-
-  const drawer = qs('#cart-drawer');
-  const overlay = qs('#cart-drawer-overlay');
-  if (drawer && overlay) {
-    drawer.classList.add('is-open');
-    overlay.classList.add('is-open');
-  }
 }
 
 export function removeFromCart(title) {

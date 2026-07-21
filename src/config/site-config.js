@@ -8,14 +8,15 @@ export const SITE_CONFIG = {
     { href: '/pages/featured', label: 'Featured Products', page: 'featured' },
     { href: '/collections/paid-products?title=Categories', label: 'Categories', page: 'categories' },
     { href: '/collections/paid-products?title=Collections', label: 'Collections', page: 'collections' },
-    { href: '/collections/paid-products?title=All+Products', label: 'All Products', page: 'shop' }
+    { href: '/collections/paid-products?title=All+Products', label: 'All Products', page: 'shop' },
+    { href: '/pages/track-order', label: 'Track Order', page: 'track-order' }
   ],
   footerGroups: [
     {
       title: 'Help',
       links: [
         { href: '/pages/policy', label: 'Store Policies' },
-        { href: '/pages/library', label: 'Track your Order' },
+        { href: '/pages/track-order', label: 'Track your Order' },
         { href: '/pages/contact', label: 'Request Return' },
         { href: '/pages/policy', label: 'Return Policy' },
         { href: '/pages/policy', label: 'Privacy Policy' }

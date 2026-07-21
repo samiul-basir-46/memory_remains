@@ -6,6 +6,8 @@ import { initUploadModalEvents, openUploadModal, closeUploadModal } from '../ser
 import { renderHomePage } from '../controllers/home-controller.js';
 import { renderShopPage } from '../controllers/shop-controller.js';
 import { renderProductDetailsPage } from '../controllers/product-details-controller.js';
+import { renderCartPage } from '../controllers/cart-controller.js';
+import { renderTrackOrderPage } from '../controllers/track-order-controller.js';
 import { loadUserLibrary, submitTxnId } from '../controllers/library-controller.js';
 import { initProfileForm, populateProfile } from '../controllers/profile-controller.js';
 import { initContactEvents } from '../controllers/contact-controller.js';
@@ -67,6 +69,8 @@ async function initApp() {
   if (pageId === 'home') await renderHomePage(db);
   if (pageId === 'featured' || pageId === 'shop') await renderShopPage(db);
   if (pageId === 'product-details') await renderProductDetailsPage(db);
+  if (pageId === 'cart') await renderCartPage(db);
+  if (pageId === 'track-order') await renderTrackOrderPage();
 
   if (pageId === 'library') {
     qs('#library-auth-required')?.classList.add('auth-required');

@@ -14,8 +14,8 @@ function renderShowcaseCard(template = {}) {
   return `
     <div class="showcase-card bg-white rounded-2xl overflow-hidden shadow-xl border border-pink-100 grid grid-cols-1 lg:grid-cols-2">
       <!-- Left Column: Product Image Gallery -->
-      <div class="relative bg-[#3b1c1c] flex items-center justify-center p-6 min-h-[380px] md:min-h-[460px]">
-        <img id="showcase-img-${template.id || 'default'}" src="${buildCloudinaryDeliveryUrl(primaryImg, { width: 800 })}" alt="${escapeHtml(template.title)}" class="max-h-[420px] w-auto object-contain rounded-lg shadow-md transition-all duration-300">
+      <div class="relative bg-[#1a1a1a] flex items-center justify-center min-h-[380px] md:min-h-[460px] overflow-hidden">
+        <img id="showcase-img-${template.id || 'default'}" src="${buildCloudinaryDeliveryUrl(primaryImg, { width: 800 })}" alt="${escapeHtml(template.title)}" class="w-full h-full object-cover transition-all duration-300">
         ${gallery.length > 1 ? `
           <button type="button" onclick="const img = document.getElementById('showcase-img-${template.id}'); const urls = ${JSON.stringify(gallery).replace(/"/g, '&quot;')}; let idx = parseInt(img.dataset.idx || 0); idx = (idx - 1 + urls.length) % urls.length; img.src = urls[idx]; img.dataset.idx = idx;" class="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 text-[#2A2A2A] flex items-center justify-center shadow-md cursor-pointer hover:bg-white text-xs z-10"><i class="fa-solid fa-chevron-left"></i></button>
           <button type="button" onclick="const img = document.getElementById('showcase-img-${template.id}'); const urls = ${JSON.stringify(gallery).replace(/"/g, '&quot;')}; let idx = parseInt(img.dataset.idx || 0); idx = (idx + 1) % urls.length; img.src = urls[idx]; img.dataset.idx = idx;" class="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 text-[#2A2A2A] flex items-center justify-center shadow-md cursor-pointer hover:bg-white text-xs z-10"><i class="fa-solid fa-chevron-right"></i></button>
@@ -35,7 +35,7 @@ function renderShowcaseCard(template = {}) {
 
           <div class="grid grid-cols-2 gap-4 mb-6">
             <button onclick="addTemplateToCart(${JSON.stringify(template).replace(/"/g, '&quot;')})" type="button" class="py-3 px-4 rounded-xl border-2 border-primary bg-white/60 hover:bg-white text-primary font-bold text-sm transition-colors cursor-pointer text-center">Add To Cart</button>
-            <button onclick="addTemplateToCart(${JSON.stringify(template).replace(/"/g, '&quot;')}); openSurface(document.getElementById('cart-drawer'), document.getElementById('cart-drawer-overlay'))" type="button" class="py-3 px-4 rounded-xl bg-[#DC3C71] hover:bg-[#c23260] text-white font-bold text-sm shadow-md transition-colors cursor-pointer text-center">Buy Now</button>
+            <button onclick="addTemplateToCart(${JSON.stringify(template).replace(/"/g, '&quot;')}); window.location.href='/pages/cart'" type="button" class="py-3 px-4 rounded-xl bg-[#DC3C71] hover:bg-[#c23260] text-white font-bold text-sm shadow-md transition-colors cursor-pointer text-center">Buy Now</button>
           </div>
 
           <div class="space-y-2.5 text-xs text-[#2A2A2A] pt-4 border-t border-pink-200/60">

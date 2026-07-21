@@ -158,10 +158,10 @@ export function renderSiteShell(pageId) {
             <i class="fa-solid fa-magnifying-glass"></i>
           </button>
           
-          <button class="cart-icon relative text-[#3b1c1c] text-xl mx-1.5 cursor-pointer hover:text-primary transition-colors" type="button" aria-label="Shopping Cart">
+          <a href="/pages/cart" class="cart-icon relative text-[#3b1c1c] text-xl mx-1.5 cursor-pointer hover:text-primary transition-colors flex items-center justify-center no-underline" aria-label="Shopping Cart">
             <i class="fa-solid fa-cart-shopping"></i>
             <span class="cart-count cart-badge-count absolute -top-2 -right-2.5 w-4.5 h-4.5 grid place-items-center rounded-full bg-primary text-white text-[10px] font-bold shadow-sm">0</span>
-          </button>
+          </a>
           
           <button id="auth-nav-btn" class="auth-text-link text-[#3b1c1c] hover:text-primary text-sm font-semibold p-1 transition-colors" type="button">Sign In</button>
         </div>
@@ -300,29 +300,6 @@ export function renderSiteShell(pageId) {
   `;
 
   overlays.innerHTML = `
-    <!-- Cart Drawer -->
-    <aside class="cart-drawer fixed top-0 -right-full z-[1001] w-[min(90vw,420px)] h-screen bg-white transition-[right] duration-300 flex flex-col shadow-2xl" id="cart-drawer">
-      <div class="cart-drawer__header flex items-center justify-between p-5 border-b border-gray-100">
-        <h3 class="font-heading text-xl text-primary font-bold">Your Shopping Bag</h3>
-        <button id="cart-drawer-close-btn" class="icon-close text-2xl text-gray-500 hover:text-primary cursor-pointer p-1" type="button" aria-label="Close Cart">&times;</button>
-      </div>
-      <div class="cart-drawer__body flex-1 p-5 overflow-y-auto">
-        <div id="cart-drawer-items"></div>
-        <div id="cart-drawer-empty" class="empty-state text-center py-12 text-gray-400">
-          <i class="fa-solid fa-bag-shopping text-4xl mb-3 text-primary/40"></i>
-          <p class="text-sm">Your shopping bag is empty.</p>
-        </div>
-      </div>
-      <div class="cart-drawer__footer p-5 border-t border-gray-100 bg-gray-50" id="cart-drawer-footer" hidden>
-        <div class="cart-total-row flex justify-between items-center mb-4 text-base font-bold text-text-dark">
-          <span>Subtotal</span>
-          <strong id="cart-total-amount" class="text-primary text-lg">$0.00</strong>
-        </div>
-        <button id="checkout-btn" class="pill-button w-full bg-primary hover:bg-primary-strong text-white py-3 rounded-xl font-bold transition-colors" type="button">Proceed to Checkout</button>
-      </div>
-    </aside>
-    <div class="drawer-overlay fixed inset-0 bg-black/40 opacity-0 pointer-events-none z-[1000] transition-opacity duration-200" id="cart-drawer-overlay"></div>
-
     <!-- Auth Modal -->
     <div class="auth-modal fixed inset-0 z-[1002] flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-200" id="auth-modal">
       <div class="auth-modal__card bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl relative">

@@ -19,6 +19,21 @@
   }
 }
 
+/* Cart Badge Count Pill Fix */
+.cart-badge-count {
+  width: 18px !important;
+  height: 18px !important;
+  min-width: 18px !important;
+  min-height: 18px !important;
+  border-radius: 9999px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  line-height: 1 !important;
+  padding: 0 !important;
+  background-color: #DC3C71 !important;
+}
+
 /* Hide scrollbar for Chrome, Safari, Firefox and Edge */
 .scrollbar-none::-webkit-scrollbar {
   display: none !important;
