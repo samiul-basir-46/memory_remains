@@ -170,7 +170,7 @@
   align-items: center;
 }
 
-.nav-item-wrapper.has-dropdown:hover .fa-chevron-down {
+.nav-item-wrapper.has-dropdown.is-open .fa-chevron-down {
   transform: rotate(180deg);
   color: var(--color-primary) !important;
 }
@@ -192,7 +192,7 @@
   pointer-events: none;
 }
 
-/* Invisible bridge so mouse moving down to categories never loses hover */
+/* Invisible bridge */
 .megamenu-dropdown::before {
   content: '';
   position: absolute;
@@ -203,8 +203,7 @@
   background: transparent;
 }
 
-.nav-item-wrapper.has-dropdown:hover .megamenu-dropdown,
-.megamenu-dropdown:hover {
+.nav-item-wrapper.has-dropdown.is-open .megamenu-dropdown {
   opacity: 1;
   visibility: visible;
   transition-delay: 0s;

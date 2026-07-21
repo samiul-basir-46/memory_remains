@@ -3,44 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Petty Bloom | Premium Memory Storefront</title>
+  <title>Hearts and Beans | Shop online for & more</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="/src/styles/main.css">
   <style>
-    html, body {
-      overflow-x: clip !important;
-    }
-    #collections-grid .megamenu-card {
-      flex-shrink: 0 !important;
-      scroll-snap-align: start;
-    }
-    #featured-carousel .product-card {
-      scroll-snap-align: start;
-    }
-    .carousel-btn {
-      backdrop-filter: blur(6px);
-      transition: transform 0.2s ease, opacity 0.2s ease, box-shadow 0.2s ease;
-    }
-    .carousel-btn:hover {
-      box-shadow: 0 6px 16px rgba(0,0,0,0.25) !important;
-      transform: scale(1.06);
-    }
-    .carousel-btn:active {
-      transform: scale(0.92) !important;
-    }
-    
-    /* Carousel buttons positioning - visible on both Desktop and Mobile */
-    #prev-featured-btn { left: 0.25rem !important; }
-    #next-featured-btn { right: 0.25rem !important; }
-    #prev-col-btn { left: 0.25rem !important; }
-    #next-col-btn { right: 0.25rem !important; }
-    
-    #featured-carousel, #collections-grid {
-      padding-left: 2.5rem !important;
-      padding-right: 2.5rem !important;
-    }
-
-    /* Scroll reveal animation */
     .reveal-on-scroll {
       opacity: 0;
       transform: translateY(30px);
@@ -55,95 +21,132 @@
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
 </head>
-<body data-page="home">
+<body data-page="home" class="font-body bg-white text-[#2A2A2A] antialiased">
   <div id="site-shell"></div>
 
   <main>
     <!-- 1. Featured Products Slider -->
-    <section id="featured-products-section" class="section" style="background: var(--color-primary); color: white; padding: 3rem 0;">
-      <div class="container">
-        <div class="page-intro" style="text-align: center; margin-bottom: 2rem;">
-          <h2 style="font-size: clamp(2rem, 4vw, 3rem); font-family: var(--font-heading); color: white; margin-bottom: 0.5rem; text-shadow: 0 2px 4px rgba(0,0,0,0.1);">Featured Products</h2>
-          <p style="color: rgba(255,255,255,0.9); margin-bottom: 1rem;">Check out our newest addition to the store!</p>
-          <a href="/pages/featured" style="color: white; font-size: 1.05rem; text-decoration: underline; font-weight: 500; display: inline-block;">View All</a>
+    <section id="featured-products-section" class="bg-[#DC3C71] text-white py-12">
+      <div class="max-w-container mx-auto px-4">
+        <div class="text-center mb-8">
+          <h2 class="font-heading text-3xl md:text-[32px] text-white mb-2 font-normal">Featured Products</h2>
+          <p class="text-white text-lg font-normal mb-3">Check out our newest addition to the store!</p>
+          <a href="/pages/featured" class="text-white text-base underline hover:opacity-80 transition-opacity">View All</a>
         </div>
-        <div class="featured-carousel-wrapper" style="position: relative; display: flex; align-items: center; gap: 1rem; min-width: 0; width: 100%; overflow: visible;">
-          <button id="prev-featured-btn" class="carousel-btn" style="position: absolute; left: 0.25rem; z-index: 10; background: rgba(255, 255, 255, 0.95); border: none; width: 44px; height: 44px; border-radius: 50%; box-shadow: 0 4px 12px rgba(0,0,0,0.2); display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--color-primary); font-size: 1.25rem;"><i class="fa-solid fa-chevron-left"></i></button>
+        <div class="featured-carousel-wrapper relative flex items-center gap-4 w-full">
+          <button id="prev-featured-btn" class="carousel-btn absolute left-1 z-10 bg-white/95 hover:bg-white text-[#DC3C71] w-11 h-11 rounded-full shadow-lg flex items-center justify-center cursor-pointer text-xl backdrop-blur-sm transition-transform active:scale-95" type="button">
+            <i class="fa-solid fa-chevron-left"></i>
+          </button>
           
-          <div id="featured-carousel" style="display: flex; gap: 1.5rem; overflow-x: auto; scroll-behavior: smooth; width: 100%; padding: 1rem 2.5rem; -webkit-overflow-scrolling: touch; scroll-snap-type: x mandatory;">
+          <div id="featured-carousel" class="flex gap-6 overflow-x-auto scroll-smooth w-full py-4 px-10 scrollbar-none snap-x snap-mandatory">
             <!-- Featured product cards rendered dynamically -->
           </div>
           
-          <button id="next-featured-btn" class="carousel-btn" style="position: absolute; right: 0.25rem; z-index: 10; background: rgba(255, 255, 255, 0.95); border: none; width: 44px; height: 44px; border-radius: 50%; box-shadow: 0 4px 12px rgba(0,0,0,0.2); display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--color-primary); font-size: 1.25rem;"><i class="fa-solid fa-chevron-right"></i></button>
+          <button id="next-featured-btn" class="carousel-btn absolute right-1 z-10 bg-white/95 hover:bg-white text-[#DC3C71] w-11 h-11 rounded-full shadow-lg flex items-center justify-center cursor-pointer text-xl backdrop-blur-sm transition-transform active:scale-95" type="button">
+            <i class="fa-solid fa-chevron-right"></i>
+          </button>
         </div>
       </div>
     </section>
 
     <!-- 2. Shop by Collection -->
-    <section id="shop-by-collection-section" class="section reveal-on-scroll" style="background: white; padding: 4rem 0;">
-      <div class="container collections-container">
-        <div class="collection-intro" style="margin-bottom: 2rem;">
-          <h2 style="font-size: clamp(2rem, 4vw, 3.2rem); font-family: var(--font-heading); color: #3b1c1c; margin-bottom: 0.5rem;">Shop by Collection</h2>
-          <p style="color: var(--color-text-soft); font-size: 1.05rem;">We have everything you need to turn your home garden into a paradise on earth!</p>
-        </div>
-        <div id="collections-grid" class="shop-by-collection-grid">
-          <!-- Collection cards rendered dynamically -->
+    <section id="shop-by-collection-section" class="bg-white py-16 reveal-on-scroll">
+      <div class="max-w-container mx-auto px-4">
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-8 items-start">
+          <div class="lg:col-span-1">
+            <h2 class="font-heading text-3xl md:text-[32px] text-[#2A2A2A] mb-3 font-normal">Shop by Collection</h2>
+            <p class="text-text-soft text-base leading-relaxed">We have everything you need to turn your home garden into a paradise on earth!</p>
+          </div>
+          <div id="collections-grid" class="lg:col-span-3 grid grid-cols-2 sm:grid-cols-4 gap-5">
+            <!-- Collection cards rendered dynamically -->
+          </div>
         </div>
       </div>
     </section>
 
+    <!-- 3. Trust Badges Row -->
+    <section id="trust-badges-section" class="bg-[#FDF0F4] py-8 border-y border-pink-100/60 reveal-on-scroll">
+      <div class="max-w-container mx-auto px-4">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+          <div class="flex flex-col items-center gap-2">
+            <div class="w-14 h-14 rounded-full bg-white border border-pink-100 flex items-center justify-center text-primary text-2xl shadow-sm">
+              <i class="fa-solid fa-wallet"></i>
+            </div>
+            <strong class="text-sm font-semibold text-text-dark">Secure Payments</strong>
+          </div>
+          <div class="flex flex-col items-center gap-2">
+            <div class="w-14 h-14 rounded-full bg-white border border-pink-100 flex items-center justify-center text-primary text-2xl shadow-sm">
+              <i class="fa-solid fa-award"></i>
+            </div>
+            <strong class="text-sm font-semibold text-text-dark">Assured Quality</strong>
+          </div>
+          <div class="flex flex-col items-center gap-2">
+            <div class="w-14 h-14 rounded-full bg-white border border-pink-100 flex items-center justify-center text-primary text-2xl shadow-sm">
+              <i class="fa-solid fa-shield-halved"></i>
+            </div>
+            <strong class="text-sm font-semibold text-text-dark">Made In India</strong>
+          </div>
+          <div class="flex flex-col items-center gap-2">
+            <div class="w-14 h-14 rounded-full bg-white border border-pink-100 flex items-center justify-center text-primary text-2xl shadow-sm">
+              <i class="fa-solid fa-motorcycle"></i>
+            </div>
+            <strong class="text-sm font-semibold text-text-dark">Timely Delivery</strong>
+          </div>
+        </div>
+      </div>
+    </section>
 
-    <!-- 4. Best Selling Highlight -->
-    <section id="best-selling-section" class="section reveal-on-scroll" style="background: var(--color-accent); color: white; padding: 4rem 0;">
-      <div class="container">
-        <div class="page-intro" style="text-align: left; margin-bottom: 2.5rem; max-width: 100%;">
-          <h2 style="font-size: clamp(2rem, 4vw, 3.2rem); font-family: var(--font-heading); color: white; margin-bottom: 0.5rem;">Best selling</h2>
-          <p style="color: rgba(255,255,255,0.9); font-size: 1.05rem;">Check out our newest addition to the store!</p>
+    <!-- 4. Best Selling Highlight Showcase (Teal background) -->
+    <section id="best-selling-section" class="bg-[#0a6586] text-white py-16 reveal-on-scroll">
+      <div class="max-w-container mx-auto px-4">
+        <div class="mb-8 text-left">
+          <h2 class="font-heading text-3xl md:text-[32px] text-white mb-2 font-normal">Best selling</h2>
+          <p class="text-white text-lg">Check out our newest addition to the store!</p>
         </div>
         <div id="best-selling-highlight"></div>
       </div>
     </section>
 
-    <!-- 5. Premium Magazine - Vogue Highlight -->
-    <section id="vogue-section" class="section reveal-on-scroll" style="background: var(--color-primary); color: white; padding: 4rem 0;">
-      <div class="container">
-        <div class="page-intro" style="text-align: left; margin-bottom: 2.5rem; max-width: 100%;">
-          <h2 style="font-size: clamp(2rem, 4vw, 3.2rem); font-family: var(--font-heading); color: white; margin-bottom: 0.5rem;">Premium Magazine</h2>
-          <p style="color: rgba(255,255,255,0.9); font-size: 1.05rem;">Vogue Collection</p>
+    <!-- 5. Premium Magazine - Vogue Highlight Showcase (White background) -->
+    <section id="vogue-section" class="bg-white text-[#2A2A2A] py-16 reveal-on-scroll">
+      <div class="max-w-container mx-auto px-4">
+        <div class="mb-8 text-left">
+          <h2 class="font-heading text-3xl md:text-[32px] text-[#2A2A2A] mb-2 font-normal">Premium Magazine</h2>
+          <p class="text-text-soft text-lg">Vogue Collection</p>
         </div>
         <div id="vogue-highlight"></div>
       </div>
     </section>
 
-    <!-- 6. Premium Magazine - Soulmate Highlight -->
-    <section id="soulmate-section" class="section reveal-on-scroll" style="background: var(--color-accent); color: white; padding: 4rem 0;">
-      <div class="container">
-        <div class="page-intro" style="text-align: left; margin-bottom: 2.5rem; max-width: 100%;">
-          <h2 style="font-size: clamp(2rem, 4vw, 3.2rem); font-family: var(--font-heading); color: white; margin-bottom: 0.5rem;">Premium Magazine</h2>
-          <p style="color: rgba(255,255,255,0.9); font-size: 1.05rem;">Soulmate Collection</p>
+    <!-- 6. Premium Magazine - Soulmate Highlight Showcase (Teal background) -->
+    <section id="soulmate-section" class="bg-[#0a6586] text-white py-16 reveal-on-scroll">
+      <div class="max-w-container mx-auto px-4">
+        <div class="mb-8 text-left">
+          <h2 class="font-heading text-3xl md:text-[32px] text-white mb-2 font-normal">Premium Magazine</h2>
+          <p class="text-white text-lg">Soulmate Collection</p>
         </div>
         <div id="soulmate-highlight"></div>
       </div>
     </section>
 
-    <!-- 7. Premium Magazine - Couple Highlight -->
-    <section id="couple-section" class="section reveal-on-scroll" style="background: var(--color-primary); color: white; padding: 4rem 0;">
-      <div class="container">
-        <div class="page-intro" style="text-align: left; margin-bottom: 2.5rem; max-width: 100%;">
-          <h2 style="font-size: clamp(2rem, 4vw, 3.2rem); font-family: var(--font-heading); color: white; margin-bottom: 0.5rem;">Premium Magazine</h2>
-          <p style="color: rgba(255,255,255,0.9); font-size: 1.05rem;">Soulmate Collection</p>
+    <!-- 7. Premium Magazine - Couple Highlight Showcase (Pink background) -->
+    <section id="couple-section" class="bg-[#DC3C71] text-white py-16 reveal-on-scroll">
+      <div class="max-w-container mx-auto px-4">
+        <div class="mb-8 text-left">
+          <h2 class="font-heading text-3xl md:text-[32px] text-white mb-2 font-normal">Premium Magazine</h2>
+          <p class="text-white text-lg">Couple Collection</p>
         </div>
         <div id="couple-highlight"></div>
       </div>
     </section>
 
     <!-- 8. Our Categories -->
-    <section id="categories-section" class="section reveal-on-scroll" style="background: white; padding: 4rem 0 2rem;">
-      <div class="container">
-        <div class="page-intro" style="text-align: center; margin-bottom: 2rem;">
-          <h2 style="font-size: clamp(2rem, 4vw, 3rem); font-family: var(--font-heading); color: #3b1c1c; margin-bottom: 0.5rem;">Our Categories</h2>
+    <section id="categories-section" class="bg-white py-16 pb-8 reveal-on-scroll">
+      <div class="max-w-container mx-auto px-4">
+        <div class="text-center mb-8">
+          <h2 class="font-heading text-3xl md:text-[32px] text-[#2A2A2A] mb-2 font-normal">Our Categories</h2>
         </div>
-        <div id="categories-circle-grid" style="display: flex; justify-content: center; gap: 2rem; flex-wrap: wrap;">
+        <div id="categories-circle-grid" class="flex justify-center gap-8 flex-wrap">
           <!-- Categories circular cards rendered dynamically -->
         </div>
       </div>

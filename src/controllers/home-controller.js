@@ -1,0 +1,172 @@
+import { fetchTemplates, getCachedTemplates, setCachedTemplates, DEFAULT_FEATURED_TEMPLATES, comparePrice, discountPercent } from '../services/templates-service.js';
+import { renderProductCard } from '../components/product-card.js';
+import { setupLazyCloudinaryImages, buildCloudinaryDeliveryUrl } from '../utils/cloudinary.js';
+import { escapeHtml, qs } from '../utils/ui.js';
+
+function renderShowcaseCard(template = {}) {
+  const price = Number(template.price || 0);
+  const compare = comparePrice(template);
+  const discount = discountPercent(template);
+  const detailsUrl = template.id ? `/pages/product-details?id=${template.id}` : '#';
+  const primaryImg = template.imageUrl || '/assets/product_placeholder.png';
+  const gallery = [primaryImg, ...(template.galleryUrls || [])].filter(Boolean);
+
+  return `
+    <div class="showcase-card bg-white rounded-2xl overflow-hidden shadow-xl border border-pink-100 grid grid-cols-1 lg:grid-cols-2">
+      <!-- Left Column: Product Image Gallery -->
+      <div class="relative bg-[#3b1c1c] flex items-center justify-center p-6 min-h-[380px] md:min-h-[460px]">
+        <img id="showcase-img-${template.id || 'default'}" src="${buildCloudinaryDeliveryUrl(primaryImg, { width: 800 })}" alt="${escapeHtml(template.title)}" class="max-h-[420px] w-auto object-contain rounded-lg shadow-md transition-all duration-300">
+        ${gallery.length > 1 ? `
+          <button type="button" onclick="const img = document.getElementById('showcase-img-${template.id}'); const urls = ${JSON.stringify(gallery).replace(/"/g, '&quot;')}; let idx = parseInt(img.dataset.idx || 0); idx = (idx - 1 + urls.length) % urls.length; img.src = urls[idx]; img.dataset.idx = idx;" class="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 text-[#2A2A2A] flex items-center justify-center shadow-md cursor-pointer hover:bg-white text-xs z-10"><i class="fa-solid fa-chevron-left"></i></button>
+          <button type="button" onclick="const img = document.getElementById('showcase-img-${template.id}'); const urls = ${JSON.stringify(gallery).replace(/"/g, '&quot;')}; let idx = parseInt(img.dataset.idx || 0); idx = (idx + 1) % urls.length; img.src = urls[idx]; img.dataset.idx = idx;" class="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 text-[#2A2A2A] flex items-center justify-center shadow-md cursor-pointer hover:bg-white text-xs z-10"><i class="fa-solid fa-chevron-right"></i></button>
+        ` : ''}
+      </div>
+
+      <!-- Right Column: Product Info & Purchase Options -->
+      <div class="bg-[#FDF0F4] p-6 md:p-8 flex flex-col justify-between space-y-6">
+        <div>
+          <h3 class="font-heading text-2xl md:text-3xl text-[#2A2A2A] font-normal mb-3 leading-snug">${escapeHtml(template.title || 'Untitled Product')}</h3>
+          <div class="flex items-baseline gap-3 mb-1">
+            <strong class="text-2xl md:text-3xl font-bold text-[#2A2A2A]">₹${price}</strong>
+            ${compare ? `<span class="text-gray-500 line-through text-base">₹${compare}</span>` : ''}
+            ${discount ? `<span class="text-[#00664E] font-semibold text-base">${discount}% Off</span>` : ''}
+          </div>
+          <p class="text-xs text-text-soft mb-6">Incl. of all taxes</p>
+
+          <div class="grid grid-cols-2 gap-4 mb-6">
+            <button onclick="addTemplateToCart(${JSON.stringify(template).replace(/"/g, '&quot;')})" type="button" class="py-3 px-4 rounded-xl border-2 border-primary bg-white/60 hover:bg-white text-primary font-bold text-sm transition-colors cursor-pointer text-center">Add To Cart</button>
+            <button onclick="addTemplateToCart(${JSON.stringify(template).replace(/"/g, '&quot;')}); openSurface(document.getElementById('cart-drawer'), document.getElementById('cart-drawer-overlay'))" type="button" class="py-3 px-4 rounded-xl bg-[#DC3C71] hover:bg-[#c23260] text-white font-bold text-sm shadow-md transition-colors cursor-pointer text-center">Buy Now</button>
+          </div>
+
+          <div class="space-y-2.5 text-xs text-[#2A2A2A] pt-4 border-t border-pink-200/60">
+            <div class="flex items-center gap-2.5"><i class="fa-solid fa-truck text-primary text-sm"></i> <span>Delivered in 3-15 Days</span></div>
+            <div class="flex items-center gap-2.5"><i class="fa-solid fa-box text-primary text-sm"></i> <span>Free Delivery on all purchases above ₹999</span></div>
+            <p class="text-[11px] text-text-soft pt-1">after placing order click on WhatsApp icon to share details (92503 03360)</p>
+          </div>
+        </div>
+
+        <div class="flex justify-between items-center text-xs font-semibold text-[#2A2A2A] border-t border-pink-200/60 pt-4">
+          <span>38 pictures ...</span>
+          <a href="${detailsUrl}" class="text-primary hover:underline font-bold text-sm">View More</a>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+export async function renderHomePage(db) {
+  let homeTemplates = [];
+
+  const collections = [
+    { title: 'FOR HER', display: 'FOR HER', linkTitle: 'FOR HER' },
+    { title: 'I Love My Self', display: 'I LOVE<br>MY SELF', linkTitle: 'I Love My Self' },
+    { title: 'Best Selling', display: 'BEST<br>SELLING', linkTitle: 'Best Selling' },
+    { title: 'Birthday Special', display: 'BIRTHDAY<br>SPECIAL', linkTitle: 'Birthday Special' }
+  ];
+
+  const categories = ['FOR HIM', 'FOR HER', 'Birthday Special', 'Anniversary', 'Best Selling', 'Self Love'];
+
+  const renderHomeSections = (templatesList = []) => {
+    const list = (templatesList && templatesList.length > 0) ? templatesList : DEFAULT_FEATURED_TEMPLATES;
+
+    // 1. Featured Products Slider
+    const featuredCarousel = qs('#featured-carousel');
+    if (featuredCarousel) {
+      const featuredList = list.slice(0, 5);
+      featuredCarousel.innerHTML = featuredList.map(renderProductCard).join('');
+    }
+
+    // 2. Shop by Collection (Dark Maroon Cards)
+    const collectionsGrid = qs('#collections-grid');
+    if (collectionsGrid) {
+      collectionsGrid.innerHTML = collections.map((col) => `
+        <a href="/collections/paid-products?title=${encodeURIComponent(col.linkTitle)}" class="megamenu-card flex flex-col gap-3 no-underline group">
+          <div class="megamenu-card-bg bg-[#360505] rounded-xl aspect-[3/4] flex items-center justify-center p-4 text-center border-2 border-transparent transition-all duration-300 group-hover:scale-105 group-hover:-translate-y-1 group-hover:border-primary group-hover:shadow-2xl">
+            <span class="text-white font-heading text-2xl font-bold leading-tight text-glow">${col.display}</span>
+          </div>
+          <span class="megamenu-card-title text-text-dark text-sm font-semibold text-center group-hover:text-primary transition-colors">${escapeHtml(col.title)}</span>
+        </a>
+      `).join('');
+    }
+
+    // 3. Best Selling Showcase
+    const bestSellingEl = qs('#best-selling-highlight');
+    if (bestSellingEl) {
+      const bestItem = list[0] || DEFAULT_FEATURED_TEMPLATES[0];
+      bestSellingEl.innerHTML = renderShowcaseCard(bestItem);
+    }
+
+    // 4. Premium Magazine Vogue Showcase
+    const vogueEl = qs('#vogue-highlight');
+    if (vogueEl) {
+      const vogueItem = list.find((t) => (t.title || '').toLowerCase().includes('vogue')) || list[1] || DEFAULT_FEATURED_TEMPLATES[1];
+      vogueEl.innerHTML = renderShowcaseCard(vogueItem);
+    }
+
+    // 5. Premium Magazine Soulmate Showcase
+    const soulmateEl = qs('#soulmate-highlight');
+    if (soulmateEl) {
+      const soulmateItem = list.find((t) => (t.title || '').toLowerCase().includes('soulmate')) || list[2] || DEFAULT_FEATURED_TEMPLATES[2];
+      soulmateEl.innerHTML = renderShowcaseCard(soulmateItem);
+    }
+
+    // 6. Premium Magazine Couple Showcase
+    const coupleEl = qs('#couple-highlight');
+    if (coupleEl) {
+      const coupleItem = list.find((t) => (t.title || '').toLowerCase().includes('couple')) || list[3] || DEFAULT_FEATURED_TEMPLATES[3];
+      coupleEl.innerHTML = renderShowcaseCard(coupleItem);
+    }
+
+    // 7. Categories Circles
+    const categoriesCircleGrid = qs('#categories-circle-grid');
+    if (categoriesCircleGrid) {
+      categoriesCircleGrid.innerHTML = categories.map((cat) => `
+        <a href="/collections/paid-products?title=${encodeURIComponent(cat)}" class="category-circle-card group no-underline text-center flex flex-col items-center gap-3">
+          <div class="w-24 h-24 rounded-full bg-[#fdf6f0] border-2 border-primary flex items-center justify-center text-2xl text-primary shadow-sm group-hover:scale-110 transition-transform">
+            <i class="fa-solid fa-heart"></i>
+          </div>
+          <span class="text-sm font-semibold text-[#2A2A2A] group-hover:text-primary transition-colors">${escapeHtml(cat)}</span>
+        </a>
+      `).join('');
+    }
+
+    setupLazyCloudinaryImages(document);
+  };
+
+  const initCarouselButtons = () => {
+    const featCarousel = qs('#featured-carousel');
+    const prevFeat = qs('#prev-featured-btn');
+    const nextFeat = qs('#next-featured-btn');
+
+    if (featCarousel && prevFeat && nextFeat) {
+      prevFeat.addEventListener('click', () => {
+        featCarousel.scrollBy({ left: -300, behavior: 'smooth' });
+      });
+      nextFeat.addEventListener('click', () => {
+        featCarousel.scrollBy({ left: 300, behavior: 'smooth' });
+      });
+    }
+  };
+
+  try {
+    const cached = getCachedTemplates();
+    if (cached && cached.length > 0) {
+      homeTemplates = cached;
+      renderHomeSections(homeTemplates);
+    } else {
+      renderHomeSections(DEFAULT_FEATURED_TEMPLATES);
+    }
+
+    initCarouselButtons();
+
+    const fresh = await fetchTemplates(db, { orderByCreated: false });
+    if (fresh && fresh.length > 0) {
+      homeTemplates = fresh;
+      setCachedTemplates(fresh);
+      renderHomeSections(homeTemplates);
+    }
+  } catch (error) {
+    console.error('Failed to load home templates:', error);
+    renderHomeSections(DEFAULT_FEATURED_TEMPLATES);
+  }
+}

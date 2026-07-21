@@ -10,49 +10,49 @@
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
 </head>
-<body data-page="featured">
+<body data-page="featured" class="font-body bg-bg text-text-dark antialiased">
   <div id="site-shell"></div>
 
   <main>
-    <section class="section" style="padding-top: 2rem; padding-bottom: 4rem;">
-      <div class="container">
-        <div style="margin-bottom: 1.5rem;">
-          <h1 style="font-family: 'Yeseva One', serif; font-size: clamp(2.2rem, 4.5vw, 3.2rem); color: #3b1c1c; margin: 0;">Featured Products</h1>
+    <section class="py-8 pb-16">
+      <div class="max-w-container mx-auto px-4">
+        <div class="mb-6">
+          <h1 id="page-main-title" class="font-heading text-3xl md:text-5xl text-[#3b1c1c] font-bold">Featured Products</h1>
         </div>
 
         <!-- Filter & Sort Toolbar -->
-        <div class="filter-sort-bar">
-          <div class="filter-sort-left">
-            <button id="open-filter-btn" class="filter-trigger-btn" type="button">
+        <div class="filter-sort-bar flex flex-wrap items-center justify-between gap-4 bg-white p-4 rounded-xl border border-gray-100 shadow-sm mb-8">
+          <div class="filter-sort-left flex items-center gap-3 flex-wrap">
+            <button id="open-filter-btn" class="filter-trigger-btn inline-flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-[#3b1c1c] font-semibold text-sm px-4 py-2 rounded-lg cursor-pointer transition-colors" type="button">
               <span>Filter</span>
-              <i class="fa-solid fa-sliders"></i>
+              <i class="fa-solid fa-sliders text-xs"></i>
             </button>
-            <div id="active-filters-container" class="active-filters-list"></div>
-            <button id="clear-all-filters-btn" class="clear-filters-btn" type="button" hidden>Clear Filters</button>
+            <div id="active-filters-container" class="active-filters-list flex items-center gap-2 flex-wrap"></div>
+            <button id="clear-all-filters-btn" class="clear-filters-btn text-xs text-primary font-semibold hover:underline" type="button" hidden>Clear Filters</button>
           </div>
 
           <div class="filter-sort-right">
-            <div class="sort-dropdown-container">
-              <button id="sort-dropdown-btn" class="sort-trigger-btn" type="button">
-                <span>Sort By : <strong id="sort-current-label">Recommended</strong></span>
-                <i class="fa-solid fa-arrows-up-down" style="font-size: 0.8em; margin-left: 4px;"></i>
+            <div class="sort-dropdown-container relative">
+              <button id="sort-dropdown-btn" class="sort-trigger-btn inline-flex items-center gap-2 border border-gray-200 bg-white hover:border-primary text-text-dark text-sm px-4 py-2 rounded-lg cursor-pointer transition-colors" type="button">
+                <span>Sort By : <strong id="sort-current-label" class="text-primary font-bold">Recommended</strong></span>
+                <i class="fa-solid fa-arrows-up-down text-xs text-gray-400"></i>
               </button>
-              <div id="sort-dropdown-menu" class="sort-dropdown-menu" hidden>
-                <div class="sort-option is-active" data-sort="recommended">Recommended</div>
-                <div class="sort-option" data-sort="title-asc">Title: A &gt; Z</div>
-                <div class="sort-option" data-sort="title-desc">Title: Z &gt; A</div>
-                <div class="sort-option" data-sort="newest">New Arrivals</div>
-                <div class="sort-option" data-sort="price-desc">Price: High to Low</div>
-                <div class="sort-option" data-sort="price-asc">Price: Low to High</div>
-                <div class="sort-option" data-sort="discount-desc">Discount: High to Low</div>
-                <div class="sort-option" data-sort="discount-asc">Discount: Low to High</div>
+              <div id="sort-dropdown-menu" class="sort-dropdown-menu absolute right-0 top-full mt-2 w-56 bg-white border border-gray-100 shadow-xl rounded-xl py-2 z-30" hidden>
+                <div class="sort-option cursor-pointer px-4 py-2 text-sm text-text-dark hover:bg-pink-50 hover:text-primary transition-colors" data-sort="recommended">Recommended</div>
+                <div class="sort-option cursor-pointer px-4 py-2 text-sm text-text-dark hover:bg-pink-50 hover:text-primary transition-colors" data-sort="title-asc">Title: A &gt; Z</div>
+                <div class="sort-option cursor-pointer px-4 py-2 text-sm text-text-dark hover:bg-pink-50 hover:text-primary transition-colors" data-sort="title-desc">Title: Z &gt; A</div>
+                <div class="sort-option cursor-pointer px-4 py-2 text-sm text-text-dark hover:bg-pink-50 hover:text-primary transition-colors" data-sort="newest">New Arrivals</div>
+                <div class="sort-option cursor-pointer px-4 py-2 text-sm text-text-dark hover:bg-pink-50 hover:text-primary transition-colors" data-sort="price-desc">Price: High to Low</div>
+                <div class="sort-option cursor-pointer px-4 py-2 text-sm text-text-dark hover:bg-pink-50 hover:text-primary transition-colors" data-sort="price-asc">Price: Low to High</div>
+                <div class="sort-option cursor-pointer px-4 py-2 text-sm text-text-dark hover:bg-pink-50 hover:text-primary transition-colors" data-sort="discount-desc">Discount: High to Low</div>
+                <div class="sort-option cursor-pointer px-4 py-2 text-sm text-text-dark hover:bg-pink-50 hover:text-primary transition-colors" data-sort="discount-asc">Discount: Low to High</div>
               </div>
             </div>
           </div>
         </div>
 
         <!-- Templates Grid v2 -->
-        <div id="templates-grid" class="products-grid-v2"></div>
+        <div id="templates-grid" class="products-grid-v2 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"></div>
       </div>
     </section>
   </main>
