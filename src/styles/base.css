@@ -127,8 +127,13 @@ main {
 }
 
 .pill-button:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 12px 24px rgba(220, 60, 113, 0.15);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px rgba(220, 60, 113, 0.18);
+}
+
+.pill-button:active {
+  transform: translateY(0);
+  box-shadow: 0 4px 12px rgba(220, 60, 113, 0.12);
 }
 
 .pill-button--ghost {

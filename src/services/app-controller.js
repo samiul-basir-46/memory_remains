@@ -47,6 +47,18 @@ function discountPercent(template = {}) {
   return Math.round(((compare - price) / compare) * 100);
 }
 
+const TEMPLATES_CACHE_KEY = 'memory_remains_templates_cache_v1';
+
+function getCachedTemplates() {
+  return safeJsonParse(localStorage.getItem(TEMPLATES_CACHE_KEY), []);
+}
+
+function setCachedTemplates(templates) {
+  if (Array.isArray(templates) && templates.length > 0) {
+    localStorage.setItem(TEMPLATES_CACHE_KEY, JSON.stringify(templates));
+  }
+}
+
 function getCart() {
   const parsed = safeJsonParse(localStorage.getItem(CART_STORAGE_KEY), []);
   return Array.isArray(parsed) ? parsed : [];
@@ -60,10 +72,7 @@ function imageMarkup(url, alt, className = '', widthHint = 720) {
   const escapedAlt = escapeHtml(alt || 'Product image');
   const effectiveUrl = (url && url.trim()) ? url : FALLBACK_IMAGE;
   const optimizedUrl = buildCloudinaryDeliveryUrl(effectiveUrl, { width: widthHint });
-  if (effectiveUrl.includes('res.cloudinary.com')) {
-    return `<img class="${className}" src="${FALLBACK_IMAGE}" data-cld-src="${optimizedUrl}" alt="${escapedAlt}" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='${FALLBACK_IMAGE}'">`;
-  }
-  return `<img class="${className}" src="${effectiveUrl}" alt="${escapedAlt}" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='${FALLBACK_IMAGE}'">`;
+  return `<img class="${className}" src="${optimizedUrl}" alt="${escapedAlt}" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='${FALLBACK_IMAGE}'">`;
 }
 
 async function fetchTemplates(db, { limit, orderByCreated = true } = {}) {
@@ -327,6 +336,20 @@ export function createAppController(pageId) {
     container.innerHTML = categories.map((item) => `<a class="category-chip" href="/collections/paid-products">${escapeHtml(item)}</a>`).join('');
   }
 
+  function scrollContainerByCard(container, direction = 1) {
+    if (!container) return;
+    const firstCard = container.firstElementChild;
+    const cardWidth = firstCard ? firstCard.getBoundingClientRect().width : 200;
+    const style = window.getComputedStyle(container);
+    const gap = parseFloat(style.gap || style.columnGap) || 16;
+    const amount = (cardWidth + gap) * direction;
+
+    container.scrollBy({
+      left: amount,
+      behavior: 'smooth'
+    });
+  }
+
   function renderFeaturedCarousel(templates) {
     const carousel = qs('#featured-carousel');
     if (!carousel) return;
@@ -340,12 +363,8 @@ export function createAppController(pageId) {
     const prevBtn = qs('#prev-featured-btn');
     const nextBtn = qs('#next-featured-btn');
 
-    prevBtn?.addEventListener('click', () => {
-      carousel.scrollLeft -= 320;
-    });
-    nextBtn?.addEventListener('click', () => {
-      carousel.scrollLeft += 320;
-    });
+    prevBtn?.addEventListener('click', () => scrollContainerByCard(carousel, -1));
+    nextBtn?.addEventListener('click', () => scrollContainerByCard(carousel, 1));
   }
 
   function renderCollectionsSection() {
@@ -369,10 +388,11 @@ export function createAppController(pageId) {
       </a>
     `).join('');
 
+    const prevColBtn = qs('#prev-col-btn');
     const nextColBtn = qs('#next-col-btn');
-    nextColBtn?.addEventListener('click', () => {
-      container.scrollLeft += 200;
-    });
+
+    prevColBtn?.addEventListener('click', () => scrollContainerByCard(container, -1));
+    nextColBtn?.addEventListener('click', () => scrollContainerByCard(container, 1));
   }
 
   function renderHighlightSection(selector, template, customBackground, detailsHtml) {
@@ -489,35 +509,40 @@ export function createAppController(pageId) {
     `;
   }
 
+  function renderHomeSections(templates) {
+    if (!templates || !templates.length) return;
+    renderFeaturedCarousel(templates);
+    renderCollectionsSection();
+
+    const bestSellingTemplate = templates.find(t => t.title?.toLowerCase().includes('birthday magazine') && !t.title?.toLowerCase().includes('vogue') && !t.title?.toLowerCase().includes('couple')) || templates[0];
+    renderHighlightSection('#best-selling-highlight', bestSellingTemplate, '#fffdf9', '38 pictures after placing order click on WhatsApp icon to share details (92503 03360)');
+
+    const vogueTemplate = templates.find(t => t.title?.toLowerCase().includes('vogue')) || templates[1] || templates[0];
+    renderHighlightSection('#vogue-highlight', vogueTemplate, '#fffdf9', 'Vogue : Her/Him Edition<br>Share 10-30 pictures<br>After placing your order on WhatsApp +91 74084 65203');
+
+    const soulmateTemplate = templates.find(t => t.title?.toLowerCase().includes('couple edition') || t.title?.toLowerCase().includes('soulmate') || t.title?.toLowerCase().includes('vougue')) || templates[2] || templates[0];
+    renderHighlightSection('#soulmate-highlight', soulmateTemplate, '#fffdf9', 'Vougue - Couple Edition<br>Share 10-30 pictures<br>After placing your order on WhatsApp +91 74084 65203');
+
+    const coupleTemplate = templates.find(t => t.title?.toLowerCase().includes('customize couple') || (t.title?.toLowerCase().includes('couple') && !t.title?.toLowerCase().includes('vogue') && !t.title?.toLowerCase().includes('edition'))) || templates[3] || templates[0];
+    renderHighlightSection('#couple-highlight', coupleTemplate, '#fffdf9', 'Customize Couple Magazine<br>Share 10-30 pictures<br>After placing your order on WhatsApp +91 74084 65203');
+
+    renderCategoriesCircleGrid();
+  }
+
   async function renderHomePage() {
     try {
-      state.templates = await fetchTemplates(db, { orderByCreated: false });
+      const cached = getCachedTemplates();
+      if (cached && cached.length > 0) {
+        state.templates = cached;
+        renderHomeSections(state.templates);
+      }
 
-      // 1. Featured Products
-      renderFeaturedCarousel(state.templates);
-
-      // 2. Shop by Collection
-      renderCollectionsSection();
-
-      // 3. Best Selling Highlight
-      const bestSellingTemplate = state.templates.find(t => t.title?.toLowerCase().includes('birthday magazine') && !t.title?.toLowerCase().includes('vogue') && !t.title?.toLowerCase().includes('couple')) || state.templates[0];
-      renderHighlightSection('#best-selling-highlight', bestSellingTemplate, '#fffdf9', '38 pictures after placing order click on WhatsApp icon to share details (92503 03360)');
-
-      // 4. Vogue Highlight
-      const vogueTemplate = state.templates.find(t => t.title?.toLowerCase().includes('vogue')) || state.templates[1] || state.templates[0];
-      renderHighlightSection('#vogue-highlight', vogueTemplate, '#fffdf9', 'Vogue : Her/Him Edition<br>Share 10-30 pictures<br>After placing your order on WhatsApp +91 74084 65203');
-
-      // 5. Soulmate Highlight
-      const soulmateTemplate = state.templates.find(t => t.title?.toLowerCase().includes('couple edition') || t.title?.toLowerCase().includes('soulmate') || t.title?.toLowerCase().includes('vougue')) || state.templates[2] || state.templates[0];
-      renderHighlightSection('#soulmate-highlight', soulmateTemplate, '#fffdf9', 'Vougue - Couple Edition<br>Share 10-30 pictures<br>After placing your order on WhatsApp +91 74084 65203');
-
-      // 6. Couple Highlight
-      const coupleTemplate = state.templates.find(t => t.title?.toLowerCase().includes('customize couple') || (t.title?.toLowerCase().includes('couple') && !t.title?.toLowerCase().includes('vogue') && !t.title?.toLowerCase().includes('edition'))) || state.templates[3] || state.templates[0];
-      renderHighlightSection('#couple-highlight', coupleTemplate, '#fffdf9', 'Customize Couple Magazine<br>Share 10-30 pictures<br>After placing your order on WhatsApp +91 74084 65203');
-
-      // 7. Categories Circle
-      renderCategoriesCircleGrid();
-
+      const fresh = await fetchTemplates(db, { orderByCreated: false });
+      if (fresh && fresh.length > 0) {
+        state.templates = fresh;
+        setCachedTemplates(fresh);
+        renderHomeSections(state.templates);
+      }
     } catch (error) {
       console.error('Failed to load home templates:', error);
     }
@@ -540,22 +565,34 @@ export function createAppController(pageId) {
     const grid = qs('#templates-grid');
     if (!grid) return;
 
-    try {
-      state.templates = await fetchTemplates(db, { orderByCreated: false });
+    const renderCurrent = () => {
       const label = qs('#product-count-label');
       if (label) label.textContent = `${state.templates.length} products`;
+      const value = qs('#sort-by')?.value || 'Featured';
+      grid.innerHTML = sortTemplates(value).map(renderProductCard).join('');
+      setupLazyCloudinaryImages(grid);
+    };
 
-      const renderCurrent = () => {
-        const value = qs('#sort-by')?.value || 'Featured';
-        grid.innerHTML = sortTemplates(value).map(renderProductCard).join('');
-        setupLazyCloudinaryImages(grid);
-      };
+    try {
+      const cached = getCachedTemplates();
+      if (cached && cached.length > 0) {
+        state.templates = cached;
+        renderCurrent();
+      }
+
+      const fresh = await fetchTemplates(db, { orderByCreated: false });
+      if (fresh && fresh.length > 0) {
+        state.templates = fresh;
+        setCachedTemplates(fresh);
+        renderCurrent();
+      }
 
       qs('#sort-by')?.addEventListener('change', renderCurrent);
-      renderCurrent();
     } catch (error) {
       console.error('Failed to load shop templates:', error);
-      grid.innerHTML = '<p>Unable to load products right now.</p>';
+      if (!state.templates.length) {
+        grid.innerHTML = '<p>Unable to load products right now.</p>';
+      }
     }
   }
 
@@ -581,12 +618,8 @@ export function createAppController(pageId) {
 
       const mainImg = qs('#details-main-image');
       if (mainImg) {
-        if (mainImage.includes('res.cloudinary.com')) {
-          mainImg.src = FALLBACK_IMAGE;
-          mainImg.dataset.cldSrc = buildCloudinaryDeliveryUrl(mainImage, { width: 1200 });
-        } else {
-          mainImg.src = mainImage;
-        }
+        mainImg.src = buildCloudinaryDeliveryUrl(mainImage, { width: 1200 });
+        mainImg.onerror = () => { mainImg.src = FALLBACK_IMAGE; };
         mainImg.alt = template.title || 'Main product image';
       }
 
@@ -606,13 +639,8 @@ export function createAppController(pageId) {
         if (!button) return;
         const nextSrc = button.dataset.gallerySrc;
         if (mainImg) {
-          if (nextSrc.includes('res.cloudinary.com')) {
-            mainImg.src = FALLBACK_IMAGE;
-            mainImg.dataset.cldSrc = buildCloudinaryDeliveryUrl(nextSrc, { width: 1200 });
-            setupLazyCloudinaryImages(detailsContainer);
-          } else {
-            mainImg.src = nextSrc;
-          }
+          mainImg.src = buildCloudinaryDeliveryUrl(nextSrc, { width: 1200 });
+          mainImg.onerror = () => { mainImg.src = FALLBACK_IMAGE; };
         }
       });
 
@@ -1224,10 +1252,7 @@ export function createAppController(pageId) {
     const grid = qs('#templates-grid');
     if (!grid) return;
 
-    try {
-      state.templates = await fetchTemplates(db, { orderByCreated: false });
-
-      // Filter only featured/bestseller/magazine templates
+    const renderCurrent = () => {
       const featuredTemplates = state.templates.filter((t) => {
         const badge = (t.badge || '').toLowerCase();
         const title = (t.title || '').toLowerCase();
@@ -1237,18 +1262,32 @@ export function createAppController(pageId) {
       const label = qs('#product-count-label');
       if (label) label.textContent = `${featuredTemplates.length} products`;
 
-      const renderCurrent = () => {
-        const value = qs('#sort-by')?.value || 'Featured';
-        const sorted = sortTemplatesList(featuredTemplates, value);
-        grid.innerHTML = sorted.map(renderProductCard).join('');
-        setupLazyCloudinaryImages(grid);
-      };
+      const value = qs('#sort-by')?.value || 'Featured';
+      const sorted = sortTemplatesList(featuredTemplates, value);
+      grid.innerHTML = sorted.map(renderProductCard).join('');
+      setupLazyCloudinaryImages(grid);
+    };
+
+    try {
+      const cached = getCachedTemplates();
+      if (cached && cached.length > 0) {
+        state.templates = cached;
+        renderCurrent();
+      }
+
+      const fresh = await fetchTemplates(db, { orderByCreated: false });
+      if (fresh && fresh.length > 0) {
+        state.templates = fresh;
+        setCachedTemplates(fresh);
+        renderCurrent();
+      }
 
       qs('#sort-by')?.addEventListener('change', renderCurrent);
-      renderCurrent();
     } catch (error) {
       console.error('Failed to load featured templates:', error);
-      grid.innerHTML = '<p>Unable to load products right now.</p>';
+      if (!state.templates.length) {
+        grid.innerHTML = '<p>Unable to load products right now.</p>';
+      }
     }
   }
 

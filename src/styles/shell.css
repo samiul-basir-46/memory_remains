@@ -1,3 +1,10 @@
+#site-shell {
+  position: sticky;
+  top: 0;
+  z-index: 400;
+  width: 100%;
+}
+
 .announcement-bar {
   padding: 0.72rem 1rem;
   text-align: center;
@@ -9,8 +16,7 @@
 }
 
 .site-header {
-  position: sticky;
-  top: 0;
+  position: relative;
   z-index: 40;
   backdrop-filter: blur(14px);
   background: rgba(255, 255, 255, 0.95);
@@ -157,11 +163,13 @@
   justify-content: center;
   padding: 1rem;
   text-align: center;
-  transition: transform 0.2s;
+  transition: transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+              box-shadow 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
 .megamenu-card:hover .megamenu-card-bg {
-  transform: scale(1.02);
+  transform: scale(1.04) translateY(-4px);
+  box-shadow: 0 14px 36px rgba(54, 5, 5, 0.2);
 }
 
 .megamenu-card-bg span {
