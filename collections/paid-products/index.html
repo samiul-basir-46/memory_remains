@@ -14,44 +14,45 @@
   <div id="site-shell"></div>
 
   <main>
-    <section class="section">
+    <section class="section" style="padding-top: 2rem; padding-bottom: 4rem;">
       <div class="container">
-        <div class="page-intro">
-          <span class="eyebrow">Paid Products</span>
-          <h1>Explore premium memory-led digital products</h1>
-          <p>Browse all templates with a cleaner collection view, stronger pricing hierarchy, and optimized image delivery.</p>
+        <div style="margin-bottom: 1.5rem;">
+          <h1 style="font-family: 'Yeseva One', serif; font-size: clamp(2.2rem, 4.5vw, 3.2rem); color: #3b1c1c; margin: 0;">Paid Products</h1>
         </div>
 
-        <div class="card-panel" style="padding:1.25rem;margin-bottom:1.5rem">
-          <div class="section-heading" style="margin-bottom:0">
-            <p id="product-count-label">0 products</p>
-            <div class="inline-actions" style="margin-top:0">
-              <label for="sort-by" class="eyebrow" style="margin-bottom:0">Sort by</label>
-              <select id="sort-by" class="pill-button pill-button--ghost" style="padding: 0.4rem 1rem; font-size: 0.85rem; border-color: var(--color-primary); color: var(--color-primary); cursor: pointer; background: transparent;">
-                <option>Featured</option>
-                <option>Price: Low to High</option>
-                <option>Price: High to Low</option>
-                <option>Alphabetically: A-Z</option>
-              </select>
+        <!-- Filter & Sort Toolbar -->
+        <div class="filter-sort-bar">
+          <div class="filter-sort-left">
+            <button id="open-filter-btn" class="filter-trigger-btn" type="button">
+              <span>Filter</span>
+              <i class="fa-solid fa-sliders"></i>
+            </button>
+            <div id="active-filters-container" class="active-filters-list"></div>
+            <button id="clear-all-filters-btn" class="clear-filters-btn" type="button" hidden>Clear Filters</button>
+          </div>
+
+          <div class="filter-sort-right">
+            <div class="sort-dropdown-container">
+              <button id="sort-dropdown-btn" class="sort-trigger-btn" type="button">
+                <span>Sort By : <strong id="sort-current-label">Recommended</strong></span>
+                <i class="fa-solid fa-arrows-up-down" style="font-size: 0.8em; margin-left: 4px;"></i>
+              </button>
+              <div id="sort-dropdown-menu" class="sort-dropdown-menu" hidden>
+                <div class="sort-option is-active" data-sort="recommended">Recommended</div>
+                <div class="sort-option" data-sort="title-asc">Title: A &gt; Z</div>
+                <div class="sort-option" data-sort="title-desc">Title: Z &gt; A</div>
+                <div class="sort-option" data-sort="newest">New Arrivals</div>
+                <div class="sort-option" data-sort="price-desc">Price: High to Low</div>
+                <div class="sort-option" data-sort="price-asc">Price: Low to High</div>
+                <div class="sort-option" data-sort="discount-desc">Discount: High to Low</div>
+                <div class="sort-option" data-sort="discount-asc">Discount: Low to High</div>
+              </div>
             </div>
           </div>
         </div>
 
-        <div id="templates-grid" class="products-grid"></div>
-      </div>
-    </section>
-
-    <section class="section section--tight">
-      <div class="container card-panel" style="padding:2rem">
-        <div class="page-intro" style="margin-bottom:0">
-          <span class="eyebrow">Newsletter</span>
-          <h1 style="font-size:clamp(2rem,4vw,3rem)">Get free design assets and updates</h1>
-          <p>Subscribe for product launches, custom order tips, and creator resources.</p>
-        </div>
-        <form class="newsletter-form stack-form" style="max-width:560px;margin:1.5rem auto 0">
-          <input type="email" placeholder="Your email address" required aria-label="Email address">
-          <button type="submit" class="pill-button">Subscribe</button>
-        </form>
+        <!-- Templates Grid v2 -->
+        <div id="templates-grid" class="products-grid-v2"></div>
       </div>
     </section>
   </main>

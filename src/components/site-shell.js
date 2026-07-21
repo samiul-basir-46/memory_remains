@@ -4,9 +4,15 @@ function renderNavLinks(pageId, isMobile = false) {
   return SITE_CONFIG.navLinks.map((link) => {
     const activeClass = link.page === pageId ? 'is-active' : '';
     const isDropdown = !isMobile && (link.label === 'Categories' || link.label === 'Collections');
-    const hasChevron = !isMobile && link.label !== 'All Products';
-    const icon = hasChevron ? ' <i class="fa-solid fa-chevron-down" style="font-size:0.7em; margin-left:4px; color: var(--color-text-soft);"></i>' : '';
-    
+    const isFeatured = link.label === 'Featured Products';
+
+    let icon = '';
+    if (isFeatured) {
+      icon = ' <i class="fa-solid fa-wand-magic-sparkles" style="font-size:0.75em; margin-left:6px; color: #3b1c1c;"></i>';
+    } else if (isDropdown) {
+      icon = ' <i class="fa-solid fa-chevron-down" style="font-size:0.7em; margin-left:5px; color: #3b1c1c; transition: transform 0.25s ease;"></i>';
+    }
+
     let dropdownHtml = '';
     if (isDropdown) {
       if (link.label === 'Categories') {
@@ -57,10 +63,10 @@ function renderNavLinks(pageId, isMobile = false) {
         `;
       }
     }
-    
+
     return `
       <div class="nav-item-wrapper ${isDropdown ? 'has-dropdown' : ''}" style="position: static;">
-        <a href="${link.href}" class="nav-link ${activeClass}" style="color: #3b1c1c; text-decoration: none; display: inline-flex; align-items: center; height: 100%;">
+        <a href="${link.href}" class="nav-link ${activeClass}" style="color: #3b1c1c; text-decoration: none; display: inline-flex; align-items: center; height: 100%; font-family: 'Yeseva One', serif; font-size: 0.95rem; font-weight: 600;">
           ${link.label}${icon}
         </a>
         ${dropdownHtml}
@@ -96,17 +102,30 @@ export function renderSiteShell(pageId) {
   }
 
   shell.innerHTML = `
-    <div class="announcement-bar">${SITE_CONFIG.announcement}</div>
+    <div class="announcement-bar">
+      <div class="announcement-bar__track">
+        <div class="announcement-bar__content">
+          <span>${SITE_CONFIG.announcement}</span>
+          <span class="announcement-dot">•</span>
+        </div>
+      </div>
+    </div>
     <header class="site-header">
       <div class="container site-header__inner">
+        <!-- Hamburger Menu toggle (mobile left) -->
+        <button class="menu-toggle" type="button" aria-label="Toggle Menu" style="cursor: pointer;">
+          <i class="fa-solid fa-bars" style="font-size: 1.35rem; color: #3b1c1c;"></i>
+        </button>
+
+        <!-- Brand Logo -->
         <a class="site-logo" href="/" style="display: flex; align-items: center; gap: 0.5rem; text-decoration: none;">
-          <div style="width: 48px; height: 48px; border-radius: 50%; background: #3b1c1c; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+          <div style="width: 44px; height: 44px; border-radius: 50%; background: #3b1c1c; display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0;">
             <img src="/assets/IMG-20260715-WA0003.jpg" alt="${SITE_CONFIG.brandName} Logo" style="width: 100%; height: 100%; object-fit: cover;">
           </div>
-          <span class="site-logo__text">${SITE_CONFIG.brandName}</span>
+          <span class="site-logo__text" style="font-family: 'Yeseva One', serif; font-size: 1.25rem; color: #3b1c1c; font-weight: bold;">${SITE_CONFIG.brandName}</span>
         </a>
         
-        <!-- Search bar -->
+        <!-- Search bar (Desktop) -->
         <div class="header-search" style="max-width: 600px; margin: 0 auto; width: 100%;">
           <input type="text" id="header-search-input" placeholder="Search anything..." aria-label="Search" style="border-radius: 8px; border: 1px solid #ddd; padding: 0.6rem 1rem; width: 100%;">
         </div>
@@ -116,6 +135,11 @@ export function renderSiteShell(pageId) {
             <i class="fa-solid fa-map-pin"></i>
             <span>Check Location</span>
           </button>
+
+          <!-- Mobile Search Toggle Icon (🔍) -->
+          <button id="mobile-search-toggle-btn" class="mobile-search-toggle" type="button" aria-label="Search">
+            <i class="fa-solid fa-magnifying-glass" style="font-size: 1.15rem; color: #3b1c1c;"></i>
+          </button>
           
           <button class="cart-icon" type="button" aria-label="Shopping Cart" style="color: #3b1c1c; font-size: 1.1rem; margin: 0 0.5rem;">
             <i class="fa-solid fa-cart-shopping"></i>
@@ -123,27 +147,74 @@ export function renderSiteShell(pageId) {
           </button>
           
           <button id="auth-nav-btn" class="auth-text-link" type="button" style="color: #3b1c1c; font-size: 0.9rem;">Sign In</button>
-          
-          <button class="menu-toggle" type="button" aria-label="Toggle Menu">
-            <span></span><span></span><span></span>
-          </button>
+        </div>
+      </div>
+      
+      <!-- Mobile Search Bar input box -->
+      <div id="mobile-search-bar" class="mobile-search-bar" hidden>
+        <div class="container" style="padding: 0.5rem 1rem;">
+          <input type="text" id="mobile-search-input" placeholder="Search anything..." aria-label="Search" style="width: 100%; padding: 0.6rem 1rem; border-radius: 8px; border: 1px solid #ddd; outline: none;">
         </div>
       </div>
       
       <!-- Sub navigation row -->
       <nav class="site-sub-nav" aria-label="Primary" style="border-top: none; padding-top: 1rem; padding-bottom: 1rem;">
-        <div class="container site-sub-nav__inner" style="justify-content: space-around; max-width: 900px; margin: 0 auto; font-family: 'Yeseva One', serif; font-size: 0.9rem;">
+        <div class="container site-sub-nav__inner" style="justify-content: space-around; max-width: 900px; margin: 0 auto; font-family: 'Yeseva One', serif; font-size: 0.95rem;">
           ${renderNavLinks(pageId)}
         </div>
       </nav>
     </header>
     <aside class="mobile-drawer" id="mobile-drawer">
-      <div class="mobile-drawer__body">
-        ${renderNavLinks(pageId, true)}
-        <hr style="border:0;border-top:1px solid var(--color-border);margin:0.5rem 0">
-        <a href="/pages/library" class="nav-link">My Library</a>
-        <a href="/pages/profile" class="nav-link">Profile</a>
-        <a href="#" id="auth-mobile-btn" class="mobile-auth-link">Sign In</a>
+      <div class="mobile-drawer__header">
+        <div class="mobile-drawer__brand">
+          <div class="mobile-drawer__logo-img">
+            <img src="/assets/IMG-20260715-WA0003.jpg" alt="${SITE_CONFIG.brandName} Logo">
+          </div>
+          <span class="mobile-drawer__brand-title">${SITE_CONFIG.brandName}</span>
+        </div>
+        <button id="mobile-drawer-close-btn" class="mobile-drawer__close-btn" type="button" aria-label="Close menu">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="mobile-drawer__nav">
+        <a href="/pages/featured" class="mobile-drawer__link">
+          <span>Featured Products</span>
+          <i class="fa-solid fa-wand-magic-sparkles" style="font-size:0.85em; color: #3b1c1c;"></i>
+        </a>
+
+        <div class="mobile-drawer__accordion">
+          <button type="button" class="mobile-drawer__accordion-toggle">
+            <span>Categories</span>
+            <i class="fa-solid fa-chevron-down"></i>
+          </button>
+          <div class="mobile-drawer__accordion-content">
+            <a href="/collections/paid-products" class="mobile-drawer__sublink">Magazine & Newspaper</a>
+          </div>
+        </div>
+
+        <div class="mobile-drawer__accordion">
+          <button type="button" class="mobile-drawer__accordion-toggle">
+            <span>Collections</span>
+            <i class="fa-solid fa-chevron-down"></i>
+          </button>
+          <div class="mobile-drawer__accordion-content">
+            <a href="/collections/paid-products" class="mobile-drawer__sublink">FOR HER</a>
+            <a href="/collections/paid-products" class="mobile-drawer__sublink">I Love My Self</a>
+            <a href="/collections/paid-products" class="mobile-drawer__sublink">Best Selling</a>
+            <a href="/collections/paid-products" class="mobile-drawer__sublink">Birthday Special</a>
+            <a href="/collections/paid-products" class="mobile-drawer__sublink">FOR HIM</a>
+          </div>
+        </div>
+
+        <a href="/collections/paid-products" class="mobile-drawer__link">All Products</a>
+      </div>
+
+      <div class="mobile-drawer__footer">
+        <button id="auth-mobile-btn" class="mobile-drawer__auth-btn" type="button">
+          <i class="fa-regular fa-user"></i>
+          <span>Sign In</span>
+        </button>
       </div>
     </aside>
     <div class="screen-overlay" id="screen-overlay"></div>
@@ -205,7 +276,7 @@ export function renderSiteShell(pageId) {
       </div>
     </div>
     
-    <a href="https://wa.me/919250303360" target="_blank" rel="noreferrer" class="whatsapp-float" style="position: fixed; bottom: 20px; right: 20px; background-color: #25d366; color: white; border-radius: 50%; width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; font-size: 2rem; box-shadow: 0 4px 10px rgba(0,0,0,0.3); z-index: 100;">
+    <a href="https://wa.me/8801622000471?text=Hi%2C%20I%27m%20interested%20in%20your%20products" target="_blank" rel="noreferrer" class="whatsapp-float" style="position: fixed; bottom: 20px; right: 20px; background-color: #25d366; color: white; border-radius: 50%; width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; font-size: 2rem; box-shadow: 0 4px 10px rgba(0,0,0,0.3); z-index: 100;">
       <i class="fa-brands fa-whatsapp"></i>
     </a>
   `;
@@ -287,5 +358,165 @@ export function renderSiteShell(pageId) {
       </div>
     </div>
     <div class="drawer-overlay" id="upload-modal-overlay"></div>
+
+    <!-- Filter Drawer Panel -->
+    <aside class="filter-drawer" id="filter-drawer">
+      <div class="filter-drawer__header">
+        <h3>Filter</h3>
+        <div style="display: flex; align-items: center; gap: 1rem;">
+          <button id="filter-reset-btn" class="filter-reset-btn" type="button">Reset All</button>
+          <button id="filter-drawer-close-btn" class="filter-close-btn" type="button" aria-label="Close filters">&times;</button>
+        </div>
+      </div>
+
+      <div class="filter-drawer__body">
+        <!-- Accordion 1: Inventory (Collapsed by default) -->
+        <div class="filter-accordion">
+          <div class="filter-accordion__header">
+            <span>Inventory</span>
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <span class="filter-header-subtext" style="color: #d82b58; font-weight: 500; font-size: 0.85rem;">In Stock</span>
+              <i class="fa-solid fa-chevron-down"></i>
+            </div>
+          </div>
+          <div class="filter-accordion__content">
+            <label class="filter-checkbox-item">
+              <div style="display: flex; align-items: center; gap: 0.75rem;">
+                <input type="checkbox" id="filter-in-stock" checked>
+                <span>In Stock</span>
+              </div>
+              <span class="filter-item-count">19</span>
+            </label>
+            <label class="filter-checkbox-item">
+              <div style="display: flex; align-items: center; gap: 0.75rem;">
+                <input type="checkbox" id="filter-out-stock">
+                <span style="color: #888;">Out Stock</span>
+              </div>
+              <span class="filter-item-count">0</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Accordion 2: Discount (Collapsed by default) -->
+        <div class="filter-accordion">
+          <div class="filter-accordion__header">
+            <span>Discount</span>
+            <i class="fa-solid fa-chevron-down"></i>
+          </div>
+          <div class="filter-accordion__content">
+            <label class="filter-checkbox-item">
+              <div style="display: flex; align-items: center; gap: 0.75rem;">
+                <input type="checkbox" class="discount-filter-cb" value="0-20">
+                <span>0 - 20%</span>
+              </div>
+              <span class="filter-item-count">0</span>
+            </label>
+            <label class="filter-checkbox-item">
+              <div style="display: flex; align-items: center; gap: 0.75rem;">
+                <input type="checkbox" class="discount-filter-cb" value="21-40">
+                <span>21 - 40%</span>
+              </div>
+              <span class="filter-item-count">0</span>
+            </label>
+            <label class="filter-checkbox-item">
+              <div style="display: flex; align-items: center; gap: 0.75rem;">
+                <input type="checkbox" class="discount-filter-cb" value="41-60">
+                <span>41 - 60%</span>
+              </div>
+              <span class="filter-item-count">2</span>
+            </label>
+            <label class="filter-checkbox-item">
+              <div style="display: flex; align-items: center; gap: 0.75rem;">
+                <input type="checkbox" class="discount-filter-cb" value="61-80">
+                <span>61 - 80%</span>
+              </div>
+              <span class="filter-item-count">13</span>
+            </label>
+            <label class="filter-checkbox-item">
+              <div style="display: flex; align-items: center; gap: 0.75rem;">
+                <input type="checkbox" class="discount-filter-cb" value="81-100">
+                <span>81 - 100%</span>
+              </div>
+              <span class="filter-item-count">4</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Accordion 3: Price Range (Collapsed by default) -->
+        <div class="filter-accordion">
+          <div class="filter-accordion__header">
+            <span>Price Range</span>
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <span class="filter-header-subtext" id="price-range-header-subtext" style="color: #d82b58; font-weight: 500; font-size: 0.85rem; display: none;">Min +1 more</span>
+              <i class="fa-solid fa-chevron-down"></i>
+            </div>
+          </div>
+          <div class="filter-accordion__content">
+            <div class="filter-price-slider-wrapper">
+              <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
+                <span style="font-size: 0.85rem; color: #888;">Minimum</span>
+                <span style="font-size: 0.85rem; color: #888;">Maximum</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; font-weight: 600; color: #2b1717; margin-bottom: 0.75rem;">
+                <span id="price-min-display">₹199</span>
+                <span id="price-max-display">₹799</span>
+              </div>
+              
+              <!-- Dual Range Slider -->
+              <div class="dual-range-slider">
+                <div class="slider-track"></div>
+                <div class="slider-track-fill" id="slider-track-fill"></div>
+                <input type="range" id="price-slider-min" min="199" max="799" value="199" step="1">
+                <input type="range" id="price-slider-max" min="199" max="799" value="799" step="1">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="filter-drawer__footer">
+        <button id="apply-filter-btn" class="pill-button" type="button" style="width: 100%; background: var(--color-primary); color: white; border-radius: 24px; padding: 0.85rem; font-weight: 600;">Show Products</button>
+      </div>
+    </aside>
+    <div class="drawer-overlay" id="filter-drawer-overlay"></div>
   `;
+
+  initStickyHeaderScroll();
 }
+
+function initStickyHeaderScroll() {
+  const shell = document.getElementById('site-shell');
+  if (!shell || shell.dataset.scrollBound) return;
+  shell.dataset.scrollBound = 'true';
+
+  let lastScrollY = window.scrollY;
+  let ticking = false;
+
+  window.addEventListener('scroll', () => {
+    if (!ticking) {
+      window.requestAnimationFrame(() => {
+        const currentScrollY = window.scrollY;
+
+        if (currentScrollY > 100) {
+          shell.classList.add('is-scrolled');
+          if (currentScrollY > lastScrollY && currentScrollY - lastScrollY > 6) {
+            // Scrolling down -> hide header
+            shell.classList.add('is-hidden');
+          } else if (lastScrollY - currentScrollY > 6) {
+            // Scrolling up -> reveal header with animation
+            shell.classList.remove('is-hidden');
+          }
+        } else {
+          // Near top -> show header and remove shadow
+          shell.classList.remove('is-hidden');
+          shell.classList.remove('is-scrolled');
+        }
+
+        lastScrollY = currentScrollY;
+        ticking = false;
+      });
+      ticking = true;
+    }
+  }, { passive: true });
+}
+
