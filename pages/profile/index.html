@@ -10,37 +10,46 @@
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
 </head>
-<body data-page="profile">
+<body data-page="profile" class="font-body bg-bg text-text-dark antialiased">
   <div id="site-shell"></div>
 
   <main>
-    <section class="section">
-      <div class="container">
-        <div class="page-intro">
-          <span class="eyebrow">Profile</span>
-          <h1>Manage your account and delivery details</h1>
-          <p>Keep your name and contact details up to date for smoother order verification and custom photo delivery.</p>
+    <section class="py-12">
+      <div class="max-w-container mx-auto px-4">
+        <div class="text-center max-w-2xl mx-auto mb-10">
+          <span class="inline-block text-xs font-bold uppercase tracking-widest text-primary mb-2">Profile</span>
+          <h1 class="font-heading text-3xl md:text-5xl text-[#3b1c1c] mb-3">Manage your account</h1>
+          <p class="text-text-soft text-base">Keep your name and contact details up to date for smoother order verification and custom photo delivery.</p>
         </div>
 
-        <div class="card-panel" style="max-width:720px;margin:0 auto;padding:1.5rem">
-          <div id="profile-auth-required" class="auth-required">
-            <i class="fa-solid fa-user-lock"></i>
-            <h2 style="color:var(--color-primary);margin-bottom:.75rem">Login Required</h2>
-            <p style="color:var(--color-text-soft);margin-bottom:1rem">You must be logged in to view and edit your profile.</p>
-            <button onclick="openAuthModal()" class="pill-button" type="button">Log In to Account</button>
+        <div class="bg-white rounded-2xl border border-pink-100 p-8 shadow-sm max-w-xl mx-auto">
+          <div id="profile-auth-required" class="auth-required text-center py-6">
+            <i class="fa-solid fa-user-lock text-4xl text-primary mb-3"></i>
+            <h2 class="font-heading text-2xl text-primary font-bold mb-2">Login Required</h2>
+            <p class="text-text-soft text-sm mb-6">You must be logged in to view and edit your profile.</p>
+            <button onclick="openAuthModal()" class="pill-button px-6 py-3 bg-primary hover:bg-primary-strong text-white font-bold rounded-xl text-sm transition-colors" type="button">Log In to Account</button>
           </div>
 
           <div id="profile-content-container">
-            <div style="display:flex;flex-direction:column;align-items:center;gap:.75rem;margin-bottom:1.5rem">
-              <img id="profile-avatar" src="/assets/creator_profile.png" alt="Profile avatar" style="width:96px;height:96px;border-radius:999px;object-fit:cover;border:2px solid rgba(94,43,31,.16)">
-              <h3 id="profile-welcome-title" style="color:var(--color-primary)">Welcome!</h3>
+            <div class="flex flex-col items-center gap-3 mb-6">
+              <img id="profile-avatar" src="/assets/creator_profile.png" alt="Profile avatar" class="w-24 h-24 rounded-full object-cover border-2 border-primary/20 shadow-sm">
+              <h3 id="profile-welcome-title" class="font-heading text-xl text-primary font-bold">Welcome!</h3>
             </div>
 
-            <form id="profile-form" class="stack-form">
-              <input id="profile-name" type="text" placeholder="Full name" required>
-              <input id="profile-email" type="email" placeholder="Email address" disabled>
-              <input id="profile-phone" type="tel" placeholder="Phone number">
-              <button type="submit" class="pill-button">Save Changes</button>
+            <form id="profile-form" class="space-y-4">
+              <div>
+                <label class="block text-xs font-semibold text-gray-600 mb-1">Full Name</label>
+                <input id="profile-name" type="text" placeholder="Full name" required class="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm outline-none focus:border-primary">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-gray-600 mb-1">Email Address</label>
+                <input id="profile-email" type="email" placeholder="Email address" disabled class="w-full px-4 py-3 border border-gray-200 bg-gray-50 text-gray-500 rounded-xl text-sm">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-gray-600 mb-1">Phone Number</label>
+                <input id="profile-phone" type="tel" placeholder="Phone number" class="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm outline-none focus:border-primary">
+              </div>
+              <button type="submit" class="w-full py-3.5 bg-primary hover:bg-primary-strong text-white font-bold rounded-xl text-sm shadow-md transition-colors">Save Changes</button>
             </form>
           </div>
         </div>

@@ -1,0 +1,783 @@
+import { getCart, setCart, updateCartCount, clearCart } from '../services/cart-service.js';
+import { formatCurrency, escapeHtml, qs } from '../utils/ui.js';
+import { imageMarkup } from '../components/product-card.js';
+import { getFirebaseServices } from '../services/firebase-service.js';
+
+const API_BASE = "https://bkash-sms-gateway.onrender.com";
+const DELIVERY_CHARGE = 60;
+const WHATSAPP_NUMBER = "8801XXXXXXXXX";
+const BKASH_NUMBER = "01XXXXXXXXX";
+
+let activePollingTimer = null;
+let currentAttemptCount = 0;
+const MAX_ATTEMPTS = 20;
+
+function generateShortOrderId() {
+  const randomDigits = Math.floor(10000 + Math.random() * 90000);
+  return `ORD-${randomDigits}`;
+}
+
+export async function renderCartPage(dbInstance) {
+  const db = dbInstance || getFirebaseServices().db;
+  const container = qs('#cart-page-app');
+  if (!container) return;
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const existingOrderId = urlParams.get('order_id');
+
+  if (existingOrderId) {
+    await handlePageRefreshRecovery(db, existingOrderId);
+    return;
+  }
+
+  renderCartState(db);
+}
+
+function renderCartState(db) {
+  const container = qs('#cart-page-app');
+  if (!container) return;
+
+  const cart = getCart();
+
+  if (cart.length === 0) {
+    container.innerHTML = `
+      <div class="max-w-md mx-auto py-16 px-4 text-center">
+        <div class="w-20 h-20 mx-auto mb-6 rounded-full bg-pink-50 border border-pink-100 flex items-center justify-center text-primary text-3xl shadow-sm">
+          <i class="fa-solid fa-bag-shopping"></i>
+        </div>
+        <h2 class="font-heading text-2xl md:text-3xl text-[#2A2A2A] font-normal mb-2">Why so light! :(</h2>
+        <h3 class="text-xl text-[#2A2A2A] font-semibold mb-2">Your cart is empty</h3>
+        <p class="text-text-soft text-sm mb-8">Looks like you haven't added anything yet</p>
+        <a href="/collections/paid-products" class="inline-flex items-center justify-center px-8 py-3.5 bg-[#DC3C71] hover:bg-[#c23260] text-white font-bold text-sm rounded-xl shadow-md transition-colors no-underline">Discover Products</a>
+      </div>
+    `;
+    return;
+  }
+
+  let subtotal = 0;
+  const itemsMarkup = cart.map((item, index) => {
+    const itemPrice = Number(item.price || 0);
+    const itemQty = Number(item.quantity || 1);
+    const lineTotal = itemPrice * itemQty;
+    subtotal += lineTotal;
+
+    return `
+      <div class="cart-item-card bg-white p-4 md:p-5 rounded-2xl border border-pink-100/80 shadow-sm flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-4">
+        <div class="w-20 h-20 rounded-xl bg-[#1a1a1a] overflow-hidden flex-shrink-0">
+          ${imageMarkup(item.imageUrl, item.title, 'w-full h-full object-cover')}
+        </div>
+        <div class="flex-1 min-w-0">
+          <h4 class="font-heading text-base font-semibold text-[#2A2A2A] mb-1 truncate">${escapeHtml(item.title)}</h4>
+          <p class="text-sm text-text-soft mb-2">Unit Price: <span class="font-semibold text-[#2A2A2A]">৳${itemPrice}</span></p>
+          <div class="flex items-center gap-3">
+            <div class="inline-flex items-center border border-gray-200 rounded-lg overflow-hidden bg-gray-50">
+              <button type="button" onclick="window.__updateCartQty(${index}, ${itemQty - 1})" class="w-8 h-8 flex items-center justify-center text-gray-600 hover:bg-gray-200 transition-colors cursor-pointer font-bold text-sm" ${itemQty <= 1 ? 'disabled' : ''}>-</button>
+              <span class="w-10 text-center font-bold text-sm text-[#2A2A2A]">${itemQty}</span>
+              <button type="button" onclick="window.__updateCartQty(${index}, ${itemQty + 1})" class="w-8 h-8 flex items-center justify-center text-gray-600 hover:bg-gray-200 transition-colors cursor-pointer font-bold text-sm">+</button>
+            </div>
+            <button type="button" onclick="window.__removeCartItem(${index})" class="text-xs text-primary hover:underline font-semibold flex items-center gap-1 cursor-pointer">
+              <i class="fa-regular fa-trash-can"></i>
+              <span>Remove</span>
+            </button>
+          </div>
+        </div>
+        <div class="text-right sm:self-center">
+          <span class="text-xs text-text-soft block">Line Total</span>
+          <strong class="text-lg font-bold text-[#2A2A2A]">৳${lineTotal}</strong>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  const grandTotal = subtotal + DELIVERY_CHARGE;
+
+  container.innerHTML = `
+    <div class="max-w-4xl mx-auto py-8 px-4">
+      <h1 class="font-heading text-3xl text-[#2A2A2A] font-normal mb-8 text-center sm:text-left">Shopping Bag</h1>
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div class="lg:col-span-2">
+          ${itemsMarkup}
+        </div>
+
+        <div class="lg:col-span-1">
+          <div class="bg-[#FDF0F4] p-6 rounded-2xl border border-pink-100 shadow-sm sticky top-24">
+            <h3 class="font-heading text-xl text-[#2A2A2A] font-bold mb-4 border-b border-pink-200/60 pb-3">Order Summary</h3>
+            <div class="space-y-3 text-sm text-[#2A2A2A] mb-6">
+              <div class="flex justify-between">
+                <span>Subtotal</span>
+                <strong class="font-bold">৳${subtotal}</strong>
+              </div>
+              <div class="flex justify-between">
+                <span>Delivery Charge</span>
+                <strong class="font-bold">৳${DELIVERY_CHARGE}</strong>
+              </div>
+              <div class="border-t border-pink-200/60 pt-3 flex justify-between text-base font-bold">
+                <span>Total Amount</span>
+                <strong class="text-primary text-xl">৳${grandTotal}</strong>
+              </div>
+            </div>
+            <button type="button" id="start-checkout-btn" class="w-full py-3.5 bg-[#DC3C71] hover:bg-[#c23260] text-white font-bold rounded-xl text-sm shadow-md transition-colors cursor-pointer text-center">Proceed to Checkout</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  window.__updateCartQty = (idx, newQty) => {
+    let currentCart = getCart();
+    if (newQty < 1) return;
+    currentCart[idx].quantity = newQty;
+    setCart(currentCart);
+    updateCartCount();
+    renderCartState(db);
+  };
+
+  window.__removeCartItem = (idx) => {
+    let currentCart = getCart();
+    currentCart.splice(idx, 1);
+    setCart(currentCart);
+    updateCartCount();
+    renderCartState(db);
+  };
+
+  qs('#start-checkout-btn')?.addEventListener('click', () => {
+    renderCheckoutForm(db, subtotal);
+  });
+}
+
+function renderCheckoutForm(db, subtotal) {
+  const container = qs('#cart-page-app');
+  if (!container) return;
+
+  const totalAmount = subtotal + DELIVERY_CHARGE;
+
+  container.innerHTML = `
+    <div class="max-w-xl mx-auto py-8 px-4">
+      <button type="button" id="back-to-cart-btn" class="mb-6 inline-flex items-center gap-2 text-xs font-semibold text-text-dark hover:text-primary transition-colors cursor-pointer">
+        <i class="fa-solid fa-arrow-left"></i>
+        <span>Back to Shopping Bag</span>
+      </button>
+
+      <div class="bg-white p-6 md:p-8 rounded-2xl border border-pink-100 shadow-xl">
+        <h2 class="font-heading text-2xl text-[#2A2A2A] font-bold mb-6">Checkout Details</h2>
+        <form id="checkout-submit-form" class="space-y-5">
+          <div>
+            <label class="block text-xs font-bold text-[#2A2A2A] mb-1.5">Full Name *</label>
+            <input type="text" id="cust-name" required placeholder="Enter your full name" class="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm outline-none focus:border-primary">
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-[#2A2A2A] mb-1.5">Phone Number (Bangladeshi Format) *</label>
+            <input type="tel" id="cust-phone" required placeholder="e.g. 01712345678" class="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm outline-none focus:border-primary">
+            <p id="phone-error-text" class="text-xs text-amber-600 mt-1 hidden">Please enter a valid 11-digit Bangladeshi mobile number starting with 01.</p>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-[#2A2A2A] mb-2">Payment Method *</label>
+            <div class="grid grid-cols-2 gap-3">
+              <label class="payment-option-label border-2 border-primary bg-pink-50/50 p-4 rounded-xl cursor-pointer flex flex-col items-center justify-center gap-1.5 transition-all text-center">
+                <input type="radio" name="payment_method" value="cod" checked class="accent-primary">
+                <span class="text-xs font-bold text-[#2A2A2A]">Cash on Delivery</span>
+              </label>
+              <label class="payment-option-label border-2 border-gray-200 bg-white p-4 rounded-xl cursor-pointer flex flex-col items-center justify-center gap-1.5 transition-all text-center">
+                <input type="radio" name="payment_method" value="online" class="accent-primary">
+                <span class="text-xs font-bold text-[#2A2A2A]">Pay Online</span>
+              </label>
+            </div>
+          </div>
+
+          <div id="payment-amount-box" class="p-4 rounded-xl bg-[#FDF0F4] border border-pink-200 text-xs text-[#2A2A2A] space-y-1">
+            <p id="amount-note-text" class="font-semibold text-primary text-sm">You need to pay ৳30 in advance via bKash to confirm this order</p>
+          </div>
+
+          <div id="checkout-error-msg" class="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-800 hidden"></div>
+
+          <button type="submit" id="place-order-btn" class="w-full py-3.5 bg-[#DC3C71] hover:bg-[#c23260] text-white font-bold rounded-xl text-sm shadow-md transition-colors cursor-pointer text-center">Proceed to Payment Screen</button>
+        </form>
+      </div>
+    </div>
+  `;
+
+  qs('#back-to-cart-btn')?.addEventListener('click', () => renderCartState(db));
+
+  const radios = document.querySelectorAll('input[name="payment_method"]');
+  const amountNote = qs('#amount-note-text');
+  const paymentBoxes = document.querySelectorAll('.payment-option-label');
+
+  radios.forEach((r) => {
+    r.addEventListener('change', () => {
+      paymentBoxes.forEach((b) => {
+        const checked = b.querySelector('input').checked;
+        b.className = checked 
+          ? 'payment-option-label border-2 border-primary bg-pink-50/50 p-4 rounded-xl cursor-pointer flex flex-col items-center justify-center gap-1.5 transition-all text-center'
+          : 'payment-option-label border-2 border-gray-200 bg-white p-4 rounded-xl cursor-pointer flex flex-col items-center justify-center gap-1.5 transition-all text-center';
+      });
+
+      if (r.value === 'cod') {
+        if (amountNote) amountNote.textContent = `You need to pay ৳30 in advance via bKash to confirm this order`;
+      } else {
+        if (amountNote) amountNote.textContent = `Total to pay: ৳${totalAmount} (Products: ৳${subtotal} + Delivery: ৳${DELIVERY_CHARGE})`;
+      }
+    });
+  });
+
+  qs('#checkout-submit-form')?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const name = qs('#cust-name').value.trim();
+    const phone = qs('#cust-phone').value.trim();
+    const selectedMethod = document.querySelector('input[name="payment_method"]:checked')?.value || 'cod';
+
+    const phoneRegex = /^01[3-9]\d{8}$/;
+    if (!phoneRegex.test(phone)) {
+      qs('#phone-error-text')?.classList.remove('hidden');
+      return;
+    }
+    qs('#phone-error-text')?.classList.add('hidden');
+
+    renderPaymentInstructionsStep(db, {
+      customer_name: name,
+      customer_phone: phone,
+      payment_method: selectedMethod,
+      product_amount: subtotal,
+      delivery_charge: DELIVERY_CHARGE
+    });
+  });
+}
+
+function renderPaymentInstructionsStep(db, checkoutData) {
+  const container = qs('#cart-page-app');
+  if (!container) return;
+
+  const isCod = checkoutData.payment_method === 'cod';
+  const expectedAmount = isCod ? 30 : (Number(checkoutData.product_amount || 0) + Number(checkoutData.delivery_charge || DELIVERY_CHARGE));
+
+  container.innerHTML = `
+    <div class="max-w-xl mx-auto py-8 px-4">
+      <div class="bg-white p-6 md:p-8 rounded-2xl border border-pink-100 shadow-xl">
+        
+        <div class="bg-[#FDF0F4] p-5 rounded-2xl border border-pink-200 text-center space-y-3 mb-6">
+          <span class="text-xs text-text-soft block uppercase tracking-wider font-semibold">bKash Merchant / Personal Payment Number</span>
+          <div class="flex items-center justify-center gap-3">
+            <span class="text-xs text-text-soft font-medium">bKash Number:</span>
+            <strong class="font-bold text-xl text-[#2A2A2A] tracking-wider">${BKASH_NUMBER}</strong>
+            <button type="button" id="copy-bkash-num-btn" class="px-3 py-1.5 bg-[#DC3C71] hover:bg-[#c23260] text-white text-xs font-bold rounded-lg shadow-sm transition-colors cursor-pointer">Copy</button>
+          </div>
+          <p class="text-[11px] text-text-soft leading-relaxed border-t border-pink-200/60 pt-2.5 max-w-md mx-auto">
+            <strong class="text-primary">Note:</strong> Please use the Copy button to copy the payment number. Only the payment number will be copied for your safety and to avoid mistakes during payment.
+          </p>
+        </div>
+
+        <div class="text-center mb-6 border-b border-pink-100 pb-6">
+          <span class="text-xs text-text-soft block mb-1">Exact Amount to Send</span>
+          <strong class="text-3xl font-bold text-primary">৳${expectedAmount}</strong>
+        </div>
+
+        <div class="space-y-4 mb-6">
+          <h4 class="font-heading text-sm font-bold text-[#2A2A2A]">Step-by-step Instructions:</h4>
+          <div class="grid grid-cols-3 gap-2 text-center text-xs text-[#2A2A2A]">
+            <div class="p-3 bg-pink-50/60 rounded-xl border border-pink-100">
+              <div class="w-6 h-6 rounded-full bg-primary text-white font-bold mx-auto mb-1 flex items-center justify-center text-xs">1</div>
+              <span>Send Money (not Payment) to the number above</span>
+            </div>
+            <div class="p-3 bg-pink-50/60 rounded-xl border border-pink-100">
+              <div class="w-6 h-6 rounded-full bg-primary text-white font-bold mx-auto mb-1 flex items-center justify-center text-xs">2</div>
+              <span>Copy your Transaction ID</span>
+            </div>
+            <div class="p-3 bg-pink-50/60 rounded-xl border border-pink-100">
+              <div class="w-6 h-6 rounded-full bg-primary text-white font-bold mx-auto mb-1 flex items-center justify-center text-xs">3</div>
+              <span>Paste it below</span>
+            </div>
+          </div>
+        </div>
+
+        <form id="verify-trx-form" class="space-y-4">
+          <div>
+            <label class="block text-xs font-bold text-[#2A2A2A] mb-1.5">bKash Transaction ID (TrxID) *</label>
+            <input type="text" id="trx-id-input" required placeholder="e.g. BAX892K102" class="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm outline-none focus:border-primary uppercase">
+          </div>
+
+          <div id="verify-error-box" class="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-800 hidden"></div>
+
+          <button type="submit" id="confirm-payment-btn" class="w-full py-3.5 bg-[#DC3C71] hover:bg-[#c23260] text-white font-bold rounded-xl text-sm shadow-md transition-colors cursor-pointer text-center">Confirm Payment</button>
+        </form>
+      </div>
+    </div>
+  `;
+
+  qs('#copy-bkash-num-btn')?.addEventListener('click', () => {
+    navigator.clipboard.writeText(BKASH_NUMBER);
+    const btn = qs('#copy-bkash-num-btn');
+    if (btn) btn.textContent = 'Copied!';
+    setTimeout(() => { if (btn) btn.textContent = 'Copy'; }, 2000);
+  });
+
+  qs('#verify-trx-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const trxId = qs('#trx-id-input').value.trim();
+    if (!trxId) return;
+
+    const confirmBtn = qs('#confirm-payment-btn');
+    const errorBox = qs('#verify-error-box');
+    if (confirmBtn) {
+      confirmBtn.disabled = true;
+      confirmBtn.textContent = 'Submitting & Generating Order...';
+    }
+    if (errorBox) errorBox.classList.add('hidden');
+
+    try {
+      const newOrderId = generateShortOrderId();
+
+      if (db && typeof db.collection === 'function') {
+        const currentUser = (window.firebase && window.firebase.auth) ? window.firebase.auth().currentUser : null;
+        const serverTimestamp = (window.firebase && window.firebase.firestore && window.firebase.firestore.FieldValue)
+          ? window.firebase.firestore.FieldValue.serverTimestamp()
+          : new Date();
+
+        const firestoreData = {
+          orderId: newOrderId,
+          transactionId: trxId,
+          txnId: trxId,
+          paymentMethod: 'bKash',
+          amount: expectedAmount,
+          pricePaid: expectedAmount,
+          userId: currentUser?.uid || currentUser?.email || checkoutData.customer_phone || 'guest',
+          email: currentUser?.email || checkoutData.customer_phone || 'guest',
+          customerName: checkoutData.customer_name,
+          customerPhone: checkoutData.customer_phone,
+          productName: checkoutData.product_name || 'Magazine & Newspaper Order',
+          status: 'pending',
+          paymentStatus: 'pending',
+          createdAt: new Date().toISOString(),
+          purchaseDate: serverTimestamp
+        };
+        await db.collection('purchases').doc(newOrderId).set(firestoreData);
+      }
+
+      const res = await fetch(`${API_BASE}/submit-order`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          order_id: newOrderId,
+          customer_name: checkoutData.customer_name,
+          customer_phone: checkoutData.customer_phone,
+          product_amount: checkoutData.product_amount,
+          delivery_charge: checkoutData.delivery_charge,
+          payment_method: checkoutData.payment_method
+        })
+      });
+
+      const newUrl = `${window.location.pathname}?order_id=${encodeURIComponent(newOrderId)}`;
+      window.history.pushState({}, '', newUrl);
+
+      currentAttemptCount = 0;
+      startVerificationPolling(db, newOrderId, trxId, checkoutData);
+    } catch (err) {
+      if (errorBox) {
+        errorBox.textContent = 'Connection issue — please check your internet and try again';
+        errorBox.classList.remove('hidden');
+      }
+      if (confirmBtn) {
+        confirmBtn.disabled = false;
+        confirmBtn.textContent = 'Confirm Payment';
+      }
+    }
+  });
+}
+
+async function startVerificationPolling(db, orderId, trxId, checkoutData) {
+  if (activePollingTimer) {
+    clearTimeout(activePollingTimer);
+    activePollingTimer = null;
+  }
+
+  currentAttemptCount++;
+  renderPendingPollingState(orderId, trxId, currentAttemptCount);
+
+  try {
+    const res = await fetch(`${API_BASE}/verify-payment`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ order_id: orderId, trx_id: trxId })
+    });
+
+    if (!res.ok) {
+      throw new Error('Connection issue');
+    }
+
+    const data = await res.json();
+    handleVerificationResponse(db, data, orderId, trxId, checkoutData);
+  } catch (err) {
+    const errorBox = qs('#verify-status-error');
+    if (errorBox) {
+      errorBox.textContent = 'Connection issue — please check your internet and try again';
+      errorBox.classList.remove('hidden');
+    }
+
+    if (currentAttemptCount < MAX_ATTEMPTS) {
+      activePollingTimer = setTimeout(() => {
+        startVerificationPolling(db, orderId, trxId, checkoutData);
+      }, 15000);
+    } else {
+      renderPollingTimeoutState(db, orderId, trxId);
+    }
+  }
+}
+
+function handleVerificationResponse(db, data, orderId, trxId, checkoutData) {
+  const status = data.status;
+
+  if (status === 'paid') {
+    clearCart();
+    updateCartCount();
+    renderPaidSuccessScreen(orderId, checkoutData, data);
+    return;
+  }
+
+  if (status === 'pending') {
+    if (currentAttemptCount < MAX_ATTEMPTS) {
+      activePollingTimer = setTimeout(() => {
+        startVerificationPolling(db, orderId, trxId, checkoutData);
+      }, 15000);
+    } else {
+      renderPollingTimeoutState(db, orderId, trxId);
+    }
+    return;
+  }
+
+  if (status === 'flagged') {
+    const reason = data.reason || data.flag_reason;
+    const expected = data.expected !== undefined ? data.expected : data.expected_amount;
+    const received = data.received !== undefined ? data.received : data.received_amount;
+
+    if (reason === 'amount_mismatch') {
+      renderAmountMismatchState(orderId, trxId, expected, received);
+    } else if (reason === 'duplicate_trx_reuse') {
+      renderDuplicateTrxState(db, orderId, trxId, checkoutData);
+    } else {
+      renderGenericFlaggedState(orderId, trxId);
+    }
+    return;
+  }
+
+  if (status === 'order_not_found') {
+    renderOrderNotFoundState();
+    return;
+  }
+}
+
+function renderPendingPollingState(orderId, trxId, attempt) {
+  const container = qs('#cart-page-app');
+  if (!container) return;
+
+  container.innerHTML = `
+    <div class="max-w-xl mx-auto py-8 px-4">
+      <div class="bg-white p-6 md:p-8 rounded-2xl border border-pink-100 shadow-xl text-center space-y-6">
+        <div class="w-16 h-16 border-4 border-pink-200 border-t-primary rounded-full animate-spin mx-auto"></div>
+
+        <div>
+          <h3 class="font-heading text-2xl text-[#2A2A2A] font-bold mb-2">Verifying your payment...</h3>
+          <p class="text-sm text-text-soft">this usually takes 1-2 minutes</p>
+        </div>
+
+        <div class="inline-block px-4 py-2 bg-pink-50 border border-pink-100 rounded-full text-xs font-semibold text-primary">
+          Checking... (attempt ${attempt} of ${MAX_ATTEMPTS})
+        </div>
+
+        <div class="p-4 rounded-xl bg-[#FDF0F4] border border-pink-200 text-xs text-[#2A2A2A] space-y-1">
+          <p class="font-semibold">You can safely close this page — your order is saved.</p>
+          <p class="text-text-soft">Order ID: <strong class="text-[#2A2A2A] font-bold">${escapeHtml(orderId)}</strong></p>
+        </div>
+
+        <div id="verify-status-error" class="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-800 hidden"></div>
+      </div>
+    </div>
+  `;
+}
+
+function renderPaidSuccessScreen(orderId, checkoutData, data) {
+  const container = qs('#cart-page-app');
+  if (!container) return;
+
+  const customerName = checkoutData?.customer_name || data?.customer_name || 'Valued Customer';
+  const amountPaid = data?.amount || checkoutData?.product_amount || 0;
+  const trackingUrl = `${window.location.origin}/pages/track-order?order_id=${encodeURIComponent(orderId)}`;
+  const waSaveText = encodeURIComponent(`Track my order ${orderId} anytime here: ${trackingUrl}`);
+  const waSaveUrl = `https://wa.me/?text=${waSaveText}`;
+
+  container.innerHTML = `
+    <div class="max-w-xl mx-auto py-8 px-4">
+      <div class="bg-white p-6 md:p-8 rounded-2xl border border-pink-100 shadow-xl text-center space-y-6">
+        <div class="w-20 h-20 bg-emerald-50 border-2 border-emerald-200 text-emerald-500 text-4xl rounded-full flex items-center justify-center mx-auto shadow-sm">
+          <i class="fa-solid fa-circle-check"></i>
+        </div>
+
+        <div>
+          <h2 class="font-heading text-2xl md:text-3xl text-[#2A2A2A] font-bold mb-2">Payment Confirmed!</h2>
+          <p class="text-text-soft text-sm">Your order is being processed.</p>
+        </div>
+
+        <div class="bg-gray-50 p-5 rounded-2xl border border-gray-200 text-left space-y-3 text-sm text-[#2A2A2A]">
+          <div class="flex justify-between">
+            <span class="text-text-soft">Customer Name</span>
+            <strong class="font-semibold">${escapeHtml(customerName)}</strong>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-text-soft">Order ID</span>
+            <strong class="font-semibold">${escapeHtml(orderId)}</strong>
+          </div>
+          <div class="flex justify-between border-t border-gray-200 pt-3">
+            <span class="text-text-soft">Amount Paid</span>
+            <strong class="text-primary text-base font-bold">৳${amountPaid}</strong>
+          </div>
+        </div>
+
+        <div class="p-4 rounded-xl bg-[#FDF0F4] border border-pink-200 text-xs text-[#2A2A2A] space-y-3 text-center">
+          <p class="font-semibold">You can track this order anytime at <a href="${trackingUrl}" class="text-primary underline font-bold">${escapeHtml(trackingUrl)}</a></p>
+          <div class="flex flex-col sm:flex-row gap-2 justify-center pt-1">
+            <button type="button" id="copy-tracking-link-btn" class="px-4 py-2 bg-white border border-pink-200 text-primary font-bold text-xs rounded-lg shadow-sm hover:bg-pink-50 transition-colors cursor-pointer">Copy Tracking Link</button>
+            <a href="${waSaveUrl}" target="_blank" rel="noreferrer" class="px-4 py-2 bg-[#25d366] hover:bg-[#20bd5a] text-white font-bold text-xs rounded-lg shadow-sm transition-colors no-underline inline-flex items-center justify-center gap-1.5">
+              <i class="fa-brands fa-whatsapp text-sm"></i>
+              <span>Save via WhatsApp</span>
+            </a>
+          </div>
+        </div>
+
+        <a href="/collections/paid-products" class="inline-flex items-center justify-center w-full py-3.5 bg-[#DC3C71] hover:bg-[#c23260] text-white font-bold text-sm rounded-xl shadow-md transition-colors no-underline">Continue Shopping</a>
+      </div>
+    </div>
+  `;
+
+  qs('#copy-tracking-link-btn')?.addEventListener('click', () => {
+    navigator.clipboard.writeText(trackingUrl);
+    const btn = qs('#copy-tracking-link-btn');
+    if (btn) btn.textContent = 'Link Copied!';
+    setTimeout(() => { if (btn) btn.textContent = 'Copy Tracking Link'; }, 2000);
+  });
+}
+
+function renderPollingTimeoutState(db, orderId, trxId) {
+  const container = qs('#cart-page-app');
+  if (!container) return;
+
+  const waText = encodeURIComponent(`Order ID: ${orderId}, Transaction ID: ${trxId}, I need help with my payment`);
+  const waUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${waText}`;
+
+  container.innerHTML = `
+    <div class="max-w-xl mx-auto py-8 px-4">
+      <div class="bg-white p-6 md:p-8 rounded-2xl border border-pink-100 shadow-xl space-y-6">
+        <div class="p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-sm leading-relaxed">
+          We haven't detected your payment yet. This doesn't mean anything is wrong — please double-check your Transaction ID, or message us on WhatsApp and we'll verify it manually within minutes.
+        </div>
+
+        <div class="space-y-3">
+          <a href="${waUrl}" target="_blank" rel="noreferrer" class="w-full py-3.5 bg-[#25d366] hover:bg-[#20bd5a] text-white font-bold text-sm rounded-xl shadow-md transition-colors inline-flex items-center justify-center gap-2 no-underline">
+            <i class="fa-brands fa-whatsapp text-lg"></i>
+            <span>Message us on WhatsApp</span>
+          </a>
+
+          <button type="button" id="re-enter-trx-btn" class="w-full py-3 bg-white border border-gray-300 hover:bg-gray-50 text-[#2A2A2A] font-bold text-sm rounded-xl transition-colors cursor-pointer text-center">Re-enter Transaction ID</button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  qs('#re-enter-trx-btn')?.addEventListener('click', () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const id = urlParams.get('order_id') || orderId;
+    renderPaymentInstructionsStep(db, { payment_method: 'cod', product_amount: 0 });
+  });
+}
+
+function renderAmountMismatchState(orderId, trxId, expected, received) {
+  const container = qs('#cart-page-app');
+  if (!container) return;
+
+  const waText = encodeURIComponent(`Order ID: ${orderId}, Transaction ID: ${trxId}, Expected: ${expected}, Received: ${received}, I need help with my payment`);
+  const waUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${waText}`;
+
+  container.innerHTML = `
+    <div class="max-w-xl mx-auto py-8 px-4">
+      <div class="bg-white p-6 md:p-8 rounded-2xl border border-pink-100 shadow-xl space-y-6">
+        <div class="p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-sm leading-relaxed">
+          We received a payment, but the amount doesn't quite match what we expected. This is easy to fix — just message us on WhatsApp and we'll sort it out.
+        </div>
+
+        <div class="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-xl border border-gray-200 text-center">
+          <div>
+            <span class="text-xs text-text-soft block">Expected</span>
+            <strong class="text-lg font-bold text-[#2A2A2A]">৳${expected || 0}</strong>
+          </div>
+          <div>
+            <span class="text-xs text-text-soft block">Received</span>
+            <strong class="text-lg font-bold text-amber-700">৳${received || 0}</strong>
+          </div>
+        </div>
+
+        <a href="${waUrl}" target="_blank" rel="noreferrer" class="w-full py-3.5 bg-[#25d366] hover:bg-[#20bd5a] text-white font-bold text-sm rounded-xl shadow-md transition-colors inline-flex items-center justify-center gap-2 no-underline">
+          <i class="fa-brands fa-whatsapp text-lg"></i>
+          <span>Resolve via WhatsApp</span>
+        </a>
+      </div>
+    </div>
+  `;
+}
+
+function renderDuplicateTrxState(db, orderId, trxId, checkoutData) {
+  const container = qs('#cart-page-app');
+  if (!container) return;
+
+  const waText = encodeURIComponent(`Order ID: ${orderId}, Transaction ID: ${trxId}, I need help with duplicate transaction check`);
+  const waUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${waText}`;
+
+  container.innerHTML = `
+    <div class="max-w-xl mx-auto py-8 px-4">
+      <div class="bg-white p-6 md:p-8 rounded-2xl border border-pink-100 shadow-xl space-y-6">
+        <div class="p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-sm leading-relaxed">
+          This Transaction ID appears to already be linked to another order. Please double-check it, or contact us if you believe this is a mistake.
+        </div>
+
+        <div class="space-y-3">
+          <button type="button" id="re-enter-trx-btn" class="w-full py-3.5 bg-[#DC3C71] hover:bg-[#c23260] text-white font-bold text-sm rounded-xl shadow-md transition-colors cursor-pointer text-center">Try Another Transaction ID</button>
+
+          <a href="${waUrl}" target="_blank" rel="noreferrer" class="w-full py-3 bg-[#25d366] hover:bg-[#20bd5a] text-white font-bold text-sm rounded-xl shadow-sm transition-colors inline-flex items-center justify-center gap-2 no-underline">
+            <i class="fa-brands fa-whatsapp text-lg"></i>
+            <span>Contact on WhatsApp</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  `;
+
+  qs('#re-enter-trx-btn')?.addEventListener('click', () => {
+    renderPaymentInstructionsStep(db, checkoutData || { payment_method: 'cod' });
+  });
+}
+
+function renderGenericFlaggedState(orderId, trxId) {
+  const container = qs('#cart-page-app');
+  if (!container) return;
+
+  const waText = encodeURIComponent(`Order ID: ${orderId}, Transaction ID: ${trxId}, I need help with my payment verification`);
+  const waUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${waText}`;
+
+  container.innerHTML = `
+    <div class="max-w-xl mx-auto py-8 px-4">
+      <div class="bg-white p-6 md:p-8 rounded-2xl border border-pink-100 shadow-xl space-y-6">
+        <div class="p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-sm leading-relaxed">
+          We couldn't verify this transaction automatically. Message us on WhatsApp and we'll verify it manually within minutes.
+        </div>
+
+        <a href="${waUrl}" target="_blank" rel="noreferrer" class="w-full py-3.5 bg-[#25d366] hover:bg-[#20bd5a] text-white font-bold text-sm rounded-xl shadow-md transition-colors inline-flex items-center justify-center gap-2 no-underline">
+          <i class="fa-brands fa-whatsapp text-lg"></i>
+          <span>Verify via WhatsApp</span>
+        </a>
+      </div>
+    </div>
+  `;
+}
+
+function renderOrderNotFoundState() {
+  const container = qs('#cart-page-app');
+  if (!container) return;
+
+  const waText = encodeURIComponent(`Order not found issue on checkout`);
+  const waUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${waText}`;
+
+  container.innerHTML = `
+    <div class="max-w-xl mx-auto py-8 px-4">
+      <div class="bg-white p-6 md:p-8 rounded-2xl border border-pink-100 shadow-xl text-center space-y-6">
+        <p class="text-sm text-[#2A2A2A]">Something went wrong loading your order. Please refresh and try again, or contact us on WhatsApp.</p>
+        <div class="flex gap-4">
+          <a href="/pages/cart" class="flex-1 py-3 bg-white border border-gray-300 text-[#2A2A2A] font-bold text-sm rounded-xl no-underline">Refresh Cart</a>
+          <a href="${waUrl}" target="_blank" rel="noreferrer" class="flex-1 py-3 bg-[#25d366] text-white font-bold text-sm rounded-xl no-underline inline-flex items-center justify-center gap-2">
+            <i class="fa-brands fa-whatsapp text-lg"></i>
+            <span>WhatsApp Support</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+async function handlePageRefreshRecovery(db, orderId) {
+  const container = qs('#cart-page-app');
+  if (!container) return;
+
+  container.innerHTML = `
+    <div class="max-w-md mx-auto py-16 text-center">
+      <div class="w-12 h-12 border-4 border-pink-200 border-t-primary rounded-full animate-spin mx-auto mb-4"></div>
+      <p class="text-sm text-text-soft">Loading order status...</p>
+    </div>
+  `;
+
+  try {
+    let orderData = null;
+
+    try {
+      const res = await fetch(`${API_BASE}/order-status/${encodeURIComponent(orderId)}`);
+      if (res.ok) {
+        orderData = await res.json();
+      }
+    } catch (apiErr) {
+      console.warn('Backend API recovery notice:', apiErr);
+    }
+
+    if (!orderData && db && typeof db.collection === 'function') {
+      try {
+        const docSnap = await db.collection('purchases').doc(orderId).get();
+        if (docSnap.exists) {
+          const fsData = docSnap.data();
+          orderData = {
+            order_id: orderId,
+            status: fsData.status || 'pending',
+            trx_id: fsData.transactionId || fsData.txnId || '',
+            payment_method: fsData.paymentMethod || 'cod',
+            expected_amount: fsData.amount || fsData.pricePaid || 30,
+            customer_name: fsData.customerName || 'Customer',
+            customer_phone: fsData.customerPhone || ''
+          };
+        }
+      } catch (fsErr) {
+        console.warn('Firestore recovery notice:', fsErr);
+      }
+    }
+
+    if (!orderData) {
+      renderOrderNotFoundState();
+      return;
+    }
+
+    const status = orderData.status;
+
+    if (status === 'awaiting_trx') {
+      renderPaymentInstructionsStep(db, orderData);
+    } else if (status === 'pending') {
+      startVerificationPolling(db, orderId, orderData.trx_id || '', orderData);
+    } else if (status === 'paid') {
+      renderPaidSuccessScreen(orderId, orderData, orderData);
+    } else if (status === 'flagged') {
+      const reason = orderData.reason || orderData.flag_reason;
+      const expected = orderData.expected !== undefined ? orderData.expected : orderData.expected_amount;
+      const received = orderData.received !== undefined ? orderData.received : orderData.received_amount;
+
+      if (reason === 'amount_mismatch') {
+        renderAmountMismatchState(orderId, orderData.trx_id, expected, received);
+      } else if (reason === 'duplicate_trx_reuse') {
+        renderDuplicateTrxState(db, orderId, orderData.trx_id, orderData);
+      } else {
+        renderGenericFlaggedState(orderId, orderData.trx_id);
+      }
+    } else if (status === 'timeout') {
+      container.innerHTML = `
+        <div class="max-w-md mx-auto py-16 px-4 text-center space-y-4">
+          <p class="text-sm text-[#2A2A2A]">This order has expired, please place a new order.</p>
+          <a href="/collections/paid-products" class="inline-block px-6 py-3 bg-[#DC3C71] text-white font-bold text-sm rounded-xl no-underline">Browse Products</a>
+        </div>
+      `;
+    } else {
+      renderPaymentInstructionsStep(db, orderData);
+    }
+  } catch (err) {
+    renderOrderNotFoundState();
+  }
+}

@@ -10,52 +10,64 @@
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
 </head>
-<body data-page="contact">
+<body data-page="contact" class="font-body bg-bg text-text-dark antialiased">
   <div id="site-shell"></div>
 
   <main>
-    <section class="section">
-      <div class="container">
-        <div class="page-intro">
-          <span class="eyebrow">Get In Touch</span>
-          <h1>Need help with templates, custom uploads, or order status?</h1>
-          <p>Reach out for support, custom gifting workflow questions, or project-related feedback.</p>
+    <section class="py-12">
+      <div class="max-w-container mx-auto px-4">
+        <div class="text-center max-w-2xl mx-auto mb-10">
+          <span class="inline-block text-xs font-bold uppercase tracking-widest text-primary mb-2">Get In Touch</span>
+          <h1 class="font-heading text-3xl md:text-5xl text-[#3b1c1c] mb-3">Need help with templates?</h1>
+          <p class="text-text-soft text-base">Reach out for support, custom gifting workflow questions, or project-related feedback.</p>
         </div>
 
-        <div class="contact-grid content-split">
-          <div class="card-panel" style="padding:1.5rem">
-            <div class="info-list">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start max-w-4xl mx-auto">
+          <div class="bg-white rounded-2xl border border-pink-100 p-8 shadow-sm space-y-6">
+            <div class="flex items-start gap-4">
+              <i class="fa-solid fa-envelope text-2xl text-primary mt-1"></i>
               <div>
-                <i class="fa-solid fa-envelope"></i>
-                <div>
-                  <strong>Email us</strong>
-                  <p>support@heartsandbeans.smartbiz.in</p>
-                </div>
+                <strong class="block text-text-dark text-base font-bold">Email us</strong>
+                <p class="text-text-soft text-sm">support@heartsandbeans.smartbiz.in</p>
               </div>
+            </div>
+
+            <div class="flex items-start gap-4">
+              <i class="fa-solid fa-clock text-2xl text-primary mt-1"></i>
               <div>
-                <i class="fa-solid fa-clock"></i>
-                <div>
-                  <strong>Support hours</strong>
-                  <p>Monday to Friday, 9:00 AM to 5:00 PM</p>
-                </div>
+                <strong class="block text-text-dark text-base font-bold">Support hours</strong>
+                <p class="text-text-soft text-sm">Monday to Friday, 9:00 AM to 5:00 PM</p>
               </div>
+            </div>
+
+            <div class="flex items-start gap-4">
+              <i class="fa-solid fa-cloud text-2xl text-primary mt-1"></i>
               <div>
-                <i class="fa-solid fa-cloud"></i>
-                <div>
-                  <strong>Upload guidance</strong>
-                  <p>We can help with Cloudinary upload questions, delivery issues, and payment verification.</p>
-                </div>
+                <strong class="block text-text-dark text-base font-bold">Upload guidance</strong>
+                <p class="text-text-soft text-sm">We can help with Cloudinary upload questions, delivery issues, and payment verification.</p>
               </div>
             </div>
           </div>
 
-          <div class="form-card">
-            <form id="contact-form" class="stack-form">
-              <input id="contact-name" type="text" placeholder="Your name" required>
-              <input id="contact-email" type="email" placeholder="Email address" required>
-              <input id="contact-subject" type="text" placeholder="Subject" required>
-              <textarea id="contact-message" rows="5" placeholder="Write your message here" required></textarea>
-              <button type="submit" class="pill-button">Send Message</button>
+          <div class="bg-white rounded-2xl border border-pink-100 p-8 shadow-sm">
+            <form id="contact-form" class="space-y-4">
+              <div>
+                <label class="block text-xs font-semibold text-gray-600 mb-1">Your Name</label>
+                <input id="contact-name" type="text" placeholder="Your name" required class="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm outline-none focus:border-primary">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-gray-600 mb-1">Email Address</label>
+                <input id="contact-email" type="email" placeholder="Email address" required class="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm outline-none focus:border-primary">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-gray-600 mb-1">Subject</label>
+                <input id="contact-subject" type="text" placeholder="Subject" required class="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm outline-none focus:border-primary">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-gray-600 mb-1">Message</label>
+                <textarea id="contact-message" rows="4" placeholder="Write your message here" required class="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm outline-none focus:border-primary"></textarea>
+              </div>
+              <button type="submit" class="w-full py-3.5 bg-primary hover:bg-primary-strong text-white font-bold rounded-xl text-sm shadow-md transition-colors">Send Message</button>
             </form>
           </div>
         </div>

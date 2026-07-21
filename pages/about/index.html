@@ -10,41 +10,39 @@
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
 </head>
-<body data-page="about">
+<body data-page="about" class="font-body bg-bg text-text-dark antialiased">
   <div id="site-shell"></div>
 
   <main>
-    <section class="section">
-      <div class="container">
-        <div class="page-intro">
-          <span class="eyebrow">Our Story</span>
-          <h1>We build keepsake-style digital products with calmer visual storytelling</h1>
-          <p>Our direction stays inspired by premium gifting storefronts, but the implementation is now modular, organized, and optimized for long-term maintenance.</p>
+    <section class="py-12">
+      <div class="max-w-container mx-auto px-4">
+        <div class="text-center max-w-2xl mx-auto mb-10">
+          <span class="inline-block text-xs font-bold uppercase tracking-widest text-primary mb-2">Our Story</span>
+          <h1 class="font-heading text-3xl md:text-5xl text-[#3b1c1c] mb-3">We build keepsake-style digital products</h1>
+          <p class="text-text-soft text-base">Our direction stays inspired by premium gifting storefronts, but the implementation is now modular, organized, and optimized for long-term maintenance.</p>
         </div>
 
-        <div class="about-grid content-split">
-          <div class="card-panel" style="padding:1.75rem">
-            <div class="stack-form" style="gap:1rem">
-              <div>
-                <h2 style="color:var(--color-primary);margin-bottom:.5rem">Behind Hearts and Beans</h2>
-                <p style="color:var(--color-text-soft)">This project started as a simple Canva storefront and is now evolving into a cleaner memory-focused commerce experience with better layout flow, upload handling, and reusable project structure.</p>
-              </div>
-              <div>
-                <h2 style="color:var(--color-primary);margin-bottom:.5rem">Why the rebuild matters</h2>
-                <p style="color:var(--color-text-soft)">Instead of repeating code across pages, the site now uses a shared shell, modular services, centralized style tokens, and a cleaner component-driven structure.</p>
-              </div>
-              <div>
-                <h2 style="color:var(--color-primary);margin-bottom:.5rem">Design direction</h2>
-                <p style="color:var(--color-text-soft)">We use warm editorial layouts, stronger pricing hierarchy, richer collection storytelling, and cleaner section transitions so the storefront feels closer to a premium memory gift brand.</p>
-              </div>
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start max-w-5xl mx-auto">
+          <div class="lg:col-span-2 bg-white rounded-2xl border border-pink-100 p-8 shadow-sm space-y-6">
+            <div>
+              <h2 class="font-heading text-2xl text-primary font-bold mb-2">Behind Hearts and Beans</h2>
+              <p class="text-text-soft text-sm leading-relaxed">This project started as a simple Canva storefront and is now evolving into a cleaner memory-focused commerce experience with better layout flow, upload handling, and reusable project structure.</p>
+            </div>
+            <div>
+              <h2 class="font-heading text-2xl text-primary font-bold mb-2">Why the rebuild matters</h2>
+              <p class="text-text-soft text-sm leading-relaxed">Instead of repeating code across pages, the site now uses a shared shell, modular services, centralized style tokens, and a cleaner component-driven structure.</p>
+            </div>
+            <div>
+              <h2 class="font-heading text-2xl text-primary font-bold mb-2">Design direction</h2>
+              <p class="text-text-soft text-sm leading-relaxed">We use warm editorial layouts, stronger pricing hierarchy, richer collection storytelling, and cleaner section transitions so the storefront feels closer to a premium memory gift brand.</p>
             </div>
           </div>
 
-          <aside class="card-panel" style="padding:1.5rem">
-            <img src="/assets/creator_profile.png" alt="Founder portrait" style="width:140px;height:140px;border-radius:999px;object-fit:cover;margin:0 auto 1rem">
-            <h3 style="text-align:center;color:var(--color-primary)">Sumin</h3>
-            <p style="text-align:center;color:var(--color-text-soft)">Founder & Creative Director</p>
-            <p style="margin-top:1rem;color:var(--color-text-soft);text-align:center">“I want the storefront to feel thoughtful, warm, and easy to maintain while still delivering a premium experience.”</p>
+          <aside class="bg-white rounded-2xl border border-pink-100 p-8 shadow-sm text-center">
+            <img src="/assets/creator_profile.png" alt="Founder portrait" class="w-32 h-32 rounded-full object-cover mx-auto mb-4 border-2 border-primary/20 shadow-sm">
+            <h3 class="font-heading text-xl text-primary font-bold">Sumin</h3>
+            <p class="text-text-soft text-xs mb-4">Founder & Creative Director</p>
+            <p class="text-text-soft text-sm italic">“I want the storefront to feel thoughtful, warm, and easy to maintain while still delivering a premium experience.”</p>
           </aside>
         </div>
       </div>

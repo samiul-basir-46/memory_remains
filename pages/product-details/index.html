@@ -10,42 +10,42 @@
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
 </head>
-<body data-page="product-details">
+<body data-page="product-details" class="font-body bg-bg text-text-dark antialiased">
   <div id="site-shell"></div>
 
   <main>
-    <section class="section">
-      <div class="container">
-        <div id="details-loading-state" class="page-intro">
-          <span class="eyebrow">Loading</span>
-          <h1 style="font-size:clamp(2rem,4vw,3rem)">Loading template details...</h1>
-          <p>Please wait while we fetch the latest product data from Firebase.</p>
+    <section class="py-12">
+      <div class="max-w-container mx-auto px-4">
+        <div id="details-loading-state" class="text-center py-16 max-w-xl mx-auto">
+          <span class="inline-block text-xs font-bold uppercase tracking-widest text-primary mb-2">Loading</span>
+          <h1 class="font-heading text-3xl md:text-4xl text-[#3b1c1c] mb-3">Loading template details...</h1>
+          <p class="text-text-soft text-base">Please wait while we fetch the latest product data from Firebase.</p>
         </div>
 
         <div id="details-content-container" hidden>
-          <div class="details-grid">
+          <div class="details-grid grid grid-cols-1 lg:grid-cols-2 gap-10 items-start">
             <div>
-              <div id="gallery-main-container" class="gallery-main showcase-card" style="position:relative">
-                <img id="details-main-image" src="/assets/instagram_stories_cozy.png" alt="Main product image">
-                <span id="details-badge" class="product-badge"></span>
+              <div id="gallery-main-container" class="gallery-main relative aspect-[4/5] bg-gray-50 rounded-2xl overflow-hidden shadow-md border border-gray-100 mb-4">
+                <img id="details-main-image" src="/assets/product_placeholder.png" alt="Main product image" class="w-full h-full object-cover">
+                <span id="details-badge" class="product-badge absolute top-4 left-4 z-10 px-3 py-1 bg-primary text-white text-xs font-bold uppercase tracking-wider rounded-full shadow-md"></span>
               </div>
-              <div id="details-thumbnails-gallery" class="gallery-thumbs"></div>
+              <div id="details-thumbnails-gallery" class="gallery-thumbs grid grid-cols-5 gap-3"></div>
             </div>
 
-            <div class="detail-card">
-              <span id="details-category" class="eyebrow"></span>
-              <h1 id="details-title" style="font-size:clamp(2rem,4vw,3.2rem);color:var(--color-primary);margin-bottom:1rem"></h1>
-              <p id="details-price" style="font-size:1.35rem;font-weight:700;color:var(--color-primary);margin-bottom:1rem"></p>
-              <p id="details-description" style="color:var(--color-text-soft);margin-bottom:1.5rem"></p>
+            <div class="detail-card bg-white p-8 rounded-2xl border border-pink-100 shadow-sm space-y-6">
+              <span id="details-category" class="inline-block text-xs font-bold uppercase tracking-widest text-primary"></span>
+              <h1 id="details-title" class="font-heading text-3xl md:text-4xl text-primary leading-tight"></h1>
+              <p id="details-price" class="text-2xl font-bold text-primary"></p>
+              <p id="details-description" class="text-text-soft text-base leading-relaxed"></p>
 
-              <ul class="feature-list" style="color:var(--color-text);margin-top:0">
-                <li>Fully customizable Canva templates</li>
-                <li>Delivery through your library after approval</li>
-                <li>Cloudinary-aware optimized gallery loading</li>
-                <li>Responsive customer support</li>
+              <ul class="feature-list text-text-dark text-sm space-y-2.5 pt-2 border-t border-gray-100">
+                <li class="flex items-center gap-2"><i class="fa-solid fa-circle-check text-emerald-500"></i> Fully customizable Canva templates</li>
+                <li class="flex items-center gap-2"><i class="fa-solid fa-circle-check text-emerald-500"></i> Delivery through your library after approval</li>
+                <li class="flex items-center gap-2"><i class="fa-solid fa-circle-check text-emerald-500"></i> Cloudinary-aware optimized gallery loading</li>
+                <li class="flex items-center gap-2"><i class="fa-solid fa-circle-check text-emerald-500"></i> Responsive customer support</li>
               </ul>
 
-              <button id="details-add-to-bag-btn" class="pill-button" type="button" style="width:100%">Add to Bag</button>
+              <button id="details-add-to-bag-btn" class="pill-button w-full py-4 bg-primary hover:bg-primary-strong text-white font-bold rounded-xl text-base shadow-lg hover:shadow-xl transition-all" type="button">Add to Bag</button>
             </div>
           </div>
         </div>

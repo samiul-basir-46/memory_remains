@@ -10,38 +10,42 @@
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
 </head>
-<body data-page="library">
+<body data-page="library" class="font-body bg-bg text-text-dark antialiased">
   <div id="site-shell"></div>
 
   <main>
-    <section class="section">
-      <div class="container">
-        <div class="page-intro">
-          <span class="eyebrow">My Library</span>
-          <h1>Access your approved templates and custom photo orders</h1>
-          <p>Login to see your library, or check order status by checkout email if you placed an order without signing in.</p>
+    <section class="py-12">
+      <div class="max-w-container mx-auto px-4">
+        <div class="text-center max-w-2xl mx-auto mb-10">
+          <span class="inline-block text-xs font-bold uppercase tracking-widest text-primary mb-2">My Library</span>
+          <h1 class="font-heading text-3xl md:text-5xl text-[#3b1c1c] mb-3">Access your approved templates</h1>
+          <p class="text-text-soft text-base">Login to see your library, or check order status by checkout email if you placed an order without signing in.</p>
         </div>
 
-        <div class="card-panel" style="padding:1.5rem">
-          <div id="library-auth-required" class="auth-required">
-            <i class="fa-solid fa-lock"></i>
-            <h2 style="color:var(--color-primary);margin-bottom:.75rem">Login Required</h2>
-            <p style="color:var(--color-text-soft);margin-bottom:1rem">You need to login to unlock your purchase library.</p>
-            <button onclick="openAuthModal()" class="pill-button" type="button">Log In to Account</button>
+        <div class="bg-white rounded-2xl border border-pink-100 p-8 shadow-sm max-w-3xl mx-auto">
+          <div id="library-auth-required" class="auth-required text-center py-6">
+            <i class="fa-solid fa-lock text-4xl text-primary mb-3"></i>
+            <h2 class="font-heading text-2xl text-primary font-bold mb-2">Login Required</h2>
+            <p class="text-text-soft text-sm mb-6">You need to login to unlock your purchase library.</p>
+            <button onclick="openAuthModal()" class="pill-button px-6 py-3 bg-primary hover:bg-primary-strong text-white font-bold rounded-xl text-sm transition-colors" type="button">Log In to Account</button>
 
-            <div class="stack-form" style="margin-top:2rem;text-align:left;max-width:560px;margin-inline:auto">
-              <h3 style="color:var(--color-primary)">Or check order status by email</h3>
-              <p class="form-help">Enter the same email used during checkout to view purchase status and submit transaction IDs.</p>
-              <div class="inline-actions">
-                <input type="email" id="anonymous-library-email" placeholder="Enter checkout email" style="flex:1;min-width:220px">
-                <button id="anonymous-library-btn" class="pill-button pill-button--ghost" type="button">Check Status</button>
+            <div class="space-y-3 mt-10 text-left max-w-md mx-auto pt-8 border-t border-gray-100">
+              <h3 class="font-heading text-lg text-primary font-bold">Or check order status by email</h3>
+              <p class="text-xs text-text-soft">Enter the same email used during checkout to view purchase status and submit transaction IDs.</p>
+              <div class="flex gap-2">
+                <input type="email" id="anonymous-library-email" placeholder="Enter checkout email" class="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg text-sm outline-none focus:border-primary">
+                <button id="anonymous-library-btn" class="pill-button px-5 py-2.5 bg-white border border-primary text-primary hover:bg-pink-50 font-bold rounded-lg text-sm transition-colors" type="button">Check Status</button>
               </div>
             </div>
           </div>
 
           <div id="library-content-container">
-            <p id="library-status-message" style="text-align:center;color:var(--color-text-soft)"></p>
-            <div id="library-results-grid" class="products-grid" style="margin-top:1.5rem"></div>
+            <p id="library-status-message" class="text-center text-text-soft text-sm"></p>
+            <div id="library-orders-list" class="space-y-4 mt-6"></div>
+            <div id="library-empty-state" class="text-center py-12 text-gray-400" hidden>
+              <i class="fa-solid fa-folder-open text-4xl mb-3 text-primary/40"></i>
+              <p class="text-sm">No orders found for your account.</p>
+            </div>
           </div>
         </div>
       </div>
