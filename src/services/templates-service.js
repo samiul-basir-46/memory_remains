@@ -4,14 +4,14 @@ const TEMPLATES_CACHE_KEY = 'memory_remains_templates_cache_v1';
 const FALLBACK_IMAGE = '/assets/product_placeholder.png';
 
 export const DEFAULT_FEATURED_TEMPLATES = [
-  { id: 'f1', title: 'SOULMATE - Premium Magazine', price: 399, compareAtPrice: 1599, badge: 'Bestseller', imageUrl: '/assets/aesthetic_planner_pack.png' },
-  { id: 'f2', title: 'Things I Adore About him/Her', price: 699, compareAtPrice: 1299, badge: 'Bestseller', imageUrl: '/assets/creator_profile.png' },
-  { id: 'f3', title: 'Tu Chahiye Magazine', price: 299, compareAtPrice: 1299, badge: 'Bestseller', imageUrl: '/assets/instagram_stories_cozy.png' },
-  { id: 'f4', title: 'Vogue - Couple Edition', price: 299, compareAtPrice: 1599, badge: 'Bestseller', imageUrl: '/assets/instagram_carousel_summer.png' },
-  { id: 'f5', title: '12 pages Viral Birthday Magazine', price: 499, compareAtPrice: 1599, badge: 'Bestseller', imageUrl: '/assets/scrapbook_collage_bundle.png' },
-  { id: 'f6', title: 'Friend Core Memories Magazine', price: 299, compareAtPrice: 899, badge: 'Bestseller', imageUrl: '/assets/aesthetic_planner_pack.png' },
-  { id: 'f7', title: 'Vougue - Couple Edition', price: 299, compareAtPrice: 1599, badge: 'Bestseller', imageUrl: '/assets/creator_profile.png' },
-  { id: 'f8', title: 'Customize Couple Magazine', price: 299, compareAtPrice: 999, badge: 'Bestseller', imageUrl: '/assets/instagram_stories_cozy.png' }
+  { id: 'f1', title: 'SOULMATE - Premium Magazine', price: 399, compareAtPrice: 1599, badge: 'Bestseller', category: 'For Her', collection: 'Best Selling', imageUrl: '/assets/aesthetic_planner_pack.png' },
+  { id: 'f2', title: 'Things I Adore About him/Her', price: 699, compareAtPrice: 1299, badge: 'Bestseller', category: 'For Him', collection: 'Birthday Special', imageUrl: '/assets/creator_profile.png' },
+  { id: 'f3', title: 'Tu Chahiye Magazine', price: 299, compareAtPrice: 1299, badge: 'Bestseller', category: 'For Her', collection: 'Best Selling', imageUrl: '/assets/instagram_stories_cozy.png' },
+  { id: 'f4', title: 'Vogue - Couple Edition', price: 299, compareAtPrice: 1599, badge: 'Bestseller', category: 'For Him', collection: 'Categories', imageUrl: '/assets/instagram_carousel_summer.png' },
+  { id: 'f5', title: '12 pages Viral Birthday Magazine', price: 499, compareAtPrice: 1599, badge: 'Bestseller', category: 'Birthday Special', collection: 'Collections', imageUrl: '/assets/scrapbook_collage_bundle.png' },
+  { id: 'f6', title: 'Friend Core Memories Magazine', price: 299, compareAtPrice: 899, badge: 'Bestseller', category: 'Best Selling', collection: 'Featured', imageUrl: '/assets/aesthetic_planner_pack.png' },
+  { id: 'f7', title: 'Vogue - Couple Edition', price: 299, compareAtPrice: 1599, badge: 'Bestseller', category: 'For Her', collection: 'Featured', imageUrl: '/assets/creator_profile.png' },
+  { id: 'f8', title: 'Customize Couple Magazine', price: 299, compareAtPrice: 999, badge: 'Bestseller', category: 'For Him', collection: 'Featured', imageUrl: '/assets/instagram_stories_cozy.png' }
 ];
 
 export function normalizeText(value = '') {

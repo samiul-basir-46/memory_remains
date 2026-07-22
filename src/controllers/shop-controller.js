@@ -244,14 +244,16 @@ export async function renderShopPage(db) {
     let source = (shopTemplates && shopTemplates.length > 0) ? shopTemplates : DEFAULT_FEATURED_TEMPLATES;
     if (titleParam) {
       const normTitle = titleParam.toLowerCase();
-      const categoryMatches = source.filter((t) => {
-        const cat = (t.category || t.collection || '').toLowerCase();
-        const badge = (t.badge || '').toLowerCase();
-        const title = (t.title || '').toLowerCase();
-        return cat.includes(normTitle) || badge.includes(normTitle) || title.includes(normTitle);
-      });
-      if (categoryMatches.length > 0) {
-        source = categoryMatches;
+      if (normTitle !== 'categories' && normTitle !== 'collections' && normTitle !== 'all products') {
+        const categoryMatches = source.filter((t) => {
+          const cat = (t.category || t.collection || '').toLowerCase();
+          const badge = (t.badge || '').toLowerCase();
+          const title = (t.title || '').toLowerCase();
+          return cat.includes(normTitle) || badge.includes(normTitle) || title.includes(normTitle);
+        });
+        if (categoryMatches.length > 0) {
+          source = categoryMatches;
+        }
       }
     }
     const filtered = filterAndSortTemplates(source);

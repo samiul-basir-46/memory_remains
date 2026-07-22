@@ -2,6 +2,7 @@ import { getCart, setCart, updateCartCount, clearCart } from '../services/cart-s
 import { formatCurrency, escapeHtml, qs } from '../utils/ui.js';
 import { imageMarkup } from '../components/product-card.js';
 import { getFirebaseServices } from '../services/firebase-service.js';
+import { renderPhotoUploadUI } from '../components/photo-upload.js';
 
 const API_BASE = "https://bkash-sms-gateway.onrender.com";
 const DELIVERY_CHARGE = 60;
@@ -340,10 +341,34 @@ function renderPaymentInstructionsStep(db, checkoutData) {
           paymentMethod: 'bKash',
           amount: expectedAmount,
           pricePaid: expectedAmount,
+          user_id: currentUser?.uid || 'guest',
           userId: currentUser?.uid || currentUser?.email || checkoutData.customer_phone || 'guest',
-          email: currentUser?.email || checkoutData.customer_phone || 'guest',
+          email: currentUser?.email || '',
+          customer_name: checkoutData.customer_name,
           customerName: checkoutData.customer_name,
+          customer_phone: checkoutData.customer_phone,
           customerPhone: checkoutData.customer_phone,
+          items: (() => {
+            const expanded = [];
+            let itemCounter = 1;
+            getCart().forEach((item) => {
+              const qty = Math.max(1, Number(item.quantity || 1));
+              for (let q = 0; q < qty; q++) {
+                const itemNumLabel = qty > 1 ? ` (Item ${q + 1} of ${qty})` : '';
+                expanded.push({
+                  item_id: `${newOrderId}-${itemCounter}`,
+                  template_id: item.id || 'magazine-template',
+                  template_name: `${item.title || item.name || 'Custom Magazine'}${itemNumLabel}`,
+                  product_type: item.product_type || (item.canva_link ? 'template' : 'magazine'),
+                  recipient_name: item.recipient_name || '',
+                  required_photo_count: Number(item.required_photo_count || item.photo_count || 10),
+                  photos_uploaded: false
+                });
+                itemCounter++;
+              }
+            });
+            return expanded;
+          })(),
           productName: checkoutData.product_name || 'Magazine & Newspaper Order',
           status: 'pending',
           paymentStatus: 'pending',
@@ -353,7 +378,7 @@ function renderPaymentInstructionsStep(db, checkoutData) {
         await db.collection('purchases').doc(newOrderId).set(firestoreData);
       }
 
-      const res = await fetch(`${API_BASE}/submit-order`, {
+      await fetch(`${API_BASE}/submit-order`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -460,7 +485,7 @@ function handleVerificationResponse(db, data, orderId, trxId, checkoutData) {
   }
 
   if (status === 'order_not_found') {
-    renderOrderNotFoundState();
+    renderPollingTimeoutState(db, orderId, trxId);
     return;
   }
 }
@@ -498,94 +523,306 @@ function renderPaidSuccessScreen(orderId, checkoutData, data) {
   const container = qs('#cart-page-app');
   if (!container) return;
 
-  const customerName = checkoutData?.customer_name || data?.customer_name || 'Valued Customer';
-  const amountPaid = data?.amount || checkoutData?.product_amount || 0;
+  const orderData = { ...checkoutData, ...data };
+  const customerName = orderData.customer_name || orderData.customerName || 'Valued Customer';
+  const amountPaid = orderData.amount || orderData.pricePaid || orderData.product_amount || 0;
   const trackingUrl = `${window.location.origin}/pages/track-order?order_id=${encodeURIComponent(orderId)}`;
   const waSaveText = encodeURIComponent(`Track my order ${orderId} anytime here: ${trackingUrl}`);
   const waSaveUrl = `https://wa.me/?text=${waSaveText}`;
 
+  const productType = orderData.product_type || (orderData.canva_link || orderData.canvaUrl ? 'template' : 'magazine');
+  const photosUploaded = Boolean(orderData.photos_uploaded || orderData.photosUploaded);
+  const requiredPhotoCount = Number(orderData.required_photo_count || orderData.photo_count || orderData.requiredPhotoCount || 10);
+  const canvaLink = orderData.canva_link || orderData.canvaUrl || orderData.canva_url || orderData.canvaLink || '';
+  const status = (orderData.status || 'paid').toLowerCase();
+
+  const safeOrderId = orderId.replace(/[^a-zA-Z0-9_-]/g, '');
+
+  if (productType === 'template') {
+    if ((status === 'delivered' || status === 'completed') && canvaLink) {
+      container.innerHTML = `
+        <div class="max-w-xl mx-auto py-8 px-4">
+          <div class="bg-white p-6 md:p-8 rounded-2xl border border-pink-100 shadow-xl space-y-6 text-center">
+            <div class="w-16 h-16 bg-emerald-50 border-2 border-emerald-200 text-emerald-500 text-3xl rounded-full flex items-center justify-center mx-auto shadow-sm">
+              <i class="fa-solid fa-circle-check"></i>
+            </div>
+
+            <div class="bg-gradient-to-r from-pink-50 to-purple-50 p-6 rounded-2xl border border-pink-200 text-center space-y-4 shadow-sm">
+              <div class="w-12 h-12 bg-pink-100 text-primary rounded-full flex items-center justify-center text-xl mx-auto">
+                <i class="fa-solid fa-wand-magic-sparkles"></i>
+              </div>
+              <h3 class="font-heading text-2xl font-bold text-[#2A2A2A]">🎉 Your template is ready!</h3>
+              <div class="flex flex-col sm:flex-row gap-3 justify-center pt-2">
+                <a href="${escapeHtml(canvaLink)}" target="_blank" rel="noopener noreferrer" class="px-6 py-3.5 bg-[#DC3C71] hover:bg-[#c23260] text-white font-bold text-sm rounded-xl shadow-md transition-colors no-underline inline-flex items-center justify-center gap-2">
+                  <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                  <span>Open in Canva</span>
+                </a>
+                <button type="button" id="copy-canva-btn-${safeOrderId}" class="px-6 py-3.5 bg-white border border-gray-300 hover:bg-gray-50 text-[#2A2A2A] font-bold text-sm rounded-xl shadow-sm transition-colors cursor-pointer inline-flex items-center justify-center gap-2">
+                  <i class="fa-regular fa-copy"></i>
+                  <span id="copy-canva-text-${safeOrderId}">Copy Link</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="bg-gray-50 p-5 rounded-2xl border border-gray-200 text-left space-y-3 text-sm text-[#2A2A2A]">
+              <div class="flex justify-between">
+                <span class="text-text-soft">Customer Name</span>
+                <strong class="font-semibold">${escapeHtml(customerName)}</strong>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-text-soft">Order ID</span>
+                <strong class="font-semibold">${escapeHtml(orderId)}</strong>
+              </div>
+              <div class="flex justify-between border-t border-gray-200 pt-3">
+                <span class="text-text-soft">Amount Paid</span>
+                <strong class="text-primary text-base font-bold">৳${amountPaid}</strong>
+              </div>
+            </div>
+
+            <a href="/collections/paid-products" class="inline-flex items-center justify-center w-full py-3.5 bg-[#DC3C71] hover:bg-[#c23260] text-white font-bold text-sm rounded-xl shadow-md transition-colors no-underline">Continue Shopping</a>
+          </div>
+        </div>
+      `;
+
+      qs(`#copy-canva-btn-${safeOrderId}`)?.addEventListener('click', () => {
+        navigator.clipboard.writeText(canvaLink);
+        const txt = qs(`#copy-canva-text-${safeOrderId}`);
+        if (txt) txt.textContent = 'Link Copied!';
+        setTimeout(() => { if (txt) txt.textContent = 'Copy Link'; }, 2000);
+      });
+      return;
+    }
+
+    container.innerHTML = `
+      <div class="max-w-xl mx-auto py-8 px-4">
+        <div class="bg-white p-6 md:p-8 rounded-2xl border border-pink-100 shadow-xl space-y-6 text-center">
+          <div class="w-16 h-16 bg-emerald-50 border-2 border-emerald-200 text-emerald-500 text-3xl rounded-full flex items-center justify-center mx-auto shadow-sm">
+            <i class="fa-solid fa-circle-check"></i>
+          </div>
+
+          <div>
+            <h2 class="font-heading text-2xl md:text-3xl text-[#2A2A2A] font-bold mb-2">Payment Confirmed!</h2>
+            <p class="text-emerald-700 font-bold text-sm">✅ Payment confirmed! We're preparing your Canva template link.</p>
+          </div>
+
+          <div class="bg-gray-50 p-5 rounded-2xl border border-gray-200 text-left space-y-3 text-sm text-[#2A2A2A]">
+            <div class="flex justify-between">
+              <span class="text-text-soft">Customer Name</span>
+              <strong class="font-semibold">${escapeHtml(customerName)}</strong>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-text-soft">Order ID</span>
+              <strong class="font-semibold">${escapeHtml(orderId)}</strong>
+            </div>
+            <div class="flex justify-between border-t border-gray-200 pt-3">
+              <span class="text-text-soft">Amount Paid</span>
+              <strong class="text-primary text-base font-bold">৳${amountPaid}</strong>
+            </div>
+          </div>
+
+          <div class="p-4 rounded-xl bg-[#FDF0F4] border border-pink-200 text-xs text-[#2A2A2A] space-y-3 text-center">
+            <p class="font-semibold">You can track this order anytime at <a href="${trackingUrl}" class="text-primary underline font-bold">${escapeHtml(trackingUrl)}</a></p>
+            <div class="flex flex-col sm:flex-row gap-2 justify-center pt-1">
+              <button type="button" id="copy-tracking-link-btn" class="px-4 py-2 bg-white border border-pink-200 text-primary font-bold text-xs rounded-lg shadow-sm hover:bg-pink-50 transition-colors cursor-pointer">Copy Tracking Link</button>
+              <a href="${waSaveUrl}" target="_blank" rel="noreferrer" class="px-4 py-2 bg-[#25d366] hover:bg-[#20bd5a] text-white font-bold text-xs rounded-lg shadow-sm transition-colors no-underline inline-flex items-center justify-center gap-1.5">
+                <i class="fa-brands fa-whatsapp text-sm"></i>
+                <span>Save via WhatsApp</span>
+              </a>
+            </div>
+          </div>
+
+          <a href="/collections/paid-products" class="inline-flex items-center justify-center w-full py-3.5 bg-[#DC3C71] hover:bg-[#c23260] text-white font-bold text-sm rounded-xl shadow-md transition-colors no-underline">Continue Shopping</a>
+        </div>
+      </div>
+    `;
+
+    qs('#copy-tracking-link-btn')?.addEventListener('click', () => {
+      navigator.clipboard.writeText(trackingUrl);
+      const btn = qs('#copy-tracking-link-btn');
+      if (btn) btn.textContent = 'Link Copied!';
+      setTimeout(() => { if (btn) btn.textContent = 'Copy Tracking Link'; }, 2000);
+    });
+    return;
+  }
+
+  if (status === 'completed') {
+    container.innerHTML = `
+      <div class="max-w-xl mx-auto py-8 px-4">
+        <div class="bg-white p-6 md:p-8 rounded-2xl border border-pink-100 shadow-xl space-y-6 text-center">
+          <div class="w-16 h-16 bg-emerald-50 border-2 border-emerald-200 text-emerald-500 text-3xl rounded-full flex items-center justify-center mx-auto shadow-sm">
+            <i class="fa-solid fa-circle-check"></i>
+          </div>
+
+          <div>
+            <h2 class="font-heading text-2xl md:text-3xl text-[#2A2A2A] font-bold mb-2">Order Complete!</h2>
+            <p class="text-emerald-700 font-bold text-sm">✅ Your magazine order is complete!</p>
+          </div>
+
+          <div class="bg-gray-50 p-5 rounded-2xl border border-gray-200 text-left space-y-3 text-sm text-[#2A2A2A]">
+            <div class="flex justify-between">
+              <span class="text-text-soft">Customer Name</span>
+              <strong class="font-semibold">${escapeHtml(customerName)}</strong>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-text-soft">Order ID</span>
+              <strong class="font-semibold">${escapeHtml(orderId)}</strong>
+            </div>
+            <div class="flex justify-between border-t border-gray-200 pt-3">
+              <span class="text-text-soft">Amount Paid</span>
+              <strong class="text-primary text-base font-bold">৳${amountPaid}</strong>
+            </div>
+          </div>
+
+          <a href="/collections/paid-products" class="inline-flex items-center justify-center w-full py-3.5 bg-[#DC3C71] hover:bg-[#c23260] text-white font-bold text-sm rounded-xl shadow-md transition-colors no-underline">Continue Shopping</a>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  if (photosUploaded) {
+    container.innerHTML = `
+      <div class="max-w-xl mx-auto py-8 px-4">
+        <div class="bg-white p-6 md:p-8 rounded-2xl border border-pink-100 shadow-xl space-y-6 text-center">
+          <div class="w-16 h-16 bg-emerald-50 border-2 border-emerald-200 text-emerald-500 text-3xl rounded-full flex items-center justify-center mx-auto shadow-sm">
+            <i class="fa-solid fa-circle-check"></i>
+          </div>
+
+          <div>
+            <h2 class="font-heading text-2xl md:text-3xl text-[#2A2A2A] font-bold mb-2">Payment Confirmed!</h2>
+            <p class="text-emerald-700 font-bold text-sm">✅ Photos received — your magazine is being prepared</p>
+          </div>
+
+          <div class="bg-gray-50 p-5 rounded-2xl border border-gray-200 text-left space-y-3 text-sm text-[#2A2A2A]">
+            <div class="flex justify-between">
+              <span class="text-text-soft">Customer Name</span>
+              <strong class="font-semibold">${escapeHtml(customerName)}</strong>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-text-soft">Order ID</span>
+              <strong class="font-semibold">${escapeHtml(orderId)}</strong>
+            </div>
+            <div class="flex justify-between border-t border-gray-200 pt-3">
+              <span class="text-text-soft">Amount Paid</span>
+              <strong class="text-primary text-base font-bold">৳${amountPaid}</strong>
+            </div>
+          </div>
+
+          <div class="p-4 rounded-xl bg-[#FDF0F4] border border-pink-200 text-xs text-[#2A2A2A] space-y-3 text-center">
+            <p class="font-semibold">You can track this order anytime at <a href="${trackingUrl}" class="text-primary underline font-bold">${escapeHtml(trackingUrl)}</a></p>
+            <div class="flex flex-col sm:flex-row gap-2 justify-center pt-1">
+              <button type="button" id="copy-tracking-link-btn" class="px-4 py-2 bg-white border border-pink-200 text-primary font-bold text-xs rounded-lg shadow-sm hover:bg-pink-50 transition-colors cursor-pointer">Copy Tracking Link</button>
+              <a href="${waSaveUrl}" target="_blank" rel="noreferrer" class="px-4 py-2 bg-[#25d366] hover:bg-[#20bd5a] text-white font-bold text-xs rounded-lg shadow-sm transition-colors no-underline inline-flex items-center justify-center gap-1.5">
+                <i class="fa-brands fa-whatsapp text-sm"></i>
+                <span>Save via WhatsApp</span>
+              </a>
+            </div>
+          </div>
+
+          <a href="/collections/paid-products" class="inline-flex items-center justify-center w-full py-3.5 bg-[#DC3C71] hover:bg-[#c23260] text-white font-bold text-sm rounded-xl shadow-md transition-colors no-underline">Continue Shopping</a>
+        </div>
+      </div>
+    `;
+
+    qs('#copy-tracking-link-btn')?.addEventListener('click', () => {
+      navigator.clipboard.writeText(trackingUrl);
+      const btn = qs('#copy-tracking-link-btn');
+      if (btn) btn.textContent = 'Link Copied!';
+      setTimeout(() => { if (btn) btn.textContent = 'Copy Tracking Link'; }, 2000);
+    });
+    return;
+  }
+
   container.innerHTML = `
-    <div class="max-w-xl mx-auto py-8 px-4">
-      <div class="bg-white p-6 md:p-8 rounded-2xl border border-pink-100 shadow-xl text-center space-y-6">
-        <div class="w-20 h-20 bg-emerald-50 border-2 border-emerald-200 text-emerald-500 text-4xl rounded-full flex items-center justify-center mx-auto shadow-sm">
+    <div class="max-w-2xl mx-auto py-8 px-4 space-y-6">
+      <div class="bg-white p-6 md:p-8 rounded-2xl border border-pink-100 shadow-xl space-y-4 text-center">
+        <div class="w-14 h-14 bg-emerald-50 border-2 border-emerald-200 text-emerald-500 text-2xl rounded-full flex items-center justify-center mx-auto shadow-sm">
           <i class="fa-solid fa-circle-check"></i>
         </div>
-
         <div>
-          <h2 class="font-heading text-2xl md:text-3xl text-[#2A2A2A] font-bold mb-2">Payment Confirmed!</h2>
-          <p class="text-text-soft text-sm">Your order is being processed.</p>
+          <h2 class="font-heading text-2xl md:text-3xl text-[#2A2A2A] font-bold mb-1">Payment Confirmed!</h2>
+          <p class="text-text-soft text-sm">Please upload your photos below to start processing your magazine.</p>
         </div>
-
-        <div class="bg-gray-50 p-5 rounded-2xl border border-gray-200 text-left space-y-3 text-sm text-[#2A2A2A]">
-          <div class="flex justify-between">
-            <span class="text-text-soft">Customer Name</span>
-            <strong class="font-semibold">${escapeHtml(customerName)}</strong>
-          </div>
+        <div class="bg-gray-50 p-4 rounded-xl border border-gray-200 text-left space-y-2 text-xs text-[#2A2A2A]">
           <div class="flex justify-between">
             <span class="text-text-soft">Order ID</span>
             <strong class="font-semibold">${escapeHtml(orderId)}</strong>
           </div>
-          <div class="flex justify-between border-t border-gray-200 pt-3">
-            <span class="text-text-soft">Amount Paid</span>
-            <strong class="text-primary text-base font-bold">৳${amountPaid}</strong>
+          <div class="flex justify-between">
+            <span class="text-text-soft">Customer Name</span>
+            <strong class="font-semibold">${escapeHtml(customerName)}</strong>
           </div>
         </div>
-
-        <div class="p-4 rounded-xl bg-[#FDF0F4] border border-pink-200 text-xs text-[#2A2A2A] space-y-3 text-center">
-          <p class="font-semibold">You can track this order anytime at <a href="${trackingUrl}" class="text-primary underline font-bold">${escapeHtml(trackingUrl)}</a></p>
-          <div class="flex flex-col sm:flex-row gap-2 justify-center pt-1">
-            <button type="button" id="copy-tracking-link-btn" class="px-4 py-2 bg-white border border-pink-200 text-primary font-bold text-xs rounded-lg shadow-sm hover:bg-pink-50 transition-colors cursor-pointer">Copy Tracking Link</button>
-            <a href="${waSaveUrl}" target="_blank" rel="noreferrer" class="px-4 py-2 bg-[#25d366] hover:bg-[#20bd5a] text-white font-bold text-xs rounded-lg shadow-sm transition-colors no-underline inline-flex items-center justify-center gap-1.5">
-              <i class="fa-brands fa-whatsapp text-sm"></i>
-              <span>Save via WhatsApp</span>
-            </a>
-          </div>
-        </div>
-
-        <a href="/collections/paid-products" class="inline-flex items-center justify-center w-full py-3.5 bg-[#DC3C71] hover:bg-[#c23260] text-white font-bold text-sm rounded-xl shadow-md transition-colors no-underline">Continue Shopping</a>
       </div>
+
+      <div id="checkout-photo-upload-mount"></div>
     </div>
   `;
 
-  qs('#copy-tracking-link-btn')?.addEventListener('click', () => {
-    navigator.clipboard.writeText(trackingUrl);
-    const btn = qs('#copy-tracking-link-btn');
-    if (btn) btn.textContent = 'Link Copied!';
-    setTimeout(() => { if (btn) btn.textContent = 'Copy Tracking Link'; }, 2000);
-  });
+  const uploadMount = qs('#checkout-photo-upload-mount');
+  if (uploadMount) {
+    renderPhotoUploadUI(uploadMount, {
+      orderId,
+      requiredPhotoCount,
+      onSuccess: () => {
+        renderPaidSuccessScreen(orderId, checkoutData, { ...data, photos_uploaded: true, photosUploaded: true });
+      }
+    });
+  }
 }
 
 function renderPollingTimeoutState(db, orderId, trxId) {
   const container = qs('#cart-page-app');
   if (!container) return;
 
-  const waText = encodeURIComponent(`Order ID: ${orderId}, Transaction ID: ${trxId}, I need help with my payment`);
+  const safeOrderId = escapeHtml(orderId || '');
+  const safeTrxId = escapeHtml(trxId || '');
+  const waText = encodeURIComponent(`Order ID: ${orderId}, Transaction ID: ${trxId}, I need help verifying my payment`);
   const waUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${waText}`;
 
   container.innerHTML = `
     <div class="max-w-xl mx-auto py-8 px-4">
-      <div class="bg-white p-6 md:p-8 rounded-2xl border border-pink-100 shadow-xl space-y-6">
-        <div class="p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-sm leading-relaxed">
-          We haven't detected your payment yet. This doesn't mean anything is wrong — please double-check your Transaction ID, or message us on WhatsApp and we'll verify it manually within minutes.
+      <div class="bg-white p-6 md:p-8 rounded-2xl border border-pink-100 shadow-xl space-y-6 text-center">
+        <div class="w-16 h-16 bg-amber-50 border-2 border-amber-200 text-amber-600 text-3xl rounded-full flex items-center justify-center mx-auto shadow-sm">
+          <i class="fa-solid fa-clock"></i>
+        </div>
+
+        <div>
+          <h2 class="font-heading text-2xl md:text-3xl text-[#2A2A2A] font-bold mb-2">Order Placed Successfully!</h2>
+          <p class="text-text-soft text-sm">Your order and Transaction ID have been recorded. Our admin team will verify your payment and process your order shortly.</p>
+        </div>
+
+        <div class="bg-gray-50 p-5 rounded-2xl border border-gray-200 text-left space-y-3 text-sm text-[#2A2A2A]">
+          <div class="flex justify-between">
+            <span class="text-text-soft">Order ID</span>
+            <strong class="font-semibold">${safeOrderId}</strong>
+          </div>
+          ${safeTrxId ? `
+          <div class="flex justify-between">
+            <span class="text-text-soft">Transaction ID</span>
+            <strong class="font-semibold">${safeTrxId}</strong>
+          </div>
+          ` : ''}
+          <div class="flex justify-between border-t border-gray-200 pt-3">
+            <span class="text-text-soft">Status</span>
+            <span class="px-2.5 py-0.5 bg-amber-100 text-amber-800 text-xs font-bold rounded-full">⏳ Pending Admin Verification</span>
+          </div>
         </div>
 
         <div class="space-y-3">
-          <a href="${waUrl}" target="_blank" rel="noreferrer" class="w-full py-3.5 bg-[#25d366] hover:bg-[#20bd5a] text-white font-bold text-sm rounded-xl shadow-md transition-colors inline-flex items-center justify-center gap-2 no-underline">
-            <i class="fa-brands fa-whatsapp text-lg"></i>
-            <span>Message us on WhatsApp</span>
+          <a href="/pages/profile#orders" class="w-full py-3.5 bg-[#DC3C71] hover:bg-[#c23260] text-white font-bold text-sm rounded-xl shadow-md transition-colors inline-flex items-center justify-center gap-2 no-underline">
+            <i class="fa-solid fa-box-archive"></i>
+            <span>Track Order in My Account</span>
           </a>
 
-          <button type="button" id="re-enter-trx-btn" class="w-full py-3 bg-white border border-gray-300 hover:bg-gray-50 text-[#2A2A2A] font-bold text-sm rounded-xl transition-colors cursor-pointer text-center">Re-enter Transaction ID</button>
+          <a href="${waUrl}" target="_blank" rel="noreferrer" class="w-full py-3 bg-[#25d366] hover:bg-[#20bd5a] text-white font-bold text-sm rounded-xl shadow-sm transition-colors inline-flex items-center justify-center gap-2 no-underline">
+            <i class="fa-brands fa-whatsapp text-lg"></i>
+            <span>Contact Support on WhatsApp</span>
+          </a>
         </div>
       </div>
     </div>
   `;
-
-  qs('#re-enter-trx-btn')?.addEventListener('click', () => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const id = urlParams.get('order_id') || orderId;
-    renderPaymentInstructionsStep(db, { payment_method: 'cod', product_amount: 0 });
-  });
 }
 
 function renderAmountMismatchState(orderId, trxId, expected, received) {
@@ -734,7 +971,10 @@ async function handlePageRefreshRecovery(db, orderId) {
             payment_method: fsData.paymentMethod || 'cod',
             expected_amount: fsData.amount || fsData.pricePaid || 30,
             customer_name: fsData.customerName || 'Customer',
-            customer_phone: fsData.customerPhone || ''
+            customer_phone: fsData.customerPhone || '',
+            photos_uploaded: fsData.photos_uploaded || fsData.photosUploaded || false,
+            product_type: fsData.product_type || fsData.productType,
+            canva_link: fsData.canva_link || fsData.canvaLink || fsData.canvaUrl
           };
         }
       } catch (fsErr) {
@@ -753,7 +993,7 @@ async function handlePageRefreshRecovery(db, orderId) {
       renderPaymentInstructionsStep(db, orderData);
     } else if (status === 'pending') {
       startVerificationPolling(db, orderId, orderData.trx_id || '', orderData);
-    } else if (status === 'paid') {
+    } else if (status === 'paid' || status === 'delivered' || status === 'completed') {
       renderPaidSuccessScreen(orderId, orderData, orderData);
     } else if (status === 'flagged') {
       const reason = orderData.reason || orderData.flag_reason;

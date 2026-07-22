@@ -1,6 +1,6 @@
 export const SITE_CONFIG = {
   brandName: 'Petty Bloom',
-  announcement: '₹100 is additional for the COD method, which you’ve to pay in advance',
+  announcement: 'An additional ৳110 charge applies to the Cash on Delivery (COD) method, which must be paid in advance.',
   supportPhoneLabel: '+91 9250303360',
   supportPhoneHref: 'tel:9250303360',
   primaryCtaLabel: 'Shop Now',
@@ -8,15 +8,14 @@ export const SITE_CONFIG = {
     { href: '/pages/featured', label: 'Featured Products', page: 'featured' },
     { href: '/collections/paid-products?title=Categories', label: 'Categories', page: 'categories' },
     { href: '/collections/paid-products?title=Collections', label: 'Collections', page: 'collections' },
-    { href: '/collections/paid-products?title=All+Products', label: 'All Products', page: 'shop' },
-    { href: '/pages/track-order', label: 'Track Order', page: 'track-order' }
+    { href: '/collections/paid-products?title=All+Products', label: 'All Products', page: 'shop' }
   ],
   footerGroups: [
     {
       title: 'Help',
       links: [
         { href: '/pages/policy', label: 'Store Policies' },
-        { href: '/pages/track-order', label: 'Track your Order' },
+        { href: '/pages/profile#orders', label: 'Track your Order' },
         { href: '/pages/contact', label: 'Request Return' },
         { href: '/pages/policy', label: 'Return Policy' },
         { href: '/pages/policy', label: 'Privacy Policy' }

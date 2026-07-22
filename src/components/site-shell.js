@@ -120,9 +120,11 @@ export function renderSiteShell(pageId) {
   shell.innerHTML = `
     <div class="announcement-bar py-2.5 text-center text-xs font-medium tracking-wider text-white bg-accent overflow-hidden relative whitespace-nowrap">
       <div class="announcement-bar__track animate-marquee inline-flex whitespace-nowrap">
-        <div class="announcement-bar__content inline-flex items-center gap-10 pr-10">
+        <div class="announcement-bar__content inline-flex items-center" style="padding-right:100vw;">
           <span>${SITE_CONFIG.announcement}</span>
-          <span class="opacity-60 text-xs">•</span>
+        </div>
+        <div class="announcement-bar__content inline-flex items-center" style="padding-right:100vw;" aria-hidden="true">
+          <span>${SITE_CONFIG.announcement}</span>
         </div>
       </div>
     </div>
@@ -163,7 +165,34 @@ export function renderSiteShell(pageId) {
             <span class="cart-count cart-badge-count absolute -top-2 -right-2.5 w-4.5 h-4.5 grid place-items-center rounded-full bg-primary text-white text-[10px] font-bold shadow-sm">0</span>
           </a>
           
-          <button id="auth-nav-btn" class="auth-text-link text-[#3b1c1c] hover:text-primary text-sm font-semibold p-1 transition-colors" type="button">Sign In</button>
+          <div class="user-profile-menu-wrapper relative">
+            <button id="auth-nav-btn" class="flex items-center gap-2 text-[#3b1c1c] hover:text-primary text-sm font-semibold p-1 transition-colors cursor-pointer" type="button">
+              <div id="header-user-avatar" class="w-8 h-8 rounded-full bg-pink-100 text-primary flex items-center justify-center font-bold text-xs overflow-hidden border border-pink-200 shadow-sm hidden">
+                <img id="header-user-avatar-img" src="" class="w-full h-full object-cover hidden" alt="Profile">
+                <span id="header-user-avatar-initials">U</span>
+              </div>
+              <span id="header-user-btn-text">Sign In</span>
+            </button>
+            <div id="user-profile-dropdown" class="user-dropdown-menu absolute right-0 top-full mt-2 w-52 bg-white border border-gray-100 shadow-xl rounded-xl py-2 hidden z-50">
+              <div id="user-dropdown-info" class="px-4 py-2 border-b border-gray-100">
+                <p id="user-dropdown-name" class="text-sm font-bold text-gray-800 truncate">User Name</p>
+                <p id="user-dropdown-email" class="text-xs text-gray-500 truncate">user@example.com</p>
+              </div>
+              <a href="/pages/profile" class="flex items-center gap-2.5 px-4 py-2 text-sm text-gray-700 hover:bg-pink-50 hover:text-primary transition-colors no-underline">
+                <i class="fa-regular fa-user text-primary"></i>
+                <span>My Profile</span>
+              </a>
+              <a href="/pages/profile#orders" class="flex items-center gap-2.5 px-4 py-2 text-sm text-gray-700 hover:bg-pink-50 hover:text-primary transition-colors no-underline">
+                <i class="fa-solid fa-box-archive text-primary"></i>
+                <span>My Orders</span>
+              </a>
+              <div class="border-t border-gray-100 my-1"></div>
+              <button id="header-logout-btn" class="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer text-left" type="button">
+                <i class="fa-solid fa-right-from-bracket"></i>
+                <span>Logout</span>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
       
@@ -302,44 +331,30 @@ export function renderSiteShell(pageId) {
   overlays.innerHTML = `
     <!-- Auth Modal -->
     <div class="auth-modal fixed inset-0 z-[1002] flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-200" id="auth-modal">
-      <div class="auth-modal__card bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl relative">
-        <div class="auth-modal__header flex justify-between items-center mb-4">
-          <h3 class="font-heading text-xl text-primary font-bold">Sign In</h3>
-          <button id="auth-modal-close-btn" class="icon-close text-2xl text-gray-400 hover:text-primary cursor-pointer" type="button" aria-label="Close Auth">&times;</button>
-        </div>
-        
-        <div class="flex border-b border-gray-200 mb-5">
-          <button id="auth-tab-login" type="button" class="auth-tab flex-1 py-2 text-sm font-bold text-center border-b-2 border-primary text-primary">Login</button>
-          <button id="auth-tab-signup" type="button" class="auth-tab flex-1 py-2 text-sm font-bold text-center border-b-2 border-transparent text-gray-400">Sign Up</button>
+      <div class="auth-modal__card bg-white rounded-2xl p-6 md:p-8 max-w-sm w-full shadow-2xl relative text-center">
+        <div class="flex justify-between items-center mb-6">
+          <h3 class="font-heading text-2xl text-[#3b1c1c] font-bold">Sign In / Sign Up</h3>
+          <button id="auth-modal-close-btn" class="icon-close text-2xl text-gray-400 hover:text-primary cursor-pointer border-none bg-transparent" type="button" aria-label="Close Auth">&times;</button>
         </div>
 
-        <form id="auth-form-login" class="space-y-4">
-          <div>
-            <label class="block text-xs font-semibold text-gray-600 mb-1">Email Address</label>
-            <input type="email" id="login-email" required class="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg text-sm outline-none focus:border-primary">
-          </div>
-          <div>
-            <label class="block text-xs font-semibold text-gray-600 mb-1">Password</label>
-            <input type="password" id="login-password" required class="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg text-sm outline-none focus:border-primary">
-          </div>
-          <button type="submit" class="w-full py-3 bg-primary hover:bg-primary-strong text-white font-bold rounded-xl text-sm transition-colors">Sign In</button>
-        </form>
+        <p class="text-xs text-gray-500 mb-6">Sign in to your account to place orders, track purchases, and manage custom photos.</p>
 
-        <form id="auth-form-signup" class="space-y-4" hidden>
-          <div>
-            <label class="block text-xs font-semibold text-gray-600 mb-1">Full Name</label>
-            <input type="text" id="signup-name" required class="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg text-sm outline-none focus:border-primary">
-          </div>
-          <div>
-            <label class="block text-xs font-semibold text-gray-600 mb-1">Email Address</label>
-            <input type="email" id="signup-email" required class="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg text-sm outline-none focus:border-primary">
-          </div>
-          <div>
-            <label class="block text-xs font-semibold text-gray-600 mb-1">Password</label>
-            <input type="password" id="signup-password" required class="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg text-sm outline-none focus:border-primary">
-          </div>
-          <button type="submit" class="w-full py-3 bg-primary hover:bg-primary-strong text-white font-bold rounded-xl text-sm transition-colors">Create Account</button>
-        </form>
+        <div class="space-y-4">
+          <button id="btn-google-login" type="button" class="w-full py-3.5 px-4 bg-white hover:bg-gray-50 text-gray-700 font-bold border border-gray-300 rounded-xl text-sm shadow-sm transition-all flex items-center justify-center gap-3 cursor-pointer">
+            <svg class="w-5 h-5" viewBox="0 0 24 24">
+              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+            </svg>
+            <span>Continue with Google</span>
+          </button>
+
+          <button id="btn-facebook-login" type="button" class="w-full py-3.5 px-4 bg-[#1877F2] hover:bg-[#166fe5] text-white font-bold rounded-xl text-sm shadow-md transition-all flex items-center justify-center gap-3 cursor-pointer">
+            <i class="fa-brands fa-facebook text-xl"></i>
+            <span>Continue with Facebook</span>
+          </button>
+        </div>
       </div>
     </div>
     <div class="drawer-overlay fixed inset-0 bg-black/40 opacity-0 pointer-events-none z-[1000] transition-opacity duration-200" id="auth-modal-overlay"></div>
@@ -467,6 +482,49 @@ export function renderSiteShell(pageId) {
 
   initStickyHeaderScroll();
   initMegamenuEvents();
+  initAllShellButtonEvents();
+}
+
+function initAllShellButtonEvents() {
+  const hamburgerBtn = document.getElementById('hamburger-btn');
+  const mobileDrawer = document.getElementById('mobile-drawer');
+  const mobileDrawerOverlay = document.getElementById('mobile-drawer-overlay');
+  const mobileDrawerCloseBtn = document.getElementById('mobile-drawer-close-btn');
+
+  hamburgerBtn?.addEventListener('click', () => {
+    openSurface(mobileDrawer, mobileDrawerOverlay);
+  });
+
+  mobileDrawerCloseBtn?.addEventListener('click', () => {
+    closeSurface(mobileDrawer, mobileDrawerOverlay);
+  });
+
+  mobileDrawerOverlay?.addEventListener('click', () => {
+    closeSurface(mobileDrawer, mobileDrawerOverlay);
+  });
+
+  const mobileSearchToggleBtn = document.getElementById('mobile-search-toggle-btn');
+  const mobileSearchBar = document.getElementById('mobile-search-bar');
+  mobileSearchToggleBtn?.addEventListener('click', () => {
+    if (mobileSearchBar) {
+      mobileSearchBar.classList.toggle('hidden');
+    }
+  });
+
+  const searchInput = document.getElementById('header-search-input');
+  const mobileSearchInput = document.getElementById('mobile-search-input');
+
+  const handleSearch = (e) => {
+    if (e.key === 'Enter') {
+      const q = e.target.value.trim();
+      if (q) {
+        window.location.href = `/collections/paid-products?title=${encodeURIComponent(q)}`;
+      }
+    }
+  };
+
+  searchInput?.addEventListener('keydown', handleSearch);
+  mobileSearchInput?.addEventListener('keydown', handleSearch);
 }
 
 function initMegamenuEvents() {

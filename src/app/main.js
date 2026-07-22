@@ -9,7 +9,7 @@ import { renderProductDetailsPage } from '../controllers/product-details-control
 import { renderCartPage } from '../controllers/cart-controller.js';
 import { renderTrackOrderPage } from '../controllers/track-order-controller.js';
 import { loadUserLibrary, submitTxnId } from '../controllers/library-controller.js';
-import { initProfileForm, populateProfile } from '../controllers/profile-controller.js';
+import { initProfileController } from '../controllers/profile-controller.js';
 import { initContactEvents } from '../controllers/contact-controller.js';
 import { setupLazyCloudinaryImages } from '../utils/cloudinary.js';
 import { qs } from '../utils/ui.js';
@@ -52,16 +52,6 @@ watchAuthState(async (user) => {
     }
     if (user?.email) await loadUserLibrary(db, user.email);
   }
-
-  if (pageId === 'profile') {
-    const authRequired = qs('#profile-auth-required');
-    const content = qs('#profile-content-container');
-    if (authRequired && content) {
-      authRequired.hidden = Boolean(user);
-      content.hidden = !user;
-    }
-    if (user) initProfileForm(user);
-  }
 });
 
 // 6. Page Routing & Initialization
@@ -71,15 +61,11 @@ async function initApp() {
   if (pageId === 'product-details') await renderProductDetailsPage(db);
   if (pageId === 'cart') await renderCartPage(db);
   if (pageId === 'track-order') await renderTrackOrderPage();
+  if (pageId === 'profile') initProfileController();
 
   if (pageId === 'library') {
     qs('#library-auth-required')?.classList.add('auth-required');
     qs('#library-content-container')?.setAttribute('hidden', 'hidden');
-  }
-
-  if (pageId === 'profile') {
-    qs('#profile-auth-required')?.classList.add('auth-required');
-    qs('#profile-content-container')?.setAttribute('hidden', 'hidden');
   }
 
   setupLazyCloudinaryImages(document);
