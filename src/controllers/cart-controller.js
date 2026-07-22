@@ -1,8 +1,10 @@
 import { getCart, setCart, updateCartCount, clearCart } from '../services/cart-service.js';
-import { formatCurrency, escapeHtml, qs } from '../utils/ui.js';
+import { formatCurrency, escapeHtml, qs, createToast } from '../utils/ui.js';
 import { imageMarkup } from '../components/product-card.js';
 import { getFirebaseServices } from '../services/firebase-service.js';
 import { renderPhotoUploadUI } from '../components/photo-upload.js';
+import { openAuthModal } from '../services/auth-service.js';
+import { getCurrentGpsLocation } from '../services/location-service.js';
 
 const API_BASE = "https://bkash-sms-gateway.onrender.com";
 const DELIVERY_CHARGE = 60;
@@ -142,6 +144,15 @@ function renderCartState(db) {
   };
 
   qs('#start-checkout-btn')?.addEventListener('click', () => {
+    const { auth } = getFirebaseServices();
+    const currentUser = auth?.currentUser;
+
+    if (!currentUser) {
+      createToast('Please sign in to proceed with checkout', 'error');
+      openAuthModal();
+      return;
+    }
+
     renderCheckoutForm(db, subtotal);
   });
 }
@@ -150,7 +161,10 @@ function renderCheckoutForm(db, subtotal) {
   const container = qs('#cart-page-app');
   if (!container) return;
 
-  const totalAmount = subtotal + DELIVERY_CHARGE;
+  const cart = getCart();
+  const hasPhysicalMagazine = cart.some(item => item.purchaseMode === 'magazine' || (!item.purchaseMode && item.product_type !== 'template'));
+  const effectiveDeliveryCharge = hasPhysicalMagazine ? DELIVERY_CHARGE : 0;
+  const totalAmount = subtotal + effectiveDeliveryCharge;
 
   container.innerHTML = `
     <div class="max-w-xl mx-auto py-8 px-4">
@@ -173,22 +187,99 @@ function renderCheckoutForm(db, subtotal) {
             <p id="phone-error-text" class="text-xs text-amber-600 mt-1 hidden">Please enter a valid 11-digit Bangladeshi mobile number starting with 01.</p>
           </div>
 
+          ${hasPhysicalMagazine ? `
+            <!-- DELIVERY LOCATION SECTION FOR PHYSICAL MAGAZINE PURCHASES -->
+            <div id="delivery-location-section" class="pt-4 border-t border-pink-100 space-y-4">
+              <div class="flex items-center justify-between">
+                <h3 class="text-xs font-bold uppercase tracking-wider text-gray-700 flex items-center gap-2">
+                  <i class="fa-solid fa-location-dot text-primary"></i>
+                  <span>Delivery Location Details</span>
+                </h3>
+                <span class="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">🚚 Home Delivery</span>
+              </div>
+
+              <!-- Option 1: Quick Auto GPS Button -->
+              <button type="button" id="checkout-use-gps-btn" class="w-full py-2.5 px-4 bg-pink-50 hover:bg-pink-100 border border-pink-200 text-primary font-bold rounded-xl text-xs shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer">
+                <i class="fa-solid fa-location-crosshairs text-sm text-primary"></i>
+                <span id="checkout-gps-btn-text">🎯 Auto Detect My Current Location (GPS)</span>
+              </button>
+
+              <div class="relative flex py-0.5 items-center">
+                <div class="flex-grow border-t border-pink-100"></div>
+                <span class="flex-shrink mx-3 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">or fill address manually</span>
+                <div class="flex-grow border-t border-pink-100"></div>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-xs font-bold text-[#2A2A2A] mb-1">Division *</label>
+                  <select id="cust-division" required class="w-full px-3.5 py-2.5 border border-gray-300 rounded-xl text-sm bg-white outline-none focus:border-primary">
+                    <option value="Dhaka" selected>Dhaka</option>
+                    <option value="Chattogram">Chattogram</option>
+                    <option value="Rajshahi">Rajshahi</option>
+                    <option value="Khulna">Khulna</option>
+                    <option value="Barishal">Barishal</option>
+                    <option value="Sylhet">Sylhet</option>
+                    <option value="Rangpur">Rangpur</option>
+                    <option value="Mymensingh">Mymensingh</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-xs font-bold text-[#2A2A2A] mb-1">District *</label>
+                  <input type="text" id="cust-district" required placeholder="e.g. Gazipur, Dhaka" class="w-full px-3.5 py-2.5 border border-gray-300 rounded-xl text-sm outline-none focus:border-primary">
+                </div>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-xs font-bold text-[#2A2A2A] mb-1">Upazila / Police Station / Area</label>
+                  <input type="text" id="cust-upazila" placeholder="e.g. Sreepur, Uttara" class="w-full px-3.5 py-2.5 border border-gray-300 rounded-xl text-sm outline-none focus:border-primary">
+                </div>
+                <div>
+                  <label class="block text-xs font-bold text-[#2A2A2A] mb-1">Postal Code (Optional)</label>
+                  <input type="text" id="cust-postal" placeholder="e.g. 1740" class="w-full px-3.5 py-2.5 border border-gray-300 rounded-xl text-sm outline-none focus:border-primary">
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-[#2A2A2A] mb-1">Detailed House & Street Address *</label>
+                <textarea id="cust-address" required rows="2" placeholder="e.g. House 12, Road 5, Block B" class="w-full px-3.5 py-2.5 border border-gray-300 rounded-xl text-sm outline-none focus:border-primary resize-none"></textarea>
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-[#2A2A2A] mb-1">Special Delivery Note (Optional)</label>
+                <input type="text" id="cust-note" placeholder="e.g. Call before delivery" class="w-full px-3.5 py-2.5 border border-gray-300 rounded-xl text-sm outline-none focus:border-primary">
+              </div>
+            </div>
+          ` : `
+            <!-- DIGITAL TEMPLATE NOTICE (No Physical Delivery Required) -->
+            <div id="digital-delivery-notice-box" class="p-4 rounded-xl bg-purple-50 border border-purple-200 text-xs text-purple-900 space-y-1">
+              <div class="flex items-center gap-2 font-bold text-sm text-purple-700">
+                <i class="fa-solid fa-wand-magic-sparkles"></i>
+                <span>Digital Product Order</span>
+              </div>
+              <p class="font-medium">This is a digital product and does not require delivery information.</p>
+            </div>
+          `}
+
           <div>
             <label class="block text-xs font-bold text-[#2A2A2A] mb-2">Payment Method *</label>
             <div class="grid grid-cols-2 gap-3">
-              <label class="payment-option-label border-2 border-primary bg-pink-50/50 p-4 rounded-xl cursor-pointer flex flex-col items-center justify-center gap-1.5 transition-all text-center">
-                <input type="radio" name="payment_method" value="cod" checked class="accent-primary">
-                <span class="text-xs font-bold text-[#2A2A2A]">Cash on Delivery</span>
-              </label>
-              <label class="payment-option-label border-2 border-gray-200 bg-white p-4 rounded-xl cursor-pointer flex flex-col items-center justify-center gap-1.5 transition-all text-center">
-                <input type="radio" name="payment_method" value="online" class="accent-primary">
-                <span class="text-xs font-bold text-[#2A2A2A]">Pay Online</span>
+              ${hasPhysicalMagazine ? `
+                <label class="payment-option-label border-2 border-primary bg-pink-50/50 p-4 rounded-xl cursor-pointer flex flex-col items-center justify-center gap-1.5 transition-all text-center">
+                  <input type="radio" name="payment_method" value="cod" checked class="accent-primary">
+                  <span class="text-xs font-bold text-[#2A2A2A]">Cash on Delivery</span>
+                </label>
+              ` : ''}
+              <label class="payment-option-label border-2 ${hasPhysicalMagazine ? 'border-gray-200 bg-white' : 'border-primary bg-purple-50/50'} p-4 rounded-xl cursor-pointer flex flex-col items-center justify-center gap-1.5 transition-all text-center">
+                <input type="radio" name="payment_method" value="online" ${!hasPhysicalMagazine ? 'checked' : ''} class="accent-primary">
+                <span class="text-xs font-bold text-[#2A2A2A]">Pay Online (bKash)</span>
               </label>
             </div>
           </div>
 
           <div id="payment-amount-box" class="p-4 rounded-xl bg-[#FDF0F4] border border-pink-200 text-xs text-[#2A2A2A] space-y-1">
-            <p id="amount-note-text" class="font-semibold text-primary text-sm">You need to pay ৳30 in advance via bKash to confirm this order</p>
+            <p id="amount-note-text" class="font-semibold text-primary text-sm">${hasPhysicalMagazine ? 'You need to pay ৳30 in advance via bKash to confirm this order' : `Total to pay: ৳${totalAmount} (Instant Canva Link Access)`}</p>
           </div>
 
           <div id="checkout-error-msg" class="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-800 hidden"></div>
@@ -200,6 +291,49 @@ function renderCheckoutForm(db, subtotal) {
   `;
 
   qs('#back-to-cart-btn')?.addEventListener('click', () => renderCartState(db));
+
+  // Pre-fill delivery location if saved in header modal
+  if (hasPhysicalMagazine) {
+    try {
+      const savedRaw = localStorage.getItem('user_delivery_location');
+      if (savedRaw) {
+        const saved = JSON.parse(savedRaw);
+        if (saved.division && qs('#cust-division')) qs('#cust-division').value = saved.division;
+        if (saved.district && qs('#cust-district')) qs('#cust-district').value = saved.district;
+        if (saved.upazila && qs('#cust-upazila')) qs('#cust-upazila').value = saved.upazila;
+        if (saved.address && qs('#cust-address')) qs('#cust-address').value = saved.address;
+        if (saved.postalCode && qs('#cust-postal')) qs('#cust-postal').value = saved.postalCode;
+      }
+    } catch (_) {}
+
+    qs('#checkout-use-gps-btn')?.addEventListener('click', async () => {
+      const gpsBtn = qs('#checkout-use-gps-btn');
+      const gpsBtnText = qs('#checkout-gps-btn-text');
+      try {
+        if (gpsBtnText) gpsBtnText.textContent = '⏳ Detecting your GPS location...';
+        if (gpsBtn) gpsBtn.disabled = true;
+
+        const loc = await getCurrentGpsLocation();
+
+        if (loc.division && qs('#cust-division')) qs('#cust-division').value = loc.division;
+        if (loc.district && qs('#cust-district')) qs('#cust-district').value = loc.district;
+        if (loc.upazila && qs('#cust-upazila')) qs('#cust-upazila').value = loc.upazila;
+        if (loc.address && qs('#cust-address')) qs('#cust-address').value = loc.address;
+        if (loc.postalCode && qs('#cust-postal')) qs('#cust-postal').value = loc.postalCode;
+
+        if (gpsBtnText) gpsBtnText.textContent = '✅ Location Detected!';
+        createToast('GPS Location detected & filled automatically!', 'success');
+      } catch (err) {
+        if (gpsBtnText) gpsBtnText.textContent = '🎯 Auto Detect My Current Location (GPS)';
+        createToast(err.message || 'GPS location failed. Please type address manually.', 'error');
+      } finally {
+        if (gpsBtn) gpsBtn.disabled = false;
+        setTimeout(() => {
+          if (gpsBtnText) gpsBtnText.textContent = '🎯 Auto Detect My Current Location (GPS)';
+        }, 3000);
+      }
+    });
+  }
 
   const radios = document.querySelectorAll('input[name="payment_method"]');
   const amountNote = qs('#amount-note-text');
@@ -217,7 +351,7 @@ function renderCheckoutForm(db, subtotal) {
       if (r.value === 'cod') {
         if (amountNote) amountNote.textContent = `You need to pay ৳30 in advance via bKash to confirm this order`;
       } else {
-        if (amountNote) amountNote.textContent = `Total to pay: ৳${totalAmount} (Products: ৳${subtotal} + Delivery: ৳${DELIVERY_CHARGE})`;
+        if (amountNote) amountNote.textContent = `Total to pay: ৳${totalAmount} (Products: ৳${subtotal} + Delivery: ৳${effectiveDeliveryCharge})`;
       }
     });
   });
@@ -226,7 +360,7 @@ function renderCheckoutForm(db, subtotal) {
     e.preventDefault();
     const name = qs('#cust-name').value.trim();
     const phone = qs('#cust-phone').value.trim();
-    const selectedMethod = document.querySelector('input[name="payment_method"]:checked')?.value || 'cod';
+    const selectedMethod = document.querySelector('input[name="payment_method"]:checked')?.value || (hasPhysicalMagazine ? 'cod' : 'online');
 
     const phoneRegex = /^01[3-9]\d{8}$/;
     if (!phoneRegex.test(phone)) {
@@ -235,13 +369,50 @@ function renderCheckoutForm(db, subtotal) {
     }
     qs('#phone-error-text')?.classList.add('hidden');
 
-    renderPaymentInstructionsStep(db, {
-      customer_name: name,
-      customer_phone: phone,
-      payment_method: selectedMethod,
-      product_amount: subtotal,
-      delivery_charge: DELIVERY_CHARGE
-    });
+    if (hasPhysicalMagazine) {
+      const division = qs('#cust-division')?.value || 'Dhaka';
+      const district = qs('#cust-district')?.value.trim() || '';
+      const upazila = qs('#cust-upazila')?.value.trim() || '';
+      const address = qs('#cust-address')?.value.trim() || '';
+      const postalCode = qs('#cust-postal')?.value.trim() || '';
+      const note = qs('#cust-note')?.value.trim() || '';
+
+      if (!district || !address) {
+        const errBox = qs('#checkout-error-msg');
+        if (errBox) {
+          errBox.textContent = 'Please enter your District and Detailed House Address for physical magazine delivery.';
+          errBox.classList.remove('hidden');
+        }
+        return;
+      }
+
+      renderPaymentInstructionsStep(db, {
+        customer_name: name,
+        customer_phone: phone,
+        purchase_type: 'magazine',
+        payment_method: selectedMethod,
+        product_amount: subtotal,
+        delivery_charge: effectiveDeliveryCharge,
+        delivery_info: {
+          division,
+          district,
+          upazila,
+          address,
+          postalCode,
+          note
+        }
+      });
+    } else {
+      renderPaymentInstructionsStep(db, {
+        customer_name: name,
+        customer_phone: phone,
+        purchase_type: 'template',
+        payment_method: 'online',
+        product_amount: subtotal,
+        delivery_charge: 0,
+        delivery_info: null
+      });
+    }
   });
 }
 
@@ -334,11 +505,15 @@ function renderPaymentInstructionsStep(db, checkoutData) {
           ? window.firebase.firestore.FieldValue.serverTimestamp()
           : new Date();
 
+        const deliveryInfo = checkoutData.delivery_info || null;
+        const purchaseType = checkoutData.purchase_type || (deliveryInfo ? 'magazine' : 'template');
+
         const firestoreData = {
           orderId: newOrderId,
+          purchaseType: purchaseType,
           transactionId: trxId,
           txnId: trxId,
-          paymentMethod: 'bKash',
+          paymentMethod: checkoutData.payment_method === 'cod' ? 'bKash (COD Advance)' : 'bKash (Full Online)',
           amount: expectedAmount,
           pricePaid: expectedAmount,
           user_id: currentUser?.uid || 'guest',
@@ -348,6 +523,17 @@ function renderPaymentInstructionsStep(db, checkoutData) {
           customerName: checkoutData.customer_name,
           customer_phone: checkoutData.customer_phone,
           customerPhone: checkoutData.customer_phone,
+          customerInfo: {
+            name: checkoutData.customer_name,
+            phone: checkoutData.customer_phone,
+            email: currentUser?.email || ''
+          },
+          deliveryInfo: deliveryInfo,
+          shippingAddress: deliveryInfo ? `${deliveryInfo.address}, ${deliveryInfo.upazila ? deliveryInfo.upazila + ', ' : ''}${deliveryInfo.district}, ${deliveryInfo.division}` : 'N/A (Digital Product Order)',
+          paymentInfo: {
+            method: 'bKash',
+            transactionId: trxId
+          },
           items: (() => {
             const expanded = [];
             let itemCounter = 1;
@@ -369,7 +555,7 @@ function renderPaymentInstructionsStep(db, checkoutData) {
             });
             return expanded;
           })(),
-          productName: checkoutData.product_name || 'Magazine & Newspaper Order',
+          productName: checkoutData.product_name || (purchaseType === 'template' ? 'Digital Template Order' : 'Physical Magazine Order'),
           status: 'pending',
           paymentStatus: 'pending',
           createdAt: new Date().toISOString(),

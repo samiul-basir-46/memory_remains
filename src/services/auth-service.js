@@ -102,6 +102,15 @@ export function watchAuthState(onAuthStateChangedCallback) {
     const authNavBtn = qs('#auth-nav-btn');
     const logoutBtn = qs('#header-logout-btn');
 
+    // Mobile Drawer elements
+    const authMobileBtn = qs('#auth-mobile-btn');
+    const mobileUserProfileBox = qs('#mobile-user-profile-box');
+    const mobileUserName = qs('#mobile-user-name');
+    const mobileUserEmail = qs('#mobile-user-email');
+    const mobileAvatarImg = qs('#mobile-user-avatar-img');
+    const mobileAvatarInitials = qs('#mobile-user-avatar-initials');
+    const mobileLogoutBtn = qs('#mobile-logout-btn');
+
     if (user) {
       const displayName = user.displayName || user.email?.split('@')[0] || 'Account';
       if (userBtnText) userBtnText.textContent = displayName;
@@ -124,6 +133,26 @@ export function watchAuthState(onAuthStateChangedCallback) {
         }
       }
 
+      // Mobile Drawer User View
+      if (authMobileBtn) authMobileBtn.classList.add('hidden');
+      if (mobileUserProfileBox) mobileUserProfileBox.classList.remove('hidden');
+      if (mobileUserName) mobileUserName.textContent = displayName;
+      if (mobileUserEmail) mobileUserEmail.textContent = user.email || '';
+
+      if (user.photoURL) {
+        if (mobileAvatarImg) {
+          mobileAvatarImg.src = user.photoURL;
+          mobileAvatarImg.classList.remove('hidden');
+        }
+        if (mobileAvatarInitials) mobileAvatarInitials.classList.add('hidden');
+      } else {
+        if (mobileAvatarImg) mobileAvatarImg.classList.add('hidden');
+        if (mobileAvatarInitials) {
+          mobileAvatarInitials.textContent = displayName.charAt(0).toUpperCase();
+          mobileAvatarInitials.classList.remove('hidden');
+        }
+      }
+
       if (db) {
         try {
           await db.collection('users').doc(user.uid).set({
@@ -139,6 +168,9 @@ export function watchAuthState(onAuthStateChangedCallback) {
       if (userBtnText) userBtnText.textContent = 'Sign In';
       if (avatarBox) avatarBox.classList.add('hidden');
       if (dropdown) dropdown.classList.add('hidden');
+
+      if (authMobileBtn) authMobileBtn.classList.remove('hidden');
+      if (mobileUserProfileBox) mobileUserProfileBox.classList.add('hidden');
     }
 
     if (authNavBtn) {
@@ -158,6 +190,17 @@ export function watchAuthState(onAuthStateChangedCallback) {
           await auth.signOut();
           createToast('Logged out successfully.');
           if (dropdown) dropdown.classList.add('hidden');
+        } catch (err) {
+          createToast(err.message || 'Logout failed', 'error');
+        }
+      };
+    }
+
+    if (mobileLogoutBtn) {
+      mobileLogoutBtn.onclick = async () => {
+        try {
+          await auth.signOut();
+          createToast('Logged out successfully.');
         } catch (err) {
           createToast(err.message || 'Logout failed', 'error');
         }

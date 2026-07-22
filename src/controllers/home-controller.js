@@ -7,7 +7,8 @@ function renderShowcaseCard(template = {}) {
   const price = Number(template.price || 0);
   const compare = comparePrice(template);
   const discount = discountPercent(template);
-  const detailsUrl = template.id ? `/pages/product-details?id=${template.id}` : '#';
+  const templateId = template.id || template._id || template.templateId;
+  const detailsUrl = templateId ? `/pages/product-details?id=${encodeURIComponent(templateId)}` : '#';
   const primaryImg = template.imageUrl || '/assets/product_placeholder.png';
   const gallery = [primaryImg, ...(template.galleryUrls || [])].filter(Boolean);
 
@@ -25,7 +26,9 @@ function renderShowcaseCard(template = {}) {
       <!-- Right Column: Product Info & Purchase Options -->
       <div class="bg-[#FDF0F4] p-6 md:p-8 flex flex-col justify-between space-y-6">
         <div>
-          <h3 class="font-heading text-2xl md:text-3xl text-[#2A2A2A] font-normal mb-3 leading-snug">${escapeHtml(template.title || 'Untitled Product')}</h3>
+          <h3 class="font-heading text-2xl md:text-3xl text-[#2A2A2A] font-normal mb-3 leading-snug">
+            <a href="${detailsUrl}" class="hover:text-primary transition-colors">${escapeHtml(template.title || 'Untitled Product')}</a>
+          </h3>
           <div class="flex items-baseline gap-3 mb-1">
             <strong class="text-2xl md:text-3xl font-bold text-[#2A2A2A]">₹${price}</strong>
             ${compare ? `<span class="text-gray-500 line-through text-base">₹${compare}</span>` : ''}
@@ -46,7 +49,7 @@ function renderShowcaseCard(template = {}) {
         </div>
 
         <div class="flex justify-between items-center text-xs font-semibold text-[#2A2A2A] border-t border-pink-200/60 pt-4">
-          <span>38 pictures ...</span>
+          <span>Personalized Gift Template</span>
           <a href="${detailsUrl}" class="text-primary hover:underline font-bold text-sm">View More</a>
         </div>
       </div>

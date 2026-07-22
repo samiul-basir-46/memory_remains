@@ -1,13 +1,57 @@
 import { SITE_CONFIG } from '../config/site-config.js';
+import { openAuthModal } from '../services/auth-service.js';
+import { getCurrentGpsLocation } from '../services/location-service.js';
+
+export function openModal(modal, overlay) {
+  if (modal) {
+    modal.classList.remove('opacity-0', 'pointer-events-none');
+    modal.classList.add('opacity-100', 'pointer-events-auto');
+  }
+  if (overlay) {
+    overlay.classList.remove('opacity-0', 'pointer-events-none');
+    overlay.classList.add('opacity-100', 'pointer-events-auto', 'is-visible');
+  }
+}
+
+export function closeModal(modal, overlay) {
+  if (modal) {
+    modal.classList.remove('opacity-100', 'pointer-events-auto');
+    modal.classList.add('opacity-0', 'pointer-events-none');
+  }
+  if (overlay) {
+    overlay.classList.remove('opacity-100', 'pointer-events-auto', 'is-visible');
+    overlay.classList.add('opacity-0', 'pointer-events-none');
+  }
+}
 
 export function openSurface(drawer, overlay) {
-  if (drawer) drawer.classList.add('is-open');
-  if (overlay) overlay.classList.add('is-visible');
+  if (drawer) {
+    drawer.classList.remove('-left-full', '-right-full');
+    if (drawer.classList.contains('filter-drawer')) {
+      drawer.classList.add('right-0');
+    } else {
+      drawer.classList.add('left-0');
+    }
+  }
+  if (overlay) {
+    overlay.classList.remove('opacity-0', 'pointer-events-none');
+    overlay.classList.add('opacity-100', 'pointer-events-auto', 'is-visible');
+  }
 }
 
 export function closeSurface(drawer, overlay) {
-  if (drawer) drawer.classList.remove('is-open');
-  if (overlay) overlay.classList.remove('is-visible');
+  if (drawer) {
+    drawer.classList.remove('left-0', 'right-0');
+    if (drawer.classList.contains('filter-drawer')) {
+      drawer.classList.add('-right-full');
+    } else {
+      drawer.classList.add('-left-full');
+    }
+  }
+  if (overlay) {
+    overlay.classList.remove('opacity-100', 'pointer-events-auto', 'is-visible');
+    overlay.classList.add('opacity-0', 'pointer-events-none');
+  }
 }
 
 function renderNavLinks(pageId, isMobile = false) {
@@ -258,10 +302,31 @@ export function renderSiteShell(pageId) {
       </div>
 
       <div class="mobile-drawer__footer p-5 border-t border-gray-200 bg-white mt-auto">
-        <button id="auth-mobile-btn" class="mobile-drawer__auth-btn flex items-center gap-3 text-base font-medium text-[#2b1717] cursor-pointer" type="button">
-          <i class="fa-regular fa-user text-lg"></i>
-          <span>Sign In</span>
+        <!-- Guest State: Sign In Button -->
+        <button id="auth-mobile-btn" class="mobile-drawer__auth-btn flex items-center gap-3 text-base font-semibold text-[#2b1717] hover:text-primary transition-colors cursor-pointer w-full" type="button">
+          <div class="w-9 h-9 rounded-full bg-pink-50 border border-pink-100 text-primary flex items-center justify-center text-base">
+            <i class="fa-regular fa-user"></i>
+          </div>
+          <span id="mobile-auth-btn-text">Sign In</span>
         </button>
+
+        <!-- Logged-in User Profile Container -->
+        <div id="mobile-user-profile-box" class="space-y-3 hidden">
+          <div class="flex items-center gap-3 pb-3 border-b border-gray-100">
+            <div id="mobile-user-avatar" class="w-10 h-10 rounded-full bg-pink-100 text-primary flex items-center justify-center font-bold text-sm overflow-hidden border border-pink-200 shadow-sm flex-shrink-0">
+              <img id="mobile-user-avatar-img" src="" class="w-full h-full object-cover hidden" alt="Profile">
+              <span id="mobile-user-avatar-initials">U</span>
+            </div>
+            <div class="flex-1 min-w-0">
+              <p id="mobile-user-name" class="text-sm font-bold text-gray-800 truncate">Account</p>
+              <p id="mobile-user-email" class="text-xs text-gray-500 truncate"></p>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-2 text-xs">
+            <a href="/pages/profile" class="py-2.5 px-3 bg-pink-50 text-primary font-bold rounded-lg text-center hover:bg-pink-100 transition-colors no-underline">My Profile</a>
+            <button id="mobile-logout-btn" type="button" class="py-2.5 px-3 bg-gray-100 hover:bg-rose-50 hover:text-rose-600 text-gray-700 font-bold rounded-lg text-center transition-colors cursor-pointer">Logout</button>
+          </div>
+        </div>
       </div>
     </aside>
     <div class="screen-overlay drawer-overlay fixed inset-0 bg-black/40 opacity-0 pointer-events-none z-[1000] transition-opacity duration-200" id="screen-overlay"></div>
@@ -473,11 +538,90 @@ export function renderSiteShell(pageId) {
         </div>
       </div>
 
-      <div class="filter-drawer__footer p-5 border-t border-gray-100 bg-white">
-        <button id="apply-filter-btn" class="pill-button w-full bg-primary text-white rounded-full py-3.5 font-bold shadow-md hover:bg-primary-strong transition-colors" type="button">Show Products</button>
-      </div>
     </aside>
     <div class="drawer-overlay fixed inset-0 bg-black/40 opacity-0 pointer-events-none z-[1000] transition-opacity duration-200" id="filter-drawer-overlay"></div>
+
+    <!-- Location Coverage Modal -->
+    <div class="location-modal fixed inset-0 z-[1002] flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-200 overflow-y-auto" id="location-modal">
+      <div class="bg-white rounded-2xl p-6 max-w-lg w-full shadow-2xl relative my-auto">
+        <div class="flex justify-between items-center mb-3 pb-3 border-b border-gray-100">
+          <div class="flex items-center gap-2">
+            <i class="fa-solid fa-map-pin text-primary text-lg"></i>
+            <h3 class="font-heading text-lg text-gray-800 font-bold">Set Delivery Location</h3>
+          </div>
+          <button id="location-modal-close-btn" class="text-2xl text-gray-400 hover:text-primary cursor-pointer p-1" type="button" aria-label="Close modal">&times;</button>
+        </div>
+        <p class="text-xs text-gray-500 mb-4">Choose auto GPS detection or type your exact home address for magazine delivery.</p>
+
+        <!-- Option 1: Auto Detect Current Location (GPS) -->
+        <div class="mb-3.5">
+          <button type="button" id="modal-use-gps-btn" class="w-full py-2.5 px-4 bg-pink-50 hover:bg-pink-100 border border-pink-200 text-primary font-bold rounded-xl text-xs shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer">
+            <i class="fa-solid fa-location-crosshairs text-sm text-primary"></i>
+            <span id="modal-gps-btn-text">🎯 Auto Detect My Current Location (GPS)</span>
+          </button>
+        </div>
+
+        <div class="relative flex py-1 items-center mb-3.5">
+          <div class="flex-grow border-t border-gray-200"></div>
+          <span class="flex-shrink mx-3 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">or type address manually</span>
+          <div class="flex-grow border-t border-gray-200"></div>
+        </div>
+
+        <form id="location-modal-form" class="space-y-3.5">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-bold text-gray-700 mb-1">Division *</label>
+              <select id="modal-division" required class="w-full px-3 py-2.5 border border-gray-300 rounded-xl text-xs bg-white outline-none focus:border-primary">
+                <option value="Dhaka" selected>Dhaka</option>
+                <option value="Chattogram">Chattogram</option>
+                <option value="Rajshahi">Rajshahi</option>
+                <option value="Khulna">Khulna</option>
+                <option value="Barishal">Barishal</option>
+                <option value="Sylhet">Sylhet</option>
+                <option value="Rangpur">Rangpur</option>
+                <option value="Mymensingh">Mymensingh</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-gray-700 mb-1">District / City *</label>
+              <input type="text" id="modal-district" required placeholder="e.g. Dhaka, Gazipur" class="w-full px-3 py-2.5 border border-gray-300 rounded-xl text-xs outline-none focus:border-primary">
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-bold text-gray-700 mb-1">Thana / Upazila / Area *</label>
+              <input type="text" id="modal-upazila" required placeholder="e.g. Mirpur, Sreepur, Uttara" class="w-full px-3 py-2.5 border border-gray-300 rounded-xl text-xs outline-none focus:border-primary">
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-gray-700 mb-1">Postal Code (Optional)</label>
+              <input type="text" id="modal-postal" placeholder="e.g. 1230" class="w-full px-3 py-2.5 border border-gray-300 rounded-xl text-xs outline-none focus:border-primary">
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-gray-700 mb-1">Detailed House & Street Address *</label>
+            <textarea id="modal-address" required rows="2" placeholder="e.g. House 12, Road 5, Block B, Flat 3A" class="w-full px-3 py-2.5 border border-gray-300 rounded-xl text-xs outline-none focus:border-primary resize-none"></textarea>
+          </div>
+
+          <div class="p-3 rounded-xl bg-pink-50/60 border border-pink-100 space-y-1 text-xs">
+            <div class="flex justify-between items-center text-gray-700 font-semibold">
+              <span>Home Shipping Fee:</span>
+              <strong class="text-primary font-bold">৳60 Flat Rate</strong>
+            </div>
+            <div class="flex justify-between items-center text-gray-700">
+              <span>Estimated Timeline:</span>
+              <span id="modal-timeline-text" class="text-emerald-700 font-bold">3 - 5 Days Delivery</span>
+            </div>
+          </div>
+
+          <button id="location-modal-confirm-btn" type="submit" class="w-full py-3 bg-primary hover:bg-primary-strong text-white font-bold rounded-xl text-sm transition-colors cursor-pointer text-center">Save Delivery Location</button>
+        </form>
+      </div>
+    </div>
+    <div class="drawer-overlay fixed inset-0 bg-black/40 opacity-0 pointer-events-none z-[1000] transition-opacity duration-200" id="location-modal-overlay"></div>
   `;
 
   initStickyHeaderScroll();
@@ -486,12 +630,13 @@ export function renderSiteShell(pageId) {
 }
 
 function initAllShellButtonEvents() {
-  const hamburgerBtn = document.getElementById('hamburger-btn');
+  const hamburgerBtn = document.querySelector('.menu-toggle') || document.getElementById('hamburger-btn');
   const mobileDrawer = document.getElementById('mobile-drawer');
-  const mobileDrawerOverlay = document.getElementById('mobile-drawer-overlay');
+  const mobileDrawerOverlay = document.getElementById('screen-overlay') || document.getElementById('mobile-drawer-overlay');
   const mobileDrawerCloseBtn = document.getElementById('mobile-drawer-close-btn');
 
-  hamburgerBtn?.addEventListener('click', () => {
+  hamburgerBtn?.addEventListener('click', (e) => {
+    e.preventDefault();
     openSurface(mobileDrawer, mobileDrawerOverlay);
   });
 
@@ -501,6 +646,26 @@ function initAllShellButtonEvents() {
 
   mobileDrawerOverlay?.addEventListener('click', () => {
     closeSurface(mobileDrawer, mobileDrawerOverlay);
+  });
+
+  document.querySelectorAll('.mobile-drawer__accordion-toggle').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const content = btn.nextElementSibling;
+      const icon = btn.querySelector('i');
+      if (content) {
+        content.classList.toggle('hidden');
+        content.classList.toggle('flex');
+      }
+      if (icon) {
+        icon.classList.toggle('rotate-180');
+      }
+    });
+  });
+
+  const authMobileBtn = document.getElementById('auth-mobile-btn');
+  authMobileBtn?.addEventListener('click', () => {
+    closeSurface(mobileDrawer, mobileDrawerOverlay);
+    openAuthModal();
   });
 
   const mobileSearchToggleBtn = document.getElementById('mobile-search-toggle-btn');
@@ -522,6 +687,93 @@ function initAllShellButtonEvents() {
       }
     }
   };
+
+  const locationBtn = document.getElementById('location-btn');
+  const locationBtnText = locationBtn?.querySelector('span');
+  const locationModal = document.getElementById('location-modal');
+  const locationModalOverlay = document.getElementById('location-modal-overlay');
+  const locationModalCloseBtn = document.getElementById('location-modal-close-btn');
+  const locationModalForm = document.getElementById('location-modal-form');
+
+  // Load saved location on site init
+  try {
+    const savedRaw = localStorage.getItem('user_delivery_location');
+    if (savedRaw) {
+      const saved = JSON.parse(savedRaw);
+      if (locationBtnText && (saved.upazila || saved.district)) {
+        locationBtnText.textContent = `${saved.upazila || saved.district}, ${saved.division}`;
+      }
+    }
+  } catch (_) {}
+
+  locationBtn?.addEventListener('click', () => {
+    try {
+      const savedRaw = localStorage.getItem('user_delivery_location');
+      if (savedRaw) {
+        const saved = JSON.parse(savedRaw);
+        if (saved.division && document.getElementById('modal-division')) document.getElementById('modal-division').value = saved.division;
+        if (saved.district && document.getElementById('modal-district')) document.getElementById('modal-district').value = saved.district;
+        if (saved.upazila && document.getElementById('modal-upazila')) document.getElementById('modal-upazila').value = saved.upazila;
+        if (saved.address && document.getElementById('modal-address')) document.getElementById('modal-address').value = saved.address;
+        if (saved.postalCode && document.getElementById('modal-postal')) document.getElementById('modal-postal').value = saved.postalCode;
+      }
+    } catch (_) {}
+    openModal(locationModal, locationModalOverlay);
+  });
+
+  const modalUseGpsBtn = document.getElementById('modal-use-gps-btn');
+  const modalGpsBtnText = document.getElementById('modal-gps-btn-text');
+
+  modalUseGpsBtn?.addEventListener('click', async () => {
+    try {
+      if (modalGpsBtnText) modalGpsBtnText.textContent = '⏳ Detecting your GPS location...';
+      modalUseGpsBtn.disabled = true;
+
+      const loc = await getCurrentGpsLocation();
+
+      if (loc.division && document.getElementById('modal-division')) document.getElementById('modal-division').value = loc.division;
+      if (loc.district && document.getElementById('modal-district')) document.getElementById('modal-district').value = loc.district;
+      if (loc.upazila && document.getElementById('modal-upazila')) document.getElementById('modal-upazila').value = loc.upazila;
+      if (loc.address && document.getElementById('modal-address')) document.getElementById('modal-address').value = loc.address;
+      if (loc.postalCode && document.getElementById('modal-postal')) document.getElementById('modal-postal').value = loc.postalCode;
+
+      if (modalGpsBtnText) modalGpsBtnText.textContent = '✅ Location Detected!';
+    } catch (err) {
+      if (modalGpsBtnText) modalGpsBtnText.textContent = '🎯 Auto Detect My Current Location (GPS)';
+      alert(err.message || 'GPS location failed. Please type address manually.');
+    } finally {
+      modalUseGpsBtn.disabled = false;
+      setTimeout(() => {
+        if (modalGpsBtnText) modalGpsBtnText.textContent = '🎯 Auto Detect My Current Location (GPS)';
+      }, 3000);
+    }
+  });
+
+  locationModalCloseBtn?.addEventListener('click', () => {
+    closeModal(locationModal, locationModalOverlay);
+  });
+
+  locationModalOverlay?.addEventListener('click', () => {
+    closeModal(locationModal, locationModalOverlay);
+  });
+
+  locationModalForm?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const division = document.getElementById('modal-division')?.value || 'Dhaka';
+    const district = document.getElementById('modal-district')?.value.trim() || '';
+    const upazila = document.getElementById('modal-upazila')?.value.trim() || '';
+    const address = document.getElementById('modal-address')?.value.trim() || '';
+    const postalCode = document.getElementById('modal-postal')?.value.trim() || '';
+
+    const locData = { division, district, upazila, address, postalCode };
+    localStorage.setItem('user_delivery_location', JSON.stringify(locData));
+
+    if (locationBtnText) {
+      locationBtnText.textContent = `${upazila || district}, ${division}`;
+    }
+
+    closeModal(locationModal, locationModalOverlay);
+  });
 
   searchInput?.addEventListener('keydown', handleSearch);
   mobileSearchInput?.addEventListener('keydown', handleSearch);

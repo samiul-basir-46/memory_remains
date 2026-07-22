@@ -4,14 +4,14 @@ const TEMPLATES_CACHE_KEY = 'memory_remains_templates_cache_v1';
 const FALLBACK_IMAGE = '/assets/product_placeholder.png';
 
 export const DEFAULT_FEATURED_TEMPLATES = [
-  { id: 'f1', title: 'SOULMATE - Premium Magazine', price: 399, compareAtPrice: 1599, badge: 'Bestseller', category: 'For Her', collection: 'Best Selling', imageUrl: '/assets/aesthetic_planner_pack.png' },
-  { id: 'f2', title: 'Things I Adore About him/Her', price: 699, compareAtPrice: 1299, badge: 'Bestseller', category: 'For Him', collection: 'Birthday Special', imageUrl: '/assets/creator_profile.png' },
-  { id: 'f3', title: 'Tu Chahiye Magazine', price: 299, compareAtPrice: 1299, badge: 'Bestseller', category: 'For Her', collection: 'Best Selling', imageUrl: '/assets/instagram_stories_cozy.png' },
-  { id: 'f4', title: 'Vogue - Couple Edition', price: 299, compareAtPrice: 1599, badge: 'Bestseller', category: 'For Him', collection: 'Categories', imageUrl: '/assets/instagram_carousel_summer.png' },
-  { id: 'f5', title: '12 pages Viral Birthday Magazine', price: 499, compareAtPrice: 1599, badge: 'Bestseller', category: 'Birthday Special', collection: 'Collections', imageUrl: '/assets/scrapbook_collage_bundle.png' },
-  { id: 'f6', title: 'Friend Core Memories Magazine', price: 299, compareAtPrice: 899, badge: 'Bestseller', category: 'Best Selling', collection: 'Featured', imageUrl: '/assets/aesthetic_planner_pack.png' },
-  { id: 'f7', title: 'Vogue - Couple Edition', price: 299, compareAtPrice: 1599, badge: 'Bestseller', category: 'For Her', collection: 'Featured', imageUrl: '/assets/creator_profile.png' },
-  { id: 'f8', title: 'Customize Couple Magazine', price: 299, compareAtPrice: 999, badge: 'Bestseller', category: 'For Him', collection: 'Featured', imageUrl: '/assets/instagram_stories_cozy.png' }
+  { id: 'f1', title: 'SOULMATE - Premium Magazine', price: 399, compareAtPrice: 1599, badge: 'Bestseller', category: 'For Her', collection: 'Best Selling', requiredPhotos: 15, imageUrl: '/assets/aesthetic_planner_pack.png' },
+  { id: 'f2', title: 'Things I Adore About him/Her', price: 699, compareAtPrice: 1299, badge: 'Bestseller', category: 'For Him', collection: 'Birthday Special', requiredPhotos: 10, imageUrl: '/assets/creator_profile.png' },
+  { id: 'f3', title: 'Tu Chahiye Magazine', price: 299, compareAtPrice: 1299, badge: 'Bestseller', category: 'For Her', collection: 'Best Selling', requiredPhotos: 12, imageUrl: '/assets/instagram_stories_cozy.png' },
+  { id: 'f4', title: 'Vogue - Couple Edition', price: 299, compareAtPrice: 1599, badge: 'Bestseller', category: 'For Him', collection: 'Categories', requiredPhotos: 8, imageUrl: '/assets/instagram_carousel_summer.png' },
+  { id: 'f5', title: '12 pages Viral Birthday Magazine', price: 499, compareAtPrice: 1599, badge: 'Bestseller', category: 'Birthday Special', collection: 'Collections', requiredPhotos: 12, imageUrl: '/assets/scrapbook_collage_bundle.png' },
+  { id: 'f6', title: 'Friend Core Memories Magazine', price: 299, compareAtPrice: 899, badge: 'Bestseller', category: 'Best Selling', collection: 'Featured', requiredPhotos: 14, imageUrl: '/assets/aesthetic_planner_pack.png' },
+  { id: 'f7', title: 'Vogue - Couple Edition', price: 299, compareAtPrice: 1599, badge: 'Bestseller', category: 'For Her', collection: 'Featured', requiredPhotos: 8, imageUrl: '/assets/creator_profile.png' },
+  { id: 'f8', title: 'Customize Couple Magazine', price: 299, compareAtPrice: 999, badge: 'Bestseller', category: 'For Him', collection: 'Featured', requiredPhotos: 16, imageUrl: '/assets/instagram_stories_cozy.png' }
 ];
 
 export function normalizeText(value = '') {
@@ -28,6 +28,33 @@ export function inferCollection(template = {}) {
   if (raw.includes('premium') || title.includes('premium') || title.includes('planner')) return 'Premium';
   if (raw.includes('best') || title.includes('memory') || title.includes('scrapbook')) return 'Best Selling';
   return 'Featured';
+}
+
+export function inferRequiredPhotos(data = {}) {
+  const explicit = Number(
+    data.requiredPhotos ??
+    data.photoCount ??
+    data.requiredImages ??
+    data.imageCount ??
+    data.photosRequired ??
+    data.photoLimit ??
+    data.numImages
+  );
+  if (Number.isFinite(explicit) && explicit > 0) {
+    return explicit;
+  }
+
+  const title = normalizeText(data.title);
+  const match = title.match(/(\d+)\s*(pages|page|photos|photo|images|img)/i);
+  if (match) {
+    const num = parseInt(match[1], 10);
+    if (num > 0) return num;
+  }
+
+  if (title.includes('birthday')) return 12;
+  if (title.includes('soulmate') || title.includes('magazine')) return 15;
+  if (title.includes('couple') || title.includes('adore')) return 10;
+  return 12;
 }
 
 export function comparePrice(template = {}) {
@@ -60,8 +87,8 @@ export function setCachedTemplates(templates) {
 
 export function normalizeTemplateData(docId, data = {}) {
   const rawImages = [
-    ...(Array.isArray(data.showcaseImages) ? data.showcaseImages : []),
     ...(Array.isArray(data.images) ? data.images : []),
+    ...(Array.isArray(data.showcaseImages) ? data.showcaseImages : []),
     ...(Array.isArray(data.gallery) ? data.gallery : []),
     ...(Array.isArray(data.galleryUrls) ? data.galleryUrls : []),
     ...(Array.isArray(data.photos) ? data.photos : []),
@@ -73,11 +100,32 @@ export function normalizeTemplateData(docId, data = {}) {
   const uniqueImages = Array.from(new Set([primaryImage, ...rawImages].filter((url) => typeof url === 'string' && url.trim().length > 0)));
   const galleryUrls = uniqueImages.filter((url) => url && url !== primaryImage);
 
+  const effectiveId = docId || data.id || data._id || data.templateId || '';
+
+  const rawTypes = data.saleTypes || {};
+  const isMagOnly = data.productType === 'magazine' || data.productType === 'Magazine (Photo Upload Order Only)';
+  const isTplOnly = data.productType === 'template' || data.productType === 'Template (Digital Canva Link Only)';
+
+  const saleTypes = {
+    magazine: rawTypes.magazine !== undefined ? Boolean(rawTypes.magazine) : (!isTplOnly),
+    template: rawTypes.template !== undefined ? Boolean(rawTypes.template) : (!isMagOnly && (data.allowDigitalSale !== false || Boolean(data.canvaLink || data.digitalPrice || data.templatePrice)))
+  };
+
+  const magazinePrice = Number(data.magazinePrice || data.printPrice || data.price || 499);
+  const templatePrice = Number(data.templatePrice || data.digitalPrice || data.canvaPrice || 199);
+
   return {
-    id: docId,
     ...data,
+    id: effectiveId,
     imageUrl: primaryImage,
-    galleryUrls: galleryUrls
+    images: uniqueImages.slice(0, 3),
+    galleryUrls: galleryUrls,
+    saleTypes: saleTypes,
+    magazinePrice: magazinePrice,
+    templatePrice: templatePrice,
+    magazineDescription: data.magazineDescription || data.description || '',
+    templateDescription: data.templateDescription || data.description || '',
+    requiredPhotos: inferRequiredPhotos(data)
   };
 }
 
@@ -109,23 +157,65 @@ export async function fetchTemplates(db, { limit, orderByCreated = true } = {}) 
   }
 }
 
-export async function fetchTemplateById(db, templateId) {
-  if (!templateId) return null;
+export async function fetchTemplateById(db, targetId) {
+  if (!targetId) return null;
+  const cleanId = String(targetId).trim();
+  const normId = normalizeText(cleanId);
+
   if (db) {
     try {
-      const doc = await db.collection('templates').doc(templateId).get();
+      const doc = await db.collection('templates').doc(cleanId).get();
       if (doc.exists) {
         return normalizeTemplateData(doc.id, doc.data());
       }
     } catch (err) {
-      console.warn('fetchTemplateById failed from Firestore:', err);
+      console.warn('fetchTemplateById direct doc fetch failed:', err);
+    }
+
+    try {
+      const querySnap = await db.collection('templates').where('id', '==', cleanId).get();
+      if (!querySnap.empty) {
+        const firstDoc = querySnap.docs[0];
+        return normalizeTemplateData(firstDoc.id, firstDoc.data());
+      }
+    } catch (err2) {
+      console.warn('fetchTemplateById query by id field failed:', err2);
+    }
+
+    try {
+      const dbTemplates = await fetchTemplates(db);
+      if (dbTemplates && dbTemplates.length > 0) {
+        const matched = dbTemplates.find((t) =>
+          t.id === cleanId ||
+          String(t.id).toLowerCase() === normId ||
+          normalizeText(t.title) === normId ||
+          (normalizeText(t.title) && normId && normalizeText(t.title).includes(normId)) ||
+          (normId && normalizeText(t.title) && normId.includes(normalizeText(t.title)))
+        );
+        if (matched) return matched;
+      }
+    } catch (err3) {
+      console.warn('fetchTemplateById search in fetchTemplates failed:', err3);
     }
   }
-  const cached = getCachedTemplates();
-  const foundCached = cached.find((t) => t.id === templateId);
-  if (foundCached) return normalizeTemplateData(foundCached.id, foundCached);
 
-  const foundDefault = DEFAULT_FEATURED_TEMPLATES.find((t) => t.id === templateId);
+  const cached = getCachedTemplates();
+  if (cached && cached.length > 0) {
+    const foundCached = cached.find((t) =>
+      t.id === cleanId ||
+      String(t.id).toLowerCase() === normId ||
+      normalizeText(t.title) === normId ||
+      (normalizeText(t.title) && normId && normalizeText(t.title).includes(normId))
+    );
+    if (foundCached) return normalizeTemplateData(foundCached.id, foundCached);
+  }
+
+  const foundDefault = DEFAULT_FEATURED_TEMPLATES.find((t) =>
+    t.id === cleanId ||
+    String(t.id).toLowerCase() === normId ||
+    normalizeText(t.title) === normId ||
+    (normalizeText(t.title) && normId && normalizeText(t.title).includes(normId))
+  );
   if (foundDefault) return normalizeTemplateData(foundDefault.id, foundDefault);
 
   return null;
