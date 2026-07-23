@@ -20,7 +20,7 @@ export async function renderProductDetailsPage(db) {
       template = await fetchTemplateById(db, templateId);
     }
 
-    if (!template && !templateId) {
+    if (!template) {
       if (db) {
         const allDbTemplates = await fetchTemplates(db);
         if (allDbTemplates && allDbTemplates.length > 0) {
@@ -32,15 +32,28 @@ export async function renderProductDetailsPage(db) {
       }
     }
 
-    const gallery = Array.from(new Set([template.imageUrl, ...(template.galleryUrls || [])].filter(Boolean)));
+    if (!template) {
+      throw new Error('Template not found');
+    }
+
+    const allRawImages = [
+      template.imageUrl,
+      ...(Array.isArray(template.images) ? template.images : []),
+      ...(Array.isArray(template.showcaseImages) ? template.showcaseImages : []),
+      ...(Array.isArray(template.galleryUrls) ? template.galleryUrls : []),
+      ...(Array.isArray(template.gallery) ? template.gallery : []),
+      ...(Array.isArray(template.photos) ? template.photos : [])
+    ].filter(Boolean);
+    const gallery = Array.from(new Set(allRawImages));
     if (gallery.length === 0) {
       gallery.push(FALLBACK_IMAGE);
     }
 
     // Set Text Content & Badges
     const category = inferCollection(template);
-    const title = template.title || 'Product details';
+    const title = template.title || template.name || 'Product details';
     const requiredPhotos = template.requiredPhotos || 12;
+    const descriptionText = template.description || template.magazineDescription || template.templateDescription || template.subtitle || 'No description available for this product.';
 
     const breadcrumbTitle = qs('#details-breadcrumb-title');
     if (breadcrumbTitle) breadcrumbTitle.textContent = title;
@@ -50,6 +63,25 @@ export async function renderProductDetailsPage(db) {
 
     const titleElem = qs('#details-title');
     if (titleElem) titleElem.textContent = title;
+
+    const descElem = qs('#details-description');
+    if (descElem) descElem.textContent = descriptionText;
+
+    const photoBadge = qs('#details-photo-count-badge');
+    if (photoBadge) photoBadge.textContent = `${requiredPhotos} Photos`;
+
+    const photoDesc = qs('#details-photo-requirement-desc');
+    if (photoDesc) photoDesc.textContent = `You will need to provide ${requiredPhotos} high-resolution photos for this custom magazine.`;
+
+    const badgeElem = qs('#details-badge');
+    if (badgeElem) {
+      if (template.badge) {
+        badgeElem.textContent = template.badge;
+        badgeElem.hidden = false;
+      } else {
+        badgeElem.hidden = true;
+      }
+    }
 
     // Dual Selling Mode Setup
     const saleTypes = template.saleTypes || { magazine: true, template: true };
@@ -73,7 +105,6 @@ export async function renderProductDetailsPage(db) {
     const modeBadgeTpl = qs('#mode-badge-template');
     const templateNoticeBox = qs('#details-template-notice-box');
     const photoReqBox = qs('#details-photo-requirement-box');
-    const featuresList = qs('#details-features-list');
 
     if (modePriceMag) modePriceMag.textContent = formatCurrency(magazinePrice);
     if (modePriceTpl) modePriceTpl.textContent = formatCurrency(templatePrice);
@@ -169,27 +200,9 @@ export async function renderProductDetailsPage(db) {
       if (activeMode === 'magazine') {
         if (photoReqBox) photoReqBox.classList.remove('hidden');
         if (templateNoticeBox) templateNoticeBox.classList.add('hidden');
-
-        if (featuresList) {
-          featuresList.innerHTML = `
-            <li class="flex items-center gap-2.5 text-gray-700"><i class="fa-solid fa-circle-check text-emerald-500 text-base"></i> Physical printed custom magazine hardcopy</li>
-            <li class="flex items-center gap-2.5 text-gray-700"><i class="fa-solid fa-circle-check text-emerald-500 text-base"></i> High-quality premium paper & vivid color printing</li>
-            <li class="flex items-center gap-2.5 text-gray-700"><i class="fa-solid fa-circle-check text-emerald-500 text-base"></i> Home delivery available across Bangladesh (3-15 days)</li>
-            <li class="flex items-center gap-2.5 text-gray-700"><i class="fa-solid fa-circle-check text-emerald-500 text-base"></i> Cash on Delivery (COD) option available</li>
-          `;
-        }
       } else {
         if (photoReqBox) photoReqBox.classList.add('hidden');
         if (templateNoticeBox) templateNoticeBox.classList.remove('hidden');
-
-        if (featuresList) {
-          featuresList.innerHTML = `
-            <li class="flex items-center gap-2.5 text-gray-700"><i class="fa-solid fa-circle-check text-purple-600 text-base"></i> Instant digital Canva template link delivery</li>
-            <li class="flex items-center gap-2.5 text-gray-700"><i class="fa-solid fa-circle-check text-purple-600 text-base"></i> Fully customizable layout, text & photos</li>
-            <li class="flex items-center gap-2.5 text-gray-700"><i class="fa-solid fa-circle-check text-purple-600 text-base"></i> High-resolution 300 DPI print-ready PDF export</li>
-            <li class="flex items-center gap-2.5 text-gray-700"><i class="fa-solid fa-circle-check text-purple-600 text-base"></i> Advance payment required for instant access</li>
-          `;
-        }
       }
     };
 
@@ -203,9 +216,8 @@ export async function renderProductDetailsPage(db) {
 
     updateModeUI(activeMode);
 
-    // Dynamic 3-Image Gallery Setup
-    const displayImages = (template.images && template.images.length > 0) ? template.images : gallery;
-    const galleryList = Array.from(new Set(displayImages.filter(Boolean)));
+    // Dynamic Full Image Gallery Setup
+    const galleryList = Array.from(new Set(gallery.filter(Boolean)));
     if (galleryList.length === 0) galleryList.push(FALLBACK_IMAGE);
 
     let activeGalleryIdx = 0;
@@ -282,17 +294,17 @@ export async function renderProductDetailsPage(db) {
     }
 
     if (thumbsContainer) {
-      thumbsContainer.innerHTML = galleryList.slice(0, 3).map((url, index) => {
+      thumbsContainer.innerHTML = galleryList.map((url, index) => {
         const thumbSrc = buildCloudinaryDeliveryUrl(url, { width: 300 });
         const blurSrc = buildCloudinaryDeliveryUrl(url, { width: 100 });
-        const escapedTitle = escapeHtml(template.title || 'Product');
+        const escapedTitle = escapeHtml(template.title || template.name || 'Product');
         const isActive = index === 0;
 
         return `
           <button type="button" data-gallery-index="${index}" data-gallery-src="${escapeHtml(url)}" aria-label="View image ${index + 1}" class="relative aspect-[3/4] sm:aspect-square rounded-xl overflow-hidden bg-gray-950 border-2 transition-all duration-200 cursor-pointer focus:outline-none flex items-center justify-center p-1 shadow-sm ${isActive ? 'border-primary ring-2 ring-primary/30 opacity-100 scale-105' : 'border-gray-200 opacity-70 hover:opacity-100'}">
             <img src="${blurSrc}" alt="" class="absolute inset-0 w-full h-full object-cover blur-md opacity-40 scale-125 pointer-events-none">
             <img src="${thumbSrc}" alt="${escapedTitle} preview ${index + 1}" class="relative z-10 max-w-full max-h-full object-contain drop-shadow-sm">
-            <span class="absolute bottom-1 right-1 px-1.5 py-0.5 bg-black/75 text-white text-[10px] font-semibold rounded-md z-20">Image ${index + 1}</span>
+            <span class="absolute bottom-1 right-1 px-1.5 py-0.5 bg-black/75 text-white text-[10px] font-semibold rounded-md z-20">${index + 1}</span>
           </button>
         `;
       }).join('');
