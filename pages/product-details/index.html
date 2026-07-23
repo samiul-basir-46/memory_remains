@@ -13,45 +13,197 @@
 <body data-page="product-details" class="font-body bg-bg text-text-dark antialiased">
   <div id="site-shell"></div>
 
-  <main>
-    <section class="py-12">
+  <main class="min-h-screen">
+    <section class="py-8 md:py-12">
       <div class="max-w-container mx-auto px-4">
-        <div id="details-loading-state" class="text-center py-16 max-w-xl mx-auto">
-          <span class="inline-block text-xs font-bold uppercase tracking-widest text-primary mb-2">Loading</span>
-          <h1 class="font-heading text-3xl md:text-4xl text-[#3b1c1c] mb-3">Loading template details...</h1>
-          <p class="text-text-soft text-base">Please wait while we fetch the latest product data from Firebase.</p>
+        <!-- Breadcrumb Navigation -->
+        <nav class="mb-6 flex items-center gap-2 text-xs md:text-sm text-gray-500 font-medium">
+          <a href="/" class="hover:text-primary transition-colors"><i class="fa-solid fa-house text-xs mr-1"></i>Home</a>
+          <span>/</span>
+          <a href="/collections/paid-products" class="hover:text-primary transition-colors">Shop</a>
+          <span>/</span>
+          <span id="details-breadcrumb-title" class="text-gray-800 font-semibold truncate max-w-[200px] md:max-w-xs">Product Details</span>
+        </nav>
+
+        <!-- Loading State -->
+        <div id="details-loading-state" class="text-center py-16 max-w-xl mx-auto bg-white rounded-2xl border border-pink-100 shadow-sm p-8">
+          <div class="inline-block w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
+          <span class="block text-xs font-bold uppercase tracking-widest text-primary mb-2">Loading Template</span>
+          <h1 class="font-heading text-2xl md:text-3xl text-[#3b1c1c] mb-2">Fetching Product Details...</h1>
+          <p class="text-text-soft text-sm">Please wait while we prepare high-resolution image previews.</p>
         </div>
 
+        <!-- Main Content Container -->
         <div id="details-content-container" hidden>
-          <div class="details-grid grid grid-cols-1 lg:grid-cols-2 gap-10 items-start">
-            <div>
-              <div id="gallery-main-container" class="gallery-main relative aspect-[4/5] bg-gray-50 rounded-2xl overflow-hidden shadow-md border border-gray-100 mb-4">
-                <img id="details-main-image" src="/assets/product_placeholder.png" alt="Main product image" class="w-full h-full object-cover">
-                <span id="details-badge" class="product-badge absolute top-4 left-4 z-10 px-3 py-1 bg-primary text-white text-xs font-bold uppercase tracking-wider rounded-full shadow-md"></span>
+          <div class="details-grid grid grid-cols-1 lg:grid-cols-12 gap-8 md:gap-12 items-start">
+
+            <!-- Left: Product Image Gallery -->
+            <div class="lg:col-span-6 space-y-4">
+              <div id="gallery-main-container" class="gallery-main relative aspect-[4/5] sm:aspect-square md:aspect-[4/5] bg-gray-950 rounded-2xl overflow-hidden shadow-xl border border-pink-100/80 group flex items-center justify-center p-3">
+                <!-- Ambient Blurred Background Image -->
+                <img id="details-bg-blurred-image" src="/assets/product_placeholder.png" alt="" class="absolute inset-0 w-full h-full object-cover blur-2xl opacity-40 scale-125 pointer-events-none transition-all duration-500">
+
+                <!-- Main Display Image (100% Uncropped Full View) -->
+                <img id="details-main-image" src="/assets/product_placeholder.png" alt="Main product image" class="relative z-10 max-w-full max-h-full object-contain drop-shadow-2xl transition-transform duration-300 group-hover:scale-[1.02] cursor-zoom-in">
+
+                <!-- Badge overlay left -->
+                <span id="details-badge" class="product-badge absolute top-4 left-4 z-20 px-3.5 py-1.5 bg-primary text-white text-xs font-bold uppercase tracking-wider rounded-full shadow-md backdrop-blur-md"></span>
+
+                <!-- Gallery image count badge right -->
+                <span id="details-image-counter" class="absolute top-4 right-4 z-20 px-3 py-1 bg-black/60 backdrop-blur-md text-white text-xs font-semibold rounded-full shadow-md flex items-center gap-1.5">
+                  <i class="fa-regular fa-image"></i>
+                  <span id="details-image-counter-text">1 / 1</span>
+                </span>
+
+                <!-- Fullscreen button bottom right -->
+                <button type="button" id="details-fullscreen-btn" class="absolute bottom-4 right-4 z-20 px-3.5 py-1.5 bg-black/60 hover:bg-black/80 backdrop-blur-md text-white text-xs font-semibold rounded-full shadow-lg transition-all flex items-center gap-1.5 cursor-pointer hover:scale-105 active:scale-95">
+                  <i class="fa-solid fa-expand"></i> View Fullscreen
+                </button>
               </div>
-              <div id="details-thumbnails-gallery" class="gallery-thumbs grid grid-cols-5 gap-3"></div>
+
+              <!-- Thumbnails strip -->
+              <div>
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Product Views</span>
+                  <span id="details-thumbnails-count" class="text-xs text-primary font-medium"></span>
+                </div>
+                <div id="details-thumbnails-gallery" class="gallery-thumbs grid grid-cols-4 sm:grid-cols-5 gap-3"></div>
+              </div>
             </div>
 
-            <div class="detail-card bg-white p-8 rounded-2xl border border-pink-100 shadow-sm space-y-6">
-              <span id="details-category" class="inline-block text-xs font-bold uppercase tracking-widest text-primary"></span>
-              <h1 id="details-title" class="font-heading text-3xl md:text-4xl text-primary leading-tight"></h1>
-              <p id="details-price" class="text-2xl font-bold text-primary"></p>
-              <p id="details-description" class="text-text-soft text-base leading-relaxed"></p>
+            <!-- Right: Product Information & Purchase Options -->
+            <div class="lg:col-span-6 detail-card bg-white p-6 md:p-8 rounded-2xl border border-pink-100 shadow-sm space-y-6">
+              <div>
+                <span id="details-category" class="inline-block px-3 py-1 bg-pink-50 text-primary text-xs font-bold uppercase tracking-widest rounded-full mb-3 border border-pink-100"></span>
+                <h1 id="details-title" class="font-heading text-2xl sm:text-3xl md:text-4xl text-[#3b1c1c] leading-tight mb-3"></h1>
 
-              <ul class="feature-list text-text-dark text-sm space-y-2.5 pt-2 border-t border-gray-100">
-                <li class="flex items-center gap-2"><i class="fa-solid fa-circle-check text-emerald-500"></i> Fully customizable Canva templates</li>
-                <li class="flex items-center gap-2"><i class="fa-solid fa-circle-check text-emerald-500"></i> Delivery through your library after approval</li>
-                <li class="flex items-center gap-2"><i class="fa-solid fa-circle-check text-emerald-500"></i> Cloudinary-aware optimized gallery loading</li>
-                <li class="flex items-center gap-2"><i class="fa-solid fa-circle-check text-emerald-500"></i> Responsive customer support</li>
-              </ul>
+                <!-- Price Row Header -->
+                <div id="details-price-row" class="flex items-baseline gap-3 flex-wrap">
+                  <span id="details-price" class="text-3xl sm:text-4xl font-bold text-[#DC3C71]"></span>
+                  <span id="details-compare-price" class="text-gray-400 line-through text-lg font-normal"></span>
+                  <span id="details-discount-badge" class="px-2.5 py-1 bg-emerald-100 text-emerald-800 text-xs font-bold rounded-md"></span>
+                </div>
+              </div>
 
-              <button id="details-add-to-bag-btn" class="pill-button w-full py-4 bg-primary hover:bg-primary-strong text-white font-bold rounded-xl text-base shadow-lg hover:shadow-xl transition-all" type="button">Add to Bag</button>
+              <!-- CHOOSE PURCHASE TYPE SELECTOR SECTION -->
+              <div id="details-purchase-type-section" class="space-y-3 pt-2">
+                <div class="flex items-center justify-between">
+                  <h3 class="text-xs font-bold uppercase tracking-wider text-gray-500">Choose Purchase Type</h3>
+                  <span id="details-[#mode-availability-pill]" class="text-[11px] font-semibold text-primary"></span>
+                </div>
+                <div id="details-purchase-type-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <!-- Option 1: Printed Magazine -->
+                  <button type="button" id="mode-btn-magazine" class="purchase-type-card relative p-4 rounded-2xl border-2 text-left transition-all duration-200 cursor-pointer focus:outline-none flex flex-col justify-between space-y-3">
+                    <div class="flex items-start justify-between">
+                      <div class="w-9 h-9 rounded-xl bg-pink-100 text-primary flex items-center justify-center text-lg">
+                        <i class="fa-solid fa-book-open"></i>
+                      </div>
+                      <span id="mode-badge-magazine" class="px-2 py-0.5 text-[10px] font-bold uppercase rounded-full"></span>
+                    </div>
+                    <div>
+                      <h4 class="font-bold text-gray-800 text-sm mb-0.5">📖 Magazine</h4>
+                      <p class="text-xs text-text-soft">Physical Printed Hardcopy</p>
+                    </div>
+                    <div class="border-t border-gray-100 pt-2 flex justify-between items-center">
+                      <span class="text-xs text-gray-500 font-medium">Price</span>
+                      <strong id="mode-price-magazine" class="text-sm font-bold text-gray-900"></strong>
+                    </div>
+                  </button>
+
+                  <!-- Option 2: Digital Template -->
+                  <button type="button" id="mode-btn-template" class="purchase-type-card relative p-4 rounded-2xl border-2 text-left transition-all duration-200 cursor-pointer focus:outline-none flex flex-col justify-between space-y-3">
+                    <div class="flex items-start justify-between">
+                      <div class="w-9 h-9 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center text-lg">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i>
+                      </div>
+                      <span id="mode-badge-template" class="px-2 py-0.5 text-[10px] font-bold uppercase rounded-full"></span>
+                    </div>
+                    <div>
+                      <h4 class="font-bold text-gray-800 text-sm mb-0.5">🎨 Template</h4>
+                      <p class="text-xs text-text-soft">Digital Canva Editable Link</p>
+                    </div>
+                    <div class="border-t border-gray-100 pt-2 flex justify-between items-center">
+                      <span class="text-xs text-gray-500 font-medium">Price</span>
+                      <strong id="mode-price-template" class="text-sm font-bold text-gray-900"></strong>
+                    </div>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Photo Requirement Highlight Box (Shown for Magazine mode) -->
+              <div id="details-photo-requirement-box" class="bg-gradient-to-r from-pink-50/80 to-rose-50/80 border border-pink-200 rounded-xl p-4 shadow-sm flex items-start gap-3.5">
+                <div class="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center flex-shrink-0 text-lg">
+                  <i class="fa-solid fa-camera"></i>
+                </div>
+                <div class="flex-1">
+                  <div class="flex items-center justify-between gap-2 flex-wrap">
+                    <span class="text-xs font-bold uppercase tracking-wider text-gray-500">Required Photos</span>
+                    <span id="details-photo-count-badge" class="px-2.5 py-0.5 bg-primary text-white text-xs font-bold rounded-full"></span>
+                  </div>
+                  <h4 id="details-photo-requirement-title" class="font-bold text-gray-800 text-base mt-0.5">Customization Photos Needed</h4>
+                  <p id="details-photo-requirement-desc" class="text-xs text-text-soft mt-1 leading-relaxed">You will need to provide high-resolution photos for this personalized template.</p>
+                </div>
+              </div>
+
+              <!-- Template Digital Warning Note Box (Shown when Template mode active) -->
+              <div id="details-template-notice-box" class="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-xl p-4 shadow-sm flex items-start gap-3 hidden">
+                <div class="w-9 h-9 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center flex-shrink-0 text-base">
+                  <i class="fa-solid fa-bolt"></i>
+                </div>
+                <div>
+                  <h4 class="font-bold text-purple-900 text-sm">⚡ Digital Product Notice</h4>
+                  <p class="text-xs text-purple-800 mt-0.5 leading-relaxed font-semibold">This is a digital product. Advance payment is required to unlock your Canva editing link.</p>
+                </div>
+              </div>
+
+              <!-- Overview Description -->
+              <div class="space-y-2">
+                <h3 class="text-xs font-bold text-gray-800 uppercase tracking-wider">Product Overview</h3>
+                <p id="details-description" class="text-text-soft text-sm md:text-base leading-relaxed whitespace-pre-line"></p>
+              </div>
+
+
+
+              <!-- Action Buttons -->
+              <div class="pt-4 border-t border-gray-100 space-y-3">
+                <div class="grid grid-cols-2 gap-3">
+                  <button id="details-add-to-bag-btn" class="py-3.5 px-4 bg-white border-2 border-primary hover:bg-pink-50 text-primary font-bold rounded-xl text-sm transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98" type="button">
+                    <i class="fa-solid fa-bag-shopping"></i> Add to Bag
+                  </button>
+                  <button id="details-buy-now-btn" class="py-3.5 px-4 bg-[#DC3C71] hover:bg-[#c23260] text-white font-bold rounded-xl text-sm shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98" type="button">
+                    <i class="fa-solid fa-bolt"></i> Buy Now
+                  </button>
+                </div>
+              </div>
             </div>
+
           </div>
         </div>
       </div>
     </section>
   </main>
+
+  <!-- Fullscreen Image Lightbox Modal -->
+  <div id="details-lightbox-modal" class="fixed inset-0 z-[1000] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 transition-opacity duration-300 opacity-0 pointer-events-none" aria-hidden="true">
+    <button type="button" id="lightbox-close-btn" class="absolute top-4 right-4 z-20 text-white text-xl w-10 h-10 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 transition-all cursor-pointer" aria-label="Close fullscreen modal">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
+    <span id="lightbox-counter" class="absolute top-4 left-4 z-20 px-3.5 py-1.5 bg-white/10 text-white text-xs font-semibold rounded-full backdrop-blur-md flex items-center gap-1.5">
+      <i class="fa-regular fa-image"></i> <span id="lightbox-counter-text">1 / 1</span>
+    </span>
+
+    <button type="button" id="lightbox-prev-btn" class="absolute left-4 top-1/2 -translate-y-1/2 text-white text-lg w-12 h-12 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/30 backdrop-blur-md transition-all cursor-pointer" aria-label="Previous image">
+      <i class="fa-solid fa-chevron-left"></i>
+    </button>
+
+    <div class="relative max-w-4xl max-h-[85vh] p-2 flex items-center justify-center">
+      <img id="lightbox-img" src="/assets/product_placeholder.png" alt="Fullscreen product image" class="max-h-[80vh] max-w-[90vw] object-contain rounded-lg shadow-2xl transition-all duration-300">
+    </div>
+
+    <button type="button" id="lightbox-next-btn" class="absolute right-4 top-1/2 -translate-y-1/2 text-white text-lg w-12 h-12 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/30 backdrop-blur-md transition-all cursor-pointer" aria-label="Next image">
+      <i class="fa-solid fa-chevron-right"></i>
+    </button>
+  </div>
 
   <div id="site-overlays"></div>
   <script type="module" src="/src/app/main.js"></script>

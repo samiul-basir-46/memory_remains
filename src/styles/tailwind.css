@@ -115,6 +115,27 @@
 }
 
 /* Keyframes & Specialty Animations */
+@keyframes marquee-single {
+  0% {
+    transform: translateX(100vw);
+  }
+  100% {
+    transform: translateX(-100%);
+  }
+}
+
+.animate-marquee-single {
+  display: inline-block;
+  white-space: nowrap;
+  animation: marquee-single 16s linear infinite;
+  will-change: transform;
+}
+
+.animate-marquee-single:hover,
+.announcement-bar:hover .animate-marquee-single {
+  animation-play-state: paused;
+}
+
 @keyframes marquee-scroll {
   0% {
     transform: translateX(0%);

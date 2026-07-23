@@ -1,13 +1,57 @@
 import { SITE_CONFIG } from '../config/site-config.js';
+import { openAuthModal } from '../services/auth-service.js';
+import { getCurrentGpsLocation } from '../services/location-service.js';
+
+export function openModal(modal, overlay) {
+  if (modal) {
+    modal.classList.remove('opacity-0', 'pointer-events-none');
+    modal.classList.add('opacity-100', 'pointer-events-auto');
+  }
+  if (overlay) {
+    overlay.classList.remove('opacity-0', 'pointer-events-none');
+    overlay.classList.add('opacity-100', 'pointer-events-auto', 'is-visible');
+  }
+}
+
+export function closeModal(modal, overlay) {
+  if (modal) {
+    modal.classList.remove('opacity-100', 'pointer-events-auto');
+    modal.classList.add('opacity-0', 'pointer-events-none');
+  }
+  if (overlay) {
+    overlay.classList.remove('opacity-100', 'pointer-events-auto', 'is-visible');
+    overlay.classList.add('opacity-0', 'pointer-events-none');
+  }
+}
 
 export function openSurface(drawer, overlay) {
-  if (drawer) drawer.classList.add('is-open');
-  if (overlay) overlay.classList.add('is-visible');
+  if (drawer) {
+    drawer.classList.remove('-left-full', '-right-full');
+    if (drawer.classList.contains('filter-drawer')) {
+      drawer.classList.add('right-0');
+    } else {
+      drawer.classList.add('left-0');
+    }
+  }
+  if (overlay) {
+    overlay.classList.remove('opacity-0', 'pointer-events-none');
+    overlay.classList.add('opacity-100', 'pointer-events-auto', 'is-visible');
+  }
 }
 
 export function closeSurface(drawer, overlay) {
-  if (drawer) drawer.classList.remove('is-open');
-  if (overlay) overlay.classList.remove('is-visible');
+  if (drawer) {
+    drawer.classList.remove('left-0', 'right-0');
+    if (drawer.classList.contains('filter-drawer')) {
+      drawer.classList.add('-right-full');
+    } else {
+      drawer.classList.add('-left-full');
+    }
+  }
+  if (overlay) {
+    overlay.classList.remove('opacity-100', 'pointer-events-auto', 'is-visible');
+    overlay.classList.add('opacity-0', 'pointer-events-none');
+  }
 }
 
 function renderNavLinks(pageId, isMobile = false) {
@@ -120,9 +164,11 @@ export function renderSiteShell(pageId) {
   shell.innerHTML = `
     <div class="announcement-bar py-2.5 text-center text-xs font-medium tracking-wider text-white bg-accent overflow-hidden relative whitespace-nowrap">
       <div class="announcement-bar__track animate-marquee inline-flex whitespace-nowrap">
-        <div class="announcement-bar__content inline-flex items-center gap-10 pr-10">
+        <div class="announcement-bar__content inline-flex items-center" style="padding-right:100vw;">
           <span>${SITE_CONFIG.announcement}</span>
-          <span class="opacity-60 text-xs">•</span>
+        </div>
+        <div class="announcement-bar__content inline-flex items-center" style="padding-right:100vw;" aria-hidden="true">
+          <span>${SITE_CONFIG.announcement}</span>
         </div>
       </div>
     </div>
@@ -163,7 +209,34 @@ export function renderSiteShell(pageId) {
             <span class="cart-count cart-badge-count absolute -top-2 -right-2.5 w-4.5 h-4.5 grid place-items-center rounded-full bg-primary text-white text-[10px] font-bold shadow-sm">0</span>
           </a>
           
-          <button id="auth-nav-btn" class="auth-text-link text-[#3b1c1c] hover:text-primary text-sm font-semibold p-1 transition-colors" type="button">Sign In</button>
+          <div class="user-profile-menu-wrapper relative">
+            <button id="auth-nav-btn" class="flex items-center gap-2 text-[#3b1c1c] hover:text-primary text-sm font-semibold p-1 transition-colors cursor-pointer" type="button">
+              <div id="header-user-avatar" class="w-8 h-8 rounded-full bg-pink-100 text-primary flex items-center justify-center font-bold text-xs overflow-hidden border border-pink-200 shadow-sm hidden">
+                <img id="header-user-avatar-img" src="" class="w-full h-full object-cover hidden" alt="Profile">
+                <span id="header-user-avatar-initials">U</span>
+              </div>
+              <span id="header-user-btn-text">Sign In</span>
+            </button>
+            <div id="user-profile-dropdown" class="user-dropdown-menu absolute right-0 top-full mt-2 w-52 bg-white border border-gray-100 shadow-xl rounded-xl py-2 hidden z-50">
+              <div id="user-dropdown-info" class="px-4 py-2 border-b border-gray-100">
+                <p id="user-dropdown-name" class="text-sm font-bold text-gray-800 truncate">User Name</p>
+                <p id="user-dropdown-email" class="text-xs text-gray-500 truncate">user@example.com</p>
+              </div>
+              <a href="/pages/profile" class="flex items-center gap-2.5 px-4 py-2 text-sm text-gray-700 hover:bg-pink-50 hover:text-primary transition-colors no-underline">
+                <i class="fa-regular fa-user text-primary"></i>
+                <span>My Profile</span>
+              </a>
+              <a href="/pages/profile#orders" class="flex items-center gap-2.5 px-4 py-2 text-sm text-gray-700 hover:bg-pink-50 hover:text-primary transition-colors no-underline">
+                <i class="fa-solid fa-box-archive text-primary"></i>
+                <span>My Orders</span>
+              </a>
+              <div class="border-t border-gray-100 my-1"></div>
+              <button id="header-logout-btn" class="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer text-left" type="button">
+                <i class="fa-solid fa-right-from-bracket"></i>
+                <span>Logout</span>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
       
@@ -229,10 +302,31 @@ export function renderSiteShell(pageId) {
       </div>
 
       <div class="mobile-drawer__footer p-5 border-t border-gray-200 bg-white mt-auto">
-        <button id="auth-mobile-btn" class="mobile-drawer__auth-btn flex items-center gap-3 text-base font-medium text-[#2b1717] cursor-pointer" type="button">
-          <i class="fa-regular fa-user text-lg"></i>
-          <span>Sign In</span>
+        <!-- Guest State: Sign In Button -->
+        <button id="auth-mobile-btn" class="mobile-drawer__auth-btn flex items-center gap-3 text-base font-semibold text-[#2b1717] hover:text-primary transition-colors cursor-pointer w-full" type="button">
+          <div class="w-9 h-9 rounded-full bg-pink-50 border border-pink-100 text-primary flex items-center justify-center text-base">
+            <i class="fa-regular fa-user"></i>
+          </div>
+          <span id="mobile-auth-btn-text">Sign In</span>
         </button>
+
+        <!-- Logged-in User Profile Container -->
+        <div id="mobile-user-profile-box" class="space-y-3 hidden">
+          <div class="flex items-center gap-3 pb-3 border-b border-gray-100">
+            <div id="mobile-user-avatar" class="w-10 h-10 rounded-full bg-pink-100 text-primary flex items-center justify-center font-bold text-sm overflow-hidden border border-pink-200 shadow-sm flex-shrink-0">
+              <img id="mobile-user-avatar-img" src="" class="w-full h-full object-cover hidden" alt="Profile">
+              <span id="mobile-user-avatar-initials">U</span>
+            </div>
+            <div class="flex-1 min-w-0">
+              <p id="mobile-user-name" class="text-sm font-bold text-gray-800 truncate">Account</p>
+              <p id="mobile-user-email" class="text-xs text-gray-500 truncate"></p>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-2 text-xs">
+            <a href="/pages/profile" class="py-2.5 px-3 bg-pink-50 text-primary font-bold rounded-lg text-center hover:bg-pink-100 transition-colors no-underline">My Profile</a>
+            <button id="mobile-logout-btn" type="button" class="py-2.5 px-3 bg-gray-100 hover:bg-rose-50 hover:text-rose-600 text-gray-700 font-bold rounded-lg text-center transition-colors cursor-pointer">Logout</button>
+          </div>
+        </div>
       </div>
     </aside>
     <div class="screen-overlay drawer-overlay fixed inset-0 bg-black/40 opacity-0 pointer-events-none z-[1000] transition-opacity duration-200" id="screen-overlay"></div>
@@ -302,44 +396,30 @@ export function renderSiteShell(pageId) {
   overlays.innerHTML = `
     <!-- Auth Modal -->
     <div class="auth-modal fixed inset-0 z-[1002] flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-200" id="auth-modal">
-      <div class="auth-modal__card bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl relative">
-        <div class="auth-modal__header flex justify-between items-center mb-4">
-          <h3 class="font-heading text-xl text-primary font-bold">Sign In</h3>
-          <button id="auth-modal-close-btn" class="icon-close text-2xl text-gray-400 hover:text-primary cursor-pointer" type="button" aria-label="Close Auth">&times;</button>
-        </div>
-        
-        <div class="flex border-b border-gray-200 mb-5">
-          <button id="auth-tab-login" type="button" class="auth-tab flex-1 py-2 text-sm font-bold text-center border-b-2 border-primary text-primary">Login</button>
-          <button id="auth-tab-signup" type="button" class="auth-tab flex-1 py-2 text-sm font-bold text-center border-b-2 border-transparent text-gray-400">Sign Up</button>
+      <div class="auth-modal__card bg-white rounded-2xl p-6 md:p-8 max-w-sm w-full shadow-2xl relative text-center">
+        <div class="flex justify-between items-center mb-6">
+          <h3 class="font-heading text-2xl text-[#3b1c1c] font-bold">Sign In / Sign Up</h3>
+          <button id="auth-modal-close-btn" class="icon-close text-2xl text-gray-400 hover:text-primary cursor-pointer border-none bg-transparent" type="button" aria-label="Close Auth">&times;</button>
         </div>
 
-        <form id="auth-form-login" class="space-y-4">
-          <div>
-            <label class="block text-xs font-semibold text-gray-600 mb-1">Email Address</label>
-            <input type="email" id="login-email" required class="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg text-sm outline-none focus:border-primary">
-          </div>
-          <div>
-            <label class="block text-xs font-semibold text-gray-600 mb-1">Password</label>
-            <input type="password" id="login-password" required class="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg text-sm outline-none focus:border-primary">
-          </div>
-          <button type="submit" class="w-full py-3 bg-primary hover:bg-primary-strong text-white font-bold rounded-xl text-sm transition-colors">Sign In</button>
-        </form>
+        <p class="text-xs text-gray-500 mb-6">Sign in to your account to place orders, track purchases, and manage custom photos.</p>
 
-        <form id="auth-form-signup" class="space-y-4" hidden>
-          <div>
-            <label class="block text-xs font-semibold text-gray-600 mb-1">Full Name</label>
-            <input type="text" id="signup-name" required class="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg text-sm outline-none focus:border-primary">
-          </div>
-          <div>
-            <label class="block text-xs font-semibold text-gray-600 mb-1">Email Address</label>
-            <input type="email" id="signup-email" required class="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg text-sm outline-none focus:border-primary">
-          </div>
-          <div>
-            <label class="block text-xs font-semibold text-gray-600 mb-1">Password</label>
-            <input type="password" id="signup-password" required class="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg text-sm outline-none focus:border-primary">
-          </div>
-          <button type="submit" class="w-full py-3 bg-primary hover:bg-primary-strong text-white font-bold rounded-xl text-sm transition-colors">Create Account</button>
-        </form>
+        <div class="space-y-4">
+          <button id="btn-google-login" type="button" class="w-full py-3.5 px-4 bg-white hover:bg-gray-50 text-gray-700 font-bold border border-gray-300 rounded-xl text-sm shadow-sm transition-all flex items-center justify-center gap-3 cursor-pointer">
+            <svg class="w-5 h-5" viewBox="0 0 24 24">
+              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+            </svg>
+            <span>Continue with Google</span>
+          </button>
+
+          <button id="btn-facebook-login" type="button" class="w-full py-3.5 px-4 bg-[#1877F2] hover:bg-[#166fe5] text-white font-bold rounded-xl text-sm shadow-md transition-all flex items-center justify-center gap-3 cursor-pointer">
+            <i class="fa-brands fa-facebook text-xl"></i>
+            <span>Continue with Facebook</span>
+          </button>
+        </div>
       </div>
     </div>
     <div class="drawer-overlay fixed inset-0 bg-black/40 opacity-0 pointer-events-none z-[1000] transition-opacity duration-200" id="auth-modal-overlay"></div>
@@ -458,15 +538,245 @@ export function renderSiteShell(pageId) {
         </div>
       </div>
 
-      <div class="filter-drawer__footer p-5 border-t border-gray-100 bg-white">
-        <button id="apply-filter-btn" class="pill-button w-full bg-primary text-white rounded-full py-3.5 font-bold shadow-md hover:bg-primary-strong transition-colors" type="button">Show Products</button>
-      </div>
     </aside>
     <div class="drawer-overlay fixed inset-0 bg-black/40 opacity-0 pointer-events-none z-[1000] transition-opacity duration-200" id="filter-drawer-overlay"></div>
+
+    <!-- Location Coverage Modal -->
+    <div class="location-modal fixed inset-0 z-[1002] flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-200 overflow-y-auto" id="location-modal">
+      <div class="bg-white rounded-2xl p-6 max-w-lg w-full shadow-2xl relative my-auto">
+        <div class="flex justify-between items-center mb-3 pb-3 border-b border-gray-100">
+          <div class="flex items-center gap-2">
+            <i class="fa-solid fa-map-pin text-primary text-lg"></i>
+            <h3 class="font-heading text-lg text-gray-800 font-bold">Set Delivery Location</h3>
+          </div>
+          <button id="location-modal-close-btn" class="text-2xl text-gray-400 hover:text-primary cursor-pointer p-1" type="button" aria-label="Close modal">&times;</button>
+        </div>
+        <p class="text-xs text-gray-500 mb-4">Choose auto GPS detection or type your exact home address for magazine delivery.</p>
+
+        <!-- Option 1: Auto Detect Current Location (GPS) -->
+        <div class="mb-3.5">
+          <button type="button" id="modal-use-gps-btn" class="w-full py-2.5 px-4 bg-pink-50 hover:bg-pink-100 border border-pink-200 text-primary font-bold rounded-xl text-xs shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer">
+            <i class="fa-solid fa-location-crosshairs text-sm text-primary"></i>
+            <span id="modal-gps-btn-text">🎯 Auto Detect My Current Location (GPS)</span>
+          </button>
+        </div>
+
+        <div class="relative flex py-1 items-center mb-3.5">
+          <div class="flex-grow border-t border-gray-200"></div>
+          <span class="flex-shrink mx-3 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">or type address manually</span>
+          <div class="flex-grow border-t border-gray-200"></div>
+        </div>
+
+        <form id="location-modal-form" class="space-y-3.5">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-bold text-gray-700 mb-1">Division *</label>
+              <select id="modal-division" required class="w-full px-3 py-2.5 border border-gray-300 rounded-xl text-xs bg-white outline-none focus:border-primary">
+                <option value="Dhaka" selected>Dhaka</option>
+                <option value="Chattogram">Chattogram</option>
+                <option value="Rajshahi">Rajshahi</option>
+                <option value="Khulna">Khulna</option>
+                <option value="Barishal">Barishal</option>
+                <option value="Sylhet">Sylhet</option>
+                <option value="Rangpur">Rangpur</option>
+                <option value="Mymensingh">Mymensingh</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-gray-700 mb-1">District / City *</label>
+              <input type="text" id="modal-district" required placeholder="e.g. Dhaka, Gazipur" class="w-full px-3 py-2.5 border border-gray-300 rounded-xl text-xs outline-none focus:border-primary">
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-bold text-gray-700 mb-1">Thana / Upazila / Area *</label>
+              <input type="text" id="modal-upazila" required placeholder="e.g. Mirpur, Sreepur, Uttara" class="w-full px-3 py-2.5 border border-gray-300 rounded-xl text-xs outline-none focus:border-primary">
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-gray-700 mb-1">Postal Code (Optional)</label>
+              <input type="text" id="modal-postal" placeholder="e.g. 1230" class="w-full px-3 py-2.5 border border-gray-300 rounded-xl text-xs outline-none focus:border-primary">
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-gray-700 mb-1">Detailed House & Street Address *</label>
+            <textarea id="modal-address" required rows="2" placeholder="e.g. House 12, Road 5, Block B, Flat 3A" class="w-full px-3 py-2.5 border border-gray-300 rounded-xl text-xs outline-none focus:border-primary resize-none"></textarea>
+          </div>
+
+          <div class="p-3 rounded-xl bg-pink-50/60 border border-pink-100 space-y-1 text-xs">
+            <div class="flex justify-between items-center text-gray-700 font-semibold">
+              <span>Home Shipping Fee:</span>
+              <strong class="text-primary font-bold">৳60 Flat Rate</strong>
+            </div>
+            <div class="flex justify-between items-center text-gray-700">
+              <span>Estimated Timeline:</span>
+              <span id="modal-timeline-text" class="text-emerald-700 font-bold">3 - 5 Days Delivery</span>
+            </div>
+          </div>
+
+          <button id="location-modal-confirm-btn" type="submit" class="w-full py-3 bg-primary hover:bg-primary-strong text-white font-bold rounded-xl text-sm transition-colors cursor-pointer text-center">Save Delivery Location</button>
+        </form>
+      </div>
+    </div>
+    <div class="drawer-overlay fixed inset-0 bg-black/40 opacity-0 pointer-events-none z-[1000] transition-opacity duration-200" id="location-modal-overlay"></div>
   `;
 
   initStickyHeaderScroll();
   initMegamenuEvents();
+  initAllShellButtonEvents();
+}
+
+function initAllShellButtonEvents() {
+  const hamburgerBtn = document.querySelector('.menu-toggle') || document.getElementById('hamburger-btn');
+  const mobileDrawer = document.getElementById('mobile-drawer');
+  const mobileDrawerOverlay = document.getElementById('screen-overlay') || document.getElementById('mobile-drawer-overlay');
+  const mobileDrawerCloseBtn = document.getElementById('mobile-drawer-close-btn');
+
+  hamburgerBtn?.addEventListener('click', (e) => {
+    e.preventDefault();
+    openSurface(mobileDrawer, mobileDrawerOverlay);
+  });
+
+  mobileDrawerCloseBtn?.addEventListener('click', () => {
+    closeSurface(mobileDrawer, mobileDrawerOverlay);
+  });
+
+  mobileDrawerOverlay?.addEventListener('click', () => {
+    closeSurface(mobileDrawer, mobileDrawerOverlay);
+  });
+
+  document.querySelectorAll('.mobile-drawer__accordion-toggle').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const content = btn.nextElementSibling;
+      const icon = btn.querySelector('i');
+      if (content) {
+        content.classList.toggle('hidden');
+        content.classList.toggle('flex');
+      }
+      if (icon) {
+        icon.classList.toggle('rotate-180');
+      }
+    });
+  });
+
+  const authMobileBtn = document.getElementById('auth-mobile-btn');
+  authMobileBtn?.addEventListener('click', () => {
+    closeSurface(mobileDrawer, mobileDrawerOverlay);
+    openAuthModal();
+  });
+
+  const mobileSearchToggleBtn = document.getElementById('mobile-search-toggle-btn');
+  const mobileSearchBar = document.getElementById('mobile-search-bar');
+  mobileSearchToggleBtn?.addEventListener('click', () => {
+    if (mobileSearchBar) {
+      mobileSearchBar.classList.toggle('hidden');
+    }
+  });
+
+  const searchInput = document.getElementById('header-search-input');
+  const mobileSearchInput = document.getElementById('mobile-search-input');
+
+  const handleSearch = (e) => {
+    if (e.key === 'Enter') {
+      const q = e.target.value.trim();
+      if (q) {
+        window.location.href = `/collections/paid-products?title=${encodeURIComponent(q)}`;
+      }
+    }
+  };
+
+  const locationBtn = document.getElementById('location-btn');
+  const locationBtnText = locationBtn?.querySelector('span');
+  const locationModal = document.getElementById('location-modal');
+  const locationModalOverlay = document.getElementById('location-modal-overlay');
+  const locationModalCloseBtn = document.getElementById('location-modal-close-btn');
+  const locationModalForm = document.getElementById('location-modal-form');
+
+  // Load saved location on site init
+  try {
+    const savedRaw = localStorage.getItem('user_delivery_location');
+    if (savedRaw) {
+      const saved = JSON.parse(savedRaw);
+      if (locationBtnText && (saved.upazila || saved.district)) {
+        locationBtnText.textContent = `${saved.upazila || saved.district}, ${saved.division}`;
+      }
+    }
+  } catch (_) {}
+
+  locationBtn?.addEventListener('click', () => {
+    try {
+      const savedRaw = localStorage.getItem('user_delivery_location');
+      if (savedRaw) {
+        const saved = JSON.parse(savedRaw);
+        if (saved.division && document.getElementById('modal-division')) document.getElementById('modal-division').value = saved.division;
+        if (saved.district && document.getElementById('modal-district')) document.getElementById('modal-district').value = saved.district;
+        if (saved.upazila && document.getElementById('modal-upazila')) document.getElementById('modal-upazila').value = saved.upazila;
+        if (saved.address && document.getElementById('modal-address')) document.getElementById('modal-address').value = saved.address;
+        if (saved.postalCode && document.getElementById('modal-postal')) document.getElementById('modal-postal').value = saved.postalCode;
+      }
+    } catch (_) {}
+    openModal(locationModal, locationModalOverlay);
+  });
+
+  const modalUseGpsBtn = document.getElementById('modal-use-gps-btn');
+  const modalGpsBtnText = document.getElementById('modal-gps-btn-text');
+
+  modalUseGpsBtn?.addEventListener('click', async () => {
+    try {
+      if (modalGpsBtnText) modalGpsBtnText.textContent = '⏳ Detecting your GPS location...';
+      modalUseGpsBtn.disabled = true;
+
+      const loc = await getCurrentGpsLocation();
+
+      if (loc.division && document.getElementById('modal-division')) document.getElementById('modal-division').value = loc.division;
+      if (loc.district && document.getElementById('modal-district')) document.getElementById('modal-district').value = loc.district;
+      if (loc.upazila && document.getElementById('modal-upazila')) document.getElementById('modal-upazila').value = loc.upazila;
+      if (loc.address && document.getElementById('modal-address')) document.getElementById('modal-address').value = loc.address;
+      if (loc.postalCode && document.getElementById('modal-postal')) document.getElementById('modal-postal').value = loc.postalCode;
+
+      if (modalGpsBtnText) modalGpsBtnText.textContent = '✅ Location Detected!';
+    } catch (err) {
+      if (modalGpsBtnText) modalGpsBtnText.textContent = '🎯 Auto Detect My Current Location (GPS)';
+      alert(err.message || 'GPS location failed. Please type address manually.');
+    } finally {
+      modalUseGpsBtn.disabled = false;
+      setTimeout(() => {
+        if (modalGpsBtnText) modalGpsBtnText.textContent = '🎯 Auto Detect My Current Location (GPS)';
+      }, 3000);
+    }
+  });
+
+  locationModalCloseBtn?.addEventListener('click', () => {
+    closeModal(locationModal, locationModalOverlay);
+  });
+
+  locationModalOverlay?.addEventListener('click', () => {
+    closeModal(locationModal, locationModalOverlay);
+  });
+
+  locationModalForm?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const division = document.getElementById('modal-division')?.value || 'Dhaka';
+    const district = document.getElementById('modal-district')?.value.trim() || '';
+    const upazila = document.getElementById('modal-upazila')?.value.trim() || '';
+    const address = document.getElementById('modal-address')?.value.trim() || '';
+    const postalCode = document.getElementById('modal-postal')?.value.trim() || '';
+
+    const locData = { division, district, upazila, address, postalCode };
+    localStorage.setItem('user_delivery_location', JSON.stringify(locData));
+
+    if (locationBtnText) {
+      locationBtnText.textContent = `${upazila || district}, ${division}`;
+    }
+
+    closeModal(locationModal, locationModalOverlay);
+  });
+
+  searchInput?.addEventListener('keydown', handleSearch);
+  mobileSearchInput?.addEventListener('keydown', handleSearch);
 }
 
 function initMegamenuEvents() {
