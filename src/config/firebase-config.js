@@ -1,6 +1,6 @@
 export const firebaseConfig = {
   apiKey: 'AIzaSyC3itdNEl2ygjnv0wWDgwkx5DFd0awfzMs',
-  authDomain: 'memory-remains-b5d38.firebaseapp.com',
+  authDomain: 'pettybloom.web.app',
   projectId: 'memory-remains-b5d38',
   storageBucket: 'memory-remains-b5d38.firebasestorage.app',
   messagingSenderId: '769735601721',
