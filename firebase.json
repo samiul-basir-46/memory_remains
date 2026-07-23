@@ -1,6 +1,6 @@
 {
   "hosting": {
-    "site": "memory-remains",
+    "site": "pettybloom",
     "public": ".",
     "ignore": [
       "firebase.json",

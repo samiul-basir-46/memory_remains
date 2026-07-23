@@ -1,6 +1,7 @@
 import { SITE_CONFIG } from '../config/site-config.js';
 import { openAuthModal } from '../services/auth-service.js';
 import { getCurrentGpsLocation } from '../services/location-service.js';
+import { fetchCategories, fetchCollections } from '../services/templates-service.js';
 
 export function openModal(modal, overlay) {
   if (modal) {
@@ -21,6 +22,84 @@ export function closeModal(modal, overlay) {
   if (overlay) {
     overlay.classList.remove('opacity-100', 'pointer-events-auto', 'is-visible');
     overlay.classList.add('opacity-0', 'pointer-events-none');
+  }
+}
+
+export async function populateNavCategories(db) {
+  if (!db) return;
+  try {
+    const cats = await fetchCategories(db);
+    const container = document.querySelector('.megamenu-grid-categories');
+    if (container && cats && cats.length > 0) {
+      container.innerHTML = cats.map((cat) => {
+        const titleUpper = (cat.name || '').toUpperCase();
+        const display = titleUpper.replace(/\s+/g, '<br>');
+        return `
+          <a href="/collections/paid-products?title=${encodeURIComponent(cat.name)}" class="megamenu-card flex flex-col gap-3 no-underline group">
+            <div class="megamenu-card-bg bg-[#360505] rounded-xl aspect-[3/4] flex items-center justify-center p-4 text-center border-2 border-transparent transition-all duration-300 group-hover:scale-105 group-hover:-translate-y-1 group-hover:border-primary group-hover:shadow-2xl">
+              <span class="text-white font-heading text-2xl font-bold leading-tight text-glow">${display}</span>
+            </div>
+            <span class="megamenu-card-title text-text-dark text-sm font-semibold text-center group-hover:text-primary transition-colors">${cat.name}</span>
+          </a>
+        `;
+      }).join('');
+    }
+
+    const mobileCatContent = document.querySelector('.mobile-drawer-categories-content');
+    if (mobileCatContent && cats && cats.length > 0) {
+      mobileCatContent.innerHTML = cats.map((cat) => `
+        <a href="/collections/paid-products?title=${encodeURIComponent(cat.name)}" class="mobile-drawer__sublink font-heading text-sm font-semibold text-[#2b1717] no-underline py-3 px-4 border-b border-gray-50 hover:text-primary transition-colors">${cat.name}</a>
+      `).join('');
+    }
+  } catch (err) {
+    console.warn('Failed to populate nav categories:', err);
+  }
+}
+
+export async function populateNavCollections(db) {
+  if (!db) return;
+  try {
+    const cols = await fetchCollections(db);
+    const mainGrid = document.querySelector('.megamenu-grid-collections');
+    const sidebarList = document.querySelector('.megamenu-collections-sidebar-list');
+
+    if (cols && cols.length > 0) {
+      const mainItems = cols.slice(0, 4);
+      const sideItems = cols.slice(4);
+
+      if (mainGrid) {
+        mainGrid.innerHTML = mainItems.map((col) => {
+          const name = col.name || col.title || '';
+          const titleUpper = name.toUpperCase();
+          const display = titleUpper.replace(/\s+/g, '<br>');
+          return `
+            <a href="/collections/paid-products?title=${encodeURIComponent(name)}" class="megamenu-card flex flex-col gap-3 no-underline group">
+              <div class="megamenu-card-bg bg-[#360505] rounded-xl aspect-[3/4] flex items-center justify-center p-4 text-center border-2 border-transparent transition-all duration-300 group-hover:scale-105 group-hover:-translate-y-1 group-hover:border-primary group-hover:shadow-2xl">
+                <span class="text-white font-heading text-2xl font-bold leading-tight text-glow">${display}</span>
+              </div>
+              <span class="megamenu-card-title text-text-dark text-sm font-semibold text-center group-hover:text-primary transition-colors">${name}</span>
+            </a>
+          `;
+        }).join('');
+      }
+
+      if (sidebarList && sideItems.length > 0) {
+        sidebarList.innerHTML = sideItems.map((col) => {
+          const name = col.name || col.title || '';
+          return `<li><a href="/collections/paid-products?title=${encodeURIComponent(name)}" class="text-text-dark no-underline text-sm hover:text-primary transition-colors">${name}</a></li>`;
+        }).join('');
+      }
+
+      const mobileColContent = document.querySelector('.mobile-drawer-collections-content');
+      if (mobileColContent && cols.length > 0) {
+        mobileColContent.innerHTML = cols.map((col) => {
+          const name = col.name || col.title || '';
+          return `<a href="/collections/paid-products?title=${encodeURIComponent(name)}" class="mobile-drawer__sublink font-heading text-sm font-semibold text-[#2b1717] no-underline py-3 px-4 border-b border-gray-50 hover:text-primary transition-colors">${name}</a>`;
+        }).join('');
+      }
+    }
+  } catch (err) {
+    console.warn('Failed to populate nav collections:', err);
   }
 }
 
@@ -74,7 +153,7 @@ function renderNavLinks(pageId, isMobile = false) {
           <div class="megamenu-dropdown absolute top-full left-0 w-full bg-white border-b border-pink-100 shadow-2xl py-8 opacity-0 invisible transition-all duration-200 z-50 pointer-events-none">
             <div class="megamenu-inner max-w-container mx-auto px-4 relative">
               <button type="button" class="megamenu-close-btn absolute -top-4 right-4 text-3xl text-gray-700 hover:text-primary cursor-pointer p-1" aria-label="Close menu">&times;</button>
-              <div class="megamenu-grid grid grid-cols-4 gap-6 pr-12">
+              <div class="megamenu-grid megamenu-grid-categories grid grid-cols-4 gap-6 pr-12">
                 <a href="/collections/paid-products?title=Magazine+%26+Newspaper" class="megamenu-card flex flex-col gap-3 no-underline group">
                   <div class="megamenu-card-bg bg-[#360505] rounded-xl aspect-[3/4] flex items-center justify-center p-4 text-center border-2 border-transparent transition-all duration-300 group-hover:scale-105 group-hover:-translate-y-1 group-hover:border-primary group-hover:shadow-2xl">
                     <span class="text-white font-heading text-2xl font-bold leading-tight text-glow">MAGAZINE<br>&<br>NEWSPAPER</span>
@@ -90,7 +169,7 @@ function renderNavLinks(pageId, isMobile = false) {
           <div class="megamenu-dropdown absolute top-full left-0 w-full bg-white border-b border-pink-100 shadow-2xl py-8 opacity-0 invisible transition-all duration-200 z-50 pointer-events-none">
             <div class="megamenu-inner max-w-container mx-auto px-4 flex gap-8 relative">
               <button type="button" class="megamenu-close-btn absolute -top-4 right-4 text-3xl text-gray-700 hover:text-primary cursor-pointer p-1" aria-label="Close menu">&times;</button>
-              <div class="megamenu-grid flex-1 grid grid-cols-4 gap-6 pr-4">
+              <div class="megamenu-grid megamenu-grid-collections flex-1 grid grid-cols-4 gap-6 pr-4">
                 <a href="/collections/paid-products?title=FOR+HER" class="megamenu-card flex flex-col gap-3 no-underline group">
                   <div class="megamenu-card-bg bg-[#360505] rounded-xl aspect-[3/4] flex items-center justify-center p-4 text-center border-2 border-transparent transition-all duration-300 group-hover:scale-105 group-hover:-translate-y-1 group-hover:border-primary group-hover:shadow-2xl"><span class="text-white font-heading text-2xl font-bold leading-tight text-glow">FOR HER</span></div>
                   <span class="megamenu-card-title text-text-dark text-sm font-semibold text-center group-hover:text-primary transition-colors">FOR HER</span>
@@ -110,7 +189,7 @@ function renderNavLinks(pageId, isMobile = false) {
               </div>
               <div class="megamenu-sidebar w-[250px] border-l border-pink-100 pl-8 pr-12">
                 <h4 class="text-sm mb-4 text-text-soft font-medium">Other Collections</h4>
-                <ul class="list-none p-0 m-0 grid gap-3">
+                <ul class="list-none p-0 m-0 grid gap-3 megamenu-collections-sidebar-list">
                   <li><a href="/collections/paid-products?title=FOR+HIM" class="text-text-dark no-underline text-sm hover:text-primary transition-colors">FOR HIM</a></li>
                 </ul>
               </div>
@@ -279,7 +358,7 @@ export function renderSiteShell(pageId) {
             <span>Categories</span>
             <i class="fa-solid fa-chevron-down text-sm"></i>
           </button>
-          <div class="mobile-drawer__accordion-content hidden flex-col mt-2 border-t border-gray-100">
+          <div class="mobile-drawer__accordion-content mobile-drawer-categories-content hidden flex-col mt-2 border-t border-gray-100">
             <a href="/collections/paid-products?title=Magazine+%26+Newspaper" class="mobile-drawer__sublink font-heading text-sm font-semibold text-[#2b1717] no-underline py-3 px-4 border-b border-gray-50 hover:text-primary transition-colors">Magazine & Newspaper</a>
           </div>
         </div>
@@ -289,7 +368,7 @@ export function renderSiteShell(pageId) {
             <span>Collections</span>
             <i class="fa-solid fa-chevron-down text-sm"></i>
           </button>
-          <div class="mobile-drawer__accordion-content hidden flex-col mt-2 border-t border-gray-100">
+          <div class="mobile-drawer__accordion-content mobile-drawer-collections-content hidden flex-col mt-2 border-t border-gray-100">
             <a href="/collections/paid-products?title=FOR+HER" class="mobile-drawer__sublink font-heading text-sm font-semibold text-[#2b1717] no-underline py-3 px-4 border-b border-gray-50 hover:text-primary transition-colors">FOR HER</a>
             <a href="/collections/paid-products?title=I+Love+My+Self" class="mobile-drawer__sublink font-heading text-sm font-semibold text-[#2b1717] no-underline py-3 px-4 border-b border-gray-50 hover:text-primary transition-colors">I Love My Self</a>
             <a href="/collections/paid-products?title=Best+Selling" class="mobile-drawer__sublink font-heading text-sm font-semibold text-[#2b1717] no-underline py-3 px-4 border-b border-gray-50 hover:text-primary transition-colors">Best Selling</a>
@@ -646,6 +725,16 @@ function initAllShellButtonEvents() {
 
   mobileDrawerOverlay?.addEventListener('click', () => {
     closeSurface(mobileDrawer, mobileDrawerOverlay);
+  });
+
+  document.addEventListener('click', (e) => {
+    if (mobileDrawer && !mobileDrawer.classList.contains('-left-full')) {
+      const isClickInside = mobileDrawer.contains(e.target);
+      const isClickOnHamburger = hamburgerBtn && hamburgerBtn.contains(e.target);
+      if (!isClickInside && !isClickOnHamburger) {
+        closeSurface(mobileDrawer, mobileDrawerOverlay);
+      }
+    }
   });
 
   document.querySelectorAll('.mobile-drawer__accordion-toggle').forEach((btn) => {

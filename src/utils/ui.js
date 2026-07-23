@@ -15,12 +15,9 @@ export function escapeHtml(value = '') {
     .replaceAll("'", '&#39;');
 }
 
-export function formatCurrency(amount = 0, currency = 'USD') {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency,
-    maximumFractionDigits: 2
-  }).format(Number(amount || 0));
+export function formatCurrency(amount = 0) {
+  const num = Number(amount || 0);
+  return `৳${Number.isInteger(num) ? num : num.toFixed(2)}`;
 }
 
 export function createToast(message, kind = 'default') {

@@ -1,8 +1,9 @@
 import { fetchTemplateById, fetchTemplates, DEFAULT_FEATURED_TEMPLATES, inferCollection, comparePrice, discountPercent } from '../services/templates-service.js';
+import { renderProductDetailsSkeleton, renderEmptyState, renderErrorState } from '../components/skeleton.js';
 import { addTemplateToCart } from '../services/cart-service.js';
 import { imageMarkup } from '../components/product-card.js';
 import { buildCloudinaryDeliveryUrl, setupLazyCloudinaryImages } from '../utils/cloudinary.js';
-import { escapeHtml, formatCurrency, qs } from '../utils/ui.js';
+import { escapeHtml, formatCurrency, qs, qsa } from '../utils/ui.js';
 
 const FALLBACK_IMAGE = '/assets/product_placeholder.png';
 
@@ -11,6 +12,13 @@ export async function renderProductDetailsPage(db) {
   if (!detailsContainer) return;
   const loading = qs('#details-loading-state');
 
+  // STEP  Loader Immediately
+  if (loading) {
+    loading.innerHTML = renderProductDetailsSkeleton();
+    loading.hidden = false;
+  }
+  detailsContainer.hidden = true;
+
   const params = new URLSearchParams(window.location.search);
   const templateId = params.get('id');
 
@@ -18,22 +26,26 @@ export async function renderProductDetailsPage(db) {
     let template = null;
     if (templateId) {
       template = await fetchTemplateById(db, templateId);
-    }
-
-    if (!template) {
-      if (db) {
-        const allDbTemplates = await fetchTemplates(db);
-        if (allDbTemplates && allDbTemplates.length > 0) {
-          template = allDbTemplates[0];
-        }
-      }
-      if (!template) {
-        template = DEFAULT_FEATURED_TEMPLATES[0];
+    } else if (db) {
+      const allDbTemplates = await fetchTemplates(db);
+      if (allDbTemplates && allDbTemplates.length > 0) {
+        template = allDbTemplates[0];
       }
     }
 
+    // STEP 2: Handle non-existent product explicitly
     if (!template) {
-      throw new Error('Template not found');
+      if (loading) loading.hidden = true;
+      detailsContainer.hidden = false;
+      detailsContainer.innerHTML = renderEmptyState({
+        title: templateId ? 'Product Not Found' : 'No Products Available',
+        message: templateId
+          ? `The requested product (ID: "${templateId}") does not exist or has been removed from our catalog.`
+          : 'No product templates are currently available in the store.',
+        actionText: 'Back to Shop',
+        actionUrl: '/collections/paid-products'
+      });
+      return;
     }
 
     const allRawImages = [
@@ -50,7 +62,7 @@ export async function renderProductDetailsPage(db) {
     }
 
     // Set Text Content & Badges
-    const category = inferCollection(template);
+    const category = template.category || template.collection || template.target_audience || template.targetAudience || inferCollection(template);
     const title = template.title || template.name || 'Product details';
     const requiredPhotos = template.requiredPhotos || 12;
     const descriptionText = template.description || template.magazineDescription || template.templateDescription || template.subtitle || 'No description available for this product.';
@@ -70,9 +82,6 @@ export async function renderProductDetailsPage(db) {
     const photoBadge = qs('#details-photo-count-badge');
     if (photoBadge) photoBadge.textContent = `${requiredPhotos} Photos`;
 
-    const photoDesc = qs('#details-photo-requirement-desc');
-    if (photoDesc) photoDesc.textContent = `You will need to provide ${requiredPhotos} high-resolution photos for this custom magazine.`;
-
     const badgeElem = qs('#details-badge');
     if (badgeElem) {
       if (template.badge) {
@@ -84,12 +93,21 @@ export async function renderProductDetailsPage(db) {
     }
 
     // Dual Selling Mode Setup
-    const saleTypes = template.saleTypes || { magazine: true, template: true };
+    const initialTab = params.get('tab');
+    const productType = String(template.product_type || template.productType || 'magazine').toLowerCase().replace(/\s+/g, '_');
+    const isMagazine = productType === 'magazine';
+
+    const saleTypes = template.saleTypes || {
+      magazine: true,
+      template: isMagazine && Boolean(template.is_template_for_sale) && Number(template.template_price || template.templatePrice || 0) > 0
+    };
     const magazinePrice = template.magazinePrice || template.price || 499;
     const templatePrice = template.templatePrice || template.digitalPrice || 199;
 
     let activeMode = 'magazine';
-    if (saleTypes.magazine && saleTypes.template) {
+    if (initialTab === 'digital' && saleTypes.template) {
+      activeMode = 'template';
+    } else if (saleTypes.magazine && saleTypes.template && isMagazine) {
       activeMode = 'magazine';
     } else if (saleTypes.template && !saleTypes.magazine) {
       activeMode = 'template';
@@ -103,8 +121,22 @@ export async function renderProductDetailsPage(db) {
     const modePriceTpl = qs('#mode-price-template');
     const modeBadgeMag = qs('#mode-badge-magazine');
     const modeBadgeTpl = qs('#mode-badge-template');
-    const templateNoticeBox = qs('#details-template-notice-box');
     const photoReqBox = qs('#details-photo-requirement-box');
+    const templateNoticeBox = qs('#details-template-notice-box');
+    const purchaseTypeSection = qs('#details-purchase-type-section');
+
+    if (purchaseTypeSection) {
+      purchaseTypeSection.hidden = !(isMagazine && saleTypes.magazine && saleTypes.template);
+    }
+
+    let typeLabel = 'product';
+    if (productType === 'magazine') typeLabel = 'magazine';
+    else if (productType === 'wall_frame') typeLabel = 'wall frame';
+    else if (productType === 'poster') typeLabel = 'poster';
+    else if (productType === 'sticker') typeLabel = 'sticker';
+
+    const photoDesc = qs('#details-photo-requirement-desc');
+    if (photoDesc) photoDesc.textContent = `You will need to provide ${requiredPhotos} high-resolution photos for this custom ${typeLabel}.`;
 
     if (modePriceMag) modePriceMag.textContent = formatCurrency(magazinePrice);
     if (modePriceTpl) modePriceTpl.textContent = formatCurrency(templatePrice);
