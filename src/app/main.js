@@ -1,4 +1,4 @@
-import { renderSiteShell } from '../components/site-shell.js';
+import { renderSiteShell, populateNavCategories, populateNavCollections } from '../components/site-shell.js';
 import { getFirebaseServices } from '../services/firebase-service.js';
 import { updateCartCount, renderCartDrawer, addTemplateToCart, removeFromCart } from '../services/cart-service.js';
 import { initAuthModalEvents, watchAuthState, openAuthModal, closeAuthModal } from '../services/auth-service.js';
@@ -16,20 +16,16 @@ import { qs } from '../utils/ui.js';
 
 const pageId = document.body.dataset.page || 'home';
 
-// 1. Render site shell layout
 renderSiteShell(pageId);
 
-// 2. Initialize Firebase services
 const { db } = getFirebaseServices();
 
-// 3. Initialize common UI services
 updateCartCount();
 renderCartDrawer();
 initAuthModalEvents();
 initUploadModalEvents();
 initContactEvents(db);
 
-// 4. Register global window handlers for template inline event calls
 Object.assign(window, {
   openAuthModal,
   closeAuthModal,
@@ -41,7 +37,6 @@ Object.assign(window, {
   submitTxnId: (purchaseId, txnId) => submitTxnId(db, purchaseId, txnId)
 });
 
-// 5. Setup Auth State listener
 watchAuthState(async (user) => {
   if (pageId === 'library') {
     const authRequired = qs('#library-auth-required');
@@ -54,8 +49,10 @@ watchAuthState(async (user) => {
   }
 });
 
-// 6. Page Routing & Initialization
 async function initApp() {
+  populateNavCategories(db).catch((e) => console.warn('Nav categories async error:', e));
+  populateNavCollections(db).catch((e) => console.warn('Nav collections async error:', e));
+
   if (pageId === 'home') await renderHomePage(db);
   if (pageId === 'featured' || pageId === 'shop') await renderShopPage(db);
   if (pageId === 'product-details') await renderProductDetailsPage(db);
