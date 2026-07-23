@@ -101,67 +101,74 @@ async function doTrackOrder(phone, orderId) {
   }
 
   let ordersList = [];
+  const seenMap = new Map();
 
+  // Query Firebase Firestore FIRST for real-time order status
   try {
-    const res = await fetch(`${API_BASE}/track-order`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        order_id: orderId || null,
-        customer_phone: phone || null
-      })
-    });
-
-    if (res.ok) {
-      const data = await res.json();
-      if (data && data.status === 'found' && Array.isArray(data.orders)) {
-        ordersList = data.orders;
-      }
-    }
-  } catch (err) {
-    console.warn('API track-order notice:', err);
-  }
-
-  if (ordersList.length === 0) {
-    try {
-      const { db } = getFirebaseServices();
-      if (db) {
-        const seenMap = new Map();
-
-        if (orderId) {
-          const docP = await db.collection('purchases').doc(orderId).get();
-          if (docP.exists) {
-            seenMap.set(docP.id, { order_id: docP.id, ...docP.data() });
-          } else {
-            const docO = await db.collection('orders').doc(orderId).get();
-            if (docO.exists) {
-              seenMap.set(docO.id, { order_id: docO.id, ...docO.data() });
-            }
+    const { db } = getFirebaseServices();
+    if (db) {
+      if (orderId) {
+        const docP = await db.collection('purchases').doc(orderId).get();
+        if (docP.exists) {
+          seenMap.set(docP.id, { order_id: docP.id, ...docP.data() });
+        } else {
+          const docO = await db.collection('orders').doc(orderId).get();
+          if (docO.exists) {
+            seenMap.set(docO.id, { order_id: docO.id, ...docO.data() });
           }
         }
 
-        if (phone) {
-          const qP = await db.collection('purchases').where('customer_phone', '==', phone).get();
-          qP.forEach(doc => {
-            if (!seenMap.has(doc.id)) {
-              seenMap.set(doc.id, { order_id: doc.id, ...doc.data() });
-            }
-          });
+        const qP1 = await db.collection('purchases').where('orderId', '==', orderId).get();
+        qP1.forEach(doc => seenMap.set(doc.id, { order_id: doc.id, ...doc.data() }));
 
-          const qO = await db.collection('orders').where('customer_phone', '==', phone).get();
-          qO.forEach(doc => {
-            if (!seenMap.has(doc.id)) {
-              seenMap.set(doc.id, { order_id: doc.id, ...doc.data() });
+        const qP2 = await db.collection('purchases').where('order_id', '==', orderId).get();
+        qP2.forEach(doc => seenMap.set(doc.id, { order_id: doc.id, ...doc.data() }));
+      }
+
+      if (phone) {
+        const qP = await db.collection('purchases').where('customer_phone', '==', phone).get();
+        qP.forEach(doc => seenMap.set(doc.id, { order_id: doc.id, ...doc.data() }));
+
+        const qPAlt = await db.collection('purchases').where('customerPhone', '==', phone).get();
+        qPAlt.forEach(doc => seenMap.set(doc.id, { order_id: doc.id, ...doc.data() }));
+
+        const qO = await db.collection('orders').where('customer_phone', '==', phone).get();
+        qO.forEach(doc => seenMap.set(doc.id, { order_id: doc.id, ...doc.data() }));
+      }
+    }
+  } catch (fsErr) {
+    console.warn('Firestore tracking search notice:', fsErr);
+  }
+
+  // Fallback to API if Firestore yields nothing
+  if (seenMap.size === 0) {
+    try {
+      const res = await fetch(`${API_BASE}/track-order`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          order_id: orderId || null,
+          customer_phone: phone || null
+        })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.status === 'found' && Array.isArray(data.orders)) {
+          data.orders.forEach(o => {
+            const idKey = o.order_id || o.id;
+            if (idKey && !seenMap.has(idKey)) {
+              seenMap.set(idKey, o);
             }
           });
         }
-
-        ordersList = Array.from(seenMap.values());
       }
-    } catch (fsErr) {
-      console.error('Firestore tracking search notice:', fsErr);
+    } catch (err) {
+      console.warn('API track-order notice:', err);
     }
   }
+
+  ordersList = Array.from(seenMap.values());
 
   if (submitBtn) {
     submitBtn.disabled = false;
@@ -185,10 +192,12 @@ function renderTrackingResult(orders) {
   }
 
   const statusBadges = {
-    paid: { label: 'Paid & Processing', bg: 'bg-emerald-50 border-emerald-200 text-emerald-700', icon: 'fa-circle-check' },
-    shipped: { label: 'Out for Delivery', bg: 'bg-blue-50 border-blue-200 text-blue-700', icon: 'fa-truck' },
-    delivered: { label: 'Delivered & Completed', bg: 'bg-emerald-100 border-emerald-300 text-emerald-800', icon: 'fa-box-open' },
-    completed: { label: 'Delivered & Completed', bg: 'bg-emerald-100 border-emerald-300 text-emerald-800', icon: 'fa-box-open' },
+    paid: { label: 'Payment Verified', bg: 'bg-emerald-50 border-emerald-200 text-emerald-700', icon: 'fa-circle-check' },
+    confirmed: { label: 'Payment Verified', bg: 'bg-emerald-50 border-emerald-200 text-emerald-700', icon: 'fa-circle-check' },
+    preparing: { label: 'Preparing Order', bg: 'bg-purple-50 border-purple-200 text-purple-700', icon: 'fa-box-archive' },
+    shipped: { label: 'Shipped', bg: 'bg-blue-50 border-blue-200 text-blue-700', icon: 'fa-truck-fast' },
+    delivered: { label: 'Delivered Successfully', bg: 'bg-emerald-100 border-emerald-300 text-emerald-800', icon: 'fa-box-open' },
+    completed: { label: 'Delivered Successfully', bg: 'bg-emerald-100 border-emerald-300 text-emerald-800', icon: 'fa-box-open' },
     pending: { label: 'Awaiting Payment Verification', bg: 'bg-amber-50 border-amber-200 text-amber-700', icon: 'fa-clock' },
     awaiting_trx: { label: 'Awaiting Payment Verification', bg: 'bg-amber-50 border-amber-200 text-amber-700', icon: 'fa-clock' },
     flagged: { label: 'Under Review', bg: 'bg-rose-50 border-rose-200 text-rose-700', icon: 'fa-triangle-exclamation' },
@@ -203,71 +212,94 @@ function renderTrackingResult(orders) {
     const badge = statusBadges[rawStatus] || statusBadges['pending'];
     const orderDate = order.created_at || order.purchaseDate || order.updated_at;
 
+    const isConfirmed = ['paid', 'confirmed', 'preparing', 'shipped', 'delivered', 'completed'].includes(rawStatus);
+    const isPreparing = ['preparing', 'shipped', 'delivered', 'completed'].includes(rawStatus);
+    const isShipped = ['shipped', 'delivered', 'completed'].includes(rawStatus);
+    const isDelivered = ['delivered', 'completed'].includes(rawStatus);
+
     const actualOrderId = order.order_id || order.id || 'N/A';
     const safeOrderId = actualOrderId.replace(/[^a-zA-Z0-9_-]/g, '');
 
-    const productType = order.product_type || (order.canva_link || order.canvaUrl ? 'template' : 'magazine');
-    const photosUploaded = Boolean(order.photos_uploaded || order.photosUploaded);
-    const requiredPhotoCount = Number(order.required_photo_count || order.photo_count || order.requiredPhotoCount || 10);
-    const canvaLink = order.canva_link || order.canvaUrl || order.canva_url || order.canvaLink || '';
+    let itemsList = Array.isArray(order.items) && order.items.length > 0
+      ? order.items
+      : [{
+          item_id: actualOrderId,
+          template_name: order.template_name || order.templateName || 'Custom Magazine',
+          product_type: productType,
+          required_photo_count: requiredPhotoCount,
+          photos_uploaded: photosUploaded,
+          canva_link: canvaLink
+        }];
 
-    let statusBannerHtml = '';
+    let itemsSectionHtml = itemsList.map((item, idx) => {
+      const itemPType = item.product_type || 'magazine';
+      const itemIsPaid = rawStatus === 'paid' || rawStatus === 'delivered' || rawStatus === 'completed';
+      const itemUploaded = Boolean(item.photos_uploaded || item.photosUploaded);
+      const itemReqCount = Number(item.required_photo_count || item.photo_count || 10);
+      const itemCanva = item.canva_link || item.canvaUrl || canvaLink;
 
-    if (productType === 'template') {
-      if ((rawStatus === 'delivered' || rawStatus === 'completed') && canvaLink) {
-        statusBannerHtml = `
-          <div class="bg-gradient-to-r from-pink-50 to-purple-50 p-6 rounded-2xl border border-pink-200 text-center space-y-4 shadow-sm">
-            <div class="w-12 h-12 bg-pink-100 text-primary rounded-full flex items-center justify-center text-xl mx-auto">
-              <i class="fa-solid fa-wand-magic-sparkles"></i>
-            </div>
-            <h4 class="font-heading text-xl font-bold text-[#2A2A2A]">🎉 Your template is ready!</h4>
-            <div class="flex flex-col sm:flex-row gap-3 justify-center pt-2">
-              <a href="${escapeHtml(canvaLink)}" target="_blank" rel="noopener noreferrer" class="px-6 py-3.5 bg-[#DC3C71] hover:bg-[#c23260] text-white font-bold text-sm rounded-xl shadow-md transition-colors no-underline inline-flex items-center justify-center gap-2">
-                <i class="fa-solid fa-arrow-up-right-from-square"></i>
-                <span>Open in Canva</span>
+      let itemBannerHtml = '';
+      if (itemPType === 'template') {
+        if ((rawStatus === 'delivered' || rawStatus === 'completed') && itemCanva) {
+          itemBannerHtml = `
+            <div class="bg-gradient-to-r from-pink-50 to-purple-50 p-4 rounded-xl border border-pink-200 text-center space-y-3">
+              <h5 class="font-bold text-sm text-[#2A2A2A]">🎉 ${escapeHtml(item.template_name || 'Template')} Ready</h5>
+              <a href="${escapeHtml(itemCanva)}" target="_blank" rel="noopener noreferrer" class="px-4 py-2 bg-[#DC3C71] text-white font-bold text-xs rounded-lg inline-flex items-center gap-2">
+                <i class="fa-solid fa-arrow-up-right-from-square"></i> Open in Canva
               </a>
-              <button type="button" id="copy-canva-btn-${safeOrderId}" class="px-6 py-3.5 bg-white border border-gray-300 hover:bg-gray-50 text-[#2A2A2A] font-bold text-sm rounded-xl shadow-sm transition-colors cursor-pointer inline-flex items-center justify-center gap-2">
-                <i class="fa-regular fa-copy"></i>
-                <span id="copy-canva-text-${safeOrderId}">Copy Link</span>
-              </button>
             </div>
-          </div>
-        `;
-        copyCanvaTasks.push({ safeOrderId, canvaLink });
-      } else if (rawStatus === 'paid') {
-        statusBannerHtml = `
-          <div class="p-4 rounded-xl bg-pink-50 border border-pink-200 text-primary font-bold text-sm text-center flex items-center justify-center gap-2">
-            <i class="fa-solid fa-circle-check text-primary text-lg"></i>
-            <span>✅ Payment confirmed! We're preparing your Canva template link.</span>
-          </div>
-        `;
+          `;
+        } else {
+          itemBannerHtml = `
+            <div class="p-3 bg-pink-50 rounded-xl border border-pink-100 text-xs text-primary font-bold">
+              ✅ Payment confirmed! Canva link will be delivered soon.
+            </div>
+          `;
+        }
+      } else {
+        if (rawStatus === 'completed') {
+          itemBannerHtml = `
+            <div class="p-3 bg-emerald-50 rounded-xl border border-emerald-200 text-xs text-emerald-800 font-bold">
+              ✅ Magazine order complete!
+            </div>
+          `;
+        } else if (itemUploaded) {
+          itemBannerHtml = `
+            <div class="p-3 bg-emerald-50 rounded-xl border border-emerald-200 text-xs text-emerald-800 font-bold">
+              ✅ Photos received — magazine is being prepared
+            </div>
+          `;
+        } else if (['paid', 'confirmed', 'preparing', 'shipped', 'delivered', 'completed'].includes(rawStatus)) {
+          const mountId = `track-upload-mount-${safeOrderId}-${idx}`;
+          itemBannerHtml = `<div id="${mountId}" class="mt-3"></div>`;
+          uploadMountTasks.push({
+            mountId,
+            orderId: actualOrderId,
+            itemId: item.item_id || `${actualOrderId}-${idx + 1}`,
+            itemIndex: idx,
+            requiredPhotoCount: itemReqCount,
+            orderObj: order,
+            itemObj: item
+          });
+        } else {
+          itemBannerHtml = `
+            <div class="p-3 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-900">
+              ⏳ Payment Verification Pending — Photo upload will unlock once payment is verified.
+            </div>
+          `;
+        }
       }
-    } else {
-      if (rawStatus === 'completed') {
-        statusBannerHtml = `
-          <div class="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 font-bold text-sm text-center flex items-center justify-center gap-2">
-            <i class="fa-solid fa-circle-check text-emerald-500 text-lg"></i>
-            <span>✅ Your magazine order is complete!</span>
+
+      return `
+        <div class="p-3 bg-gray-50/80 rounded-xl border border-gray-200 space-y-2">
+          <div class="flex justify-between items-center text-xs font-bold">
+            <span class="text-[#2A2A2A]">${escapeHtml(item.template_name || 'Magazine Item')}</span>
+            <span class="px-2 py-0.5 rounded text-[10px] ${itemPType === 'magazine' ? 'bg-purple-100 text-purple-800' : 'bg-teal-100 text-teal-800'}">${itemPType.toUpperCase()}</span>
           </div>
-        `;
-      } else if (photosUploaded) {
-        statusBannerHtml = `
-          <div class="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 font-bold text-sm text-center flex items-center justify-center gap-2">
-            <i class="fa-solid fa-circle-check text-emerald-500 text-lg"></i>
-            <span>✅ Photos received — your magazine is being prepared</span>
-          </div>
-        `;
-      } else if (rawStatus === 'paid') {
-        const mountId = `track-upload-mount-${safeOrderId}`;
-        statusBannerHtml = `<div id="${mountId}" class="mt-4"></div>`;
-        uploadMountTasks.push({
-          mountId,
-          orderId: actualOrderId,
-          requiredPhotoCount,
-          orderObj: order
-        });
-      }
-    }
+          ${itemBannerHtml}
+        </div>
+      `;
+    }).join('');
 
     return `
       <div class="bg-white p-6 rounded-2xl border border-pink-100 shadow-md mb-6 space-y-4">
@@ -308,32 +340,62 @@ function renderTrackingResult(orders) {
           </div>
         ` : ''}
 
-        ${statusBannerHtml}
+        <div class="p-4 bg-pink-50/40 rounded-xl border border-pink-100 space-y-2.5">
+          <span class="text-[11px] font-bold text-gray-500 uppercase tracking-wider block">Order Progression</span>
+          <div class="flex items-center justify-between text-xs">
+            <div class="flex flex-col items-center text-center">
+              <div class="w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs ${isConfirmed ? 'bg-emerald-500 text-white shadow-sm' : 'bg-gray-200 text-gray-400'}">✓</div>
+              <span class="text-[10px] font-bold mt-1.5 ${isConfirmed ? 'text-emerald-700' : 'text-gray-400'}">Verified</span>
+            </div>
+            <div class="h-0.5 flex-1 mx-1 ${isPreparing ? 'bg-purple-500' : 'bg-gray-200'}"></div>
+            <div class="flex flex-col items-center text-center">
+              <div class="w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs ${isPreparing ? 'bg-purple-600 text-white shadow-sm' : 'bg-gray-200 text-gray-400'}">📦</div>
+              <span class="text-[10px] font-bold mt-1.5 ${isPreparing ? 'text-purple-700' : 'text-gray-400'}">Preparing</span>
+            </div>
+            <div class="h-0.5 flex-1 mx-1 ${isShipped ? 'bg-blue-500' : 'bg-gray-200'}"></div>
+            <div class="flex flex-col items-center text-center">
+              <div class="w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs ${isShipped ? 'bg-blue-600 text-white shadow-sm' : 'bg-gray-200 text-gray-400'}">🚚</div>
+              <span class="text-[10px] font-bold mt-1.5 ${isShipped ? 'text-blue-700' : 'text-gray-400'}">Shipped</span>
+            </div>
+            <div class="h-0.5 flex-1 mx-1 ${isDelivered ? 'bg-emerald-500' : 'bg-gray-200'}"></div>
+            <div class="flex flex-col items-center text-center">
+              <div class="w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs ${isDelivered ? 'bg-emerald-600 text-white shadow-sm' : 'bg-gray-200 text-gray-400'}">🎉</div>
+              <span class="text-[10px] font-bold mt-1.5 ${isDelivered ? 'text-emerald-700' : 'text-gray-400'}">Delivered</span>
+            </div>
+          </div>
+          ${(order.courier_name || order.courierName || order.tracking_number || order.trackingNumber) ? `
+            <div class="mt-2.5 p-3 bg-blue-50/80 rounded-xl border border-blue-200 text-xs text-blue-900 flex items-center justify-between shadow-sm">
+              <div class="flex items-center gap-2.5">
+                <i class="fa-solid fa-truck-fast text-blue-600 text-base"></i>
+                <div>
+                  <span class="font-bold text-blue-900 block">Courier: ${escapeHtml(order.courier_name || order.courierName || 'Courier Delivery')}</span>
+                  ${(order.tracking_number || order.trackingNumber) ? `<span class="text-[11px] text-blue-700 font-medium">Tracking Code: <strong class="font-mono bg-blue-100 px-1.5 py-0.5 rounded text-blue-900">${escapeHtml(order.tracking_number || order.trackingNumber)}</strong></span>` : ''}
+                </div>
+              </div>
+            </div>
+          ` : ''}
+        </div>
+
+        <div class="space-y-3 pt-2">
+          <h5 class="text-xs font-bold text-gray-500 uppercase tracking-wider">Order Items (${itemsList.length})</h5>
+          ${itemsSectionHtml}
+        </div>
       </div>
     `;
   }).join('');
 
   resultBox.innerHTML = html;
 
-  copyCanvaTasks.forEach(task => {
-    const btn = resultBox.querySelector(`#copy-canva-btn-${task.safeOrderId}`);
-    if (btn) {
-      btn.addEventListener('click', () => {
-        navigator.clipboard.writeText(task.canvaLink);
-        const txt = resultBox.querySelector(`#copy-canva-text-${task.safeOrderId}`);
-        if (txt) txt.textContent = 'Link Copied!';
-        setTimeout(() => { if (txt) txt.textContent = 'Copy Link'; }, 2000);
-      });
-    }
-  });
-
   uploadMountTasks.forEach(task => {
     const mountEl = resultBox.querySelector(`#${task.mountId}`);
     if (mountEl) {
       renderPhotoUploadUI(mountEl, {
         orderId: task.orderId,
+        itemId: task.itemId,
+        itemIndex: task.itemIndex,
         requiredPhotoCount: task.requiredPhotoCount,
         onSuccess: () => {
+          if (task.itemObj) task.itemObj.photos_uploaded = true;
           task.orderObj.photos_uploaded = true;
           task.orderObj.photosUploaded = true;
           renderTrackingResult(orders);

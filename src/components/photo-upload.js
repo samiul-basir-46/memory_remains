@@ -39,7 +39,7 @@ export function renderPhotoUploadUI(container, options = {}) {
 
   let selectedFiles = [];
   let isUploading = false;
-  let isComplete = false;
+  let isComplete = Boolean(options.photosUploaded);
   let statusText = '';
   let errorMessage = '';
   let overallProgress = 0;
@@ -64,13 +64,13 @@ export function renderPhotoUploadUI(container, options = {}) {
   function render() {
     if (isComplete) {
       container.innerHTML = `
-        <div class="bg-white p-6 md:p-8 rounded-2xl border border-pink-100 shadow-xl text-center space-y-4">
-          <div class="w-14 h-14 bg-emerald-50 border border-emerald-200 text-emerald-500 rounded-full flex items-center justify-center text-2xl mx-auto shadow-sm">
+        <div class="bg-gradient-to-r from-emerald-50 to-teal-50 p-5 rounded-xl border border-emerald-200 text-center space-y-2 shadow-sm">
+          <div class="w-10 h-10 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-lg mx-auto">
             <i class="fa-solid fa-circle-check"></i>
           </div>
           <div>
-            <h3 class="font-heading text-xl font-bold text-emerald-900 mb-1">✅ Photos uploaded successfully!</h3>
-            <p class="text-sm text-emerald-700">Your magazine is being prepared.</p>
+            <h4 class="font-heading text-base font-bold text-emerald-950 mb-0.5">✅ Photos Received</h4>
+            <p class="text-xs text-emerald-700">Your magazine is being prepared by our design team.</p>
           </div>
         </div>
       `;
@@ -84,6 +84,15 @@ export function renderPhotoUploadUI(container, options = {}) {
         <div>
           <h3 class="font-heading text-2xl text-[#2A2A2A] font-bold mb-1">Upload Your Photos</h3>
           <p class="text-sm text-text-soft">This template requires exactly <strong class="text-primary font-bold">${requiredPhotoCount}</strong> photos</p>
+        </div>
+
+        <div class="space-y-1.5 text-left">
+          <label for="recipient-input-${safeOrderId}" class="text-xs font-bold text-gray-700 flex items-center gap-1.5">
+            <i class="fa-solid fa-user-pen text-pink-500"></i> Recipient / Person Name <span class="text-gray-400 font-normal">(Optional — e.g. For Samiul, Birthday Special)</span>
+          </label>
+          <input type="text" id="recipient-input-${safeOrderId}" placeholder="e.g. For Samiul, For Mim..." 
+                 class="w-full text-xs px-3.5 py-2.5 rounded-xl border border-pink-200 focus:border-pink-500 focus:ring-1 focus:ring-pink-500 outline-none transition-all font-body bg-pink-50/20"
+                 value="${options.recipientName || ''}">
         </div>
 
         <div id="drop-zone-${safeOrderId}" class="border-2 border-dashed border-pink-300/80 hover:border-primary bg-pink-50/40 hover:bg-pink-50/70 p-6 md:p-8 rounded-2xl text-center cursor-pointer transition-colors flex flex-col items-center justify-center gap-3">
@@ -254,105 +263,85 @@ export function renderPhotoUploadUI(container, options = {}) {
     overallProgress = 0;
     render();
 
-    try {
-      const initRes = await fetch(`${API_BASE}/upload-photos/init`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          order_id: orderId,
-          file_count: selectedFiles.length,
-          file_names: selectedFiles.map(f => f.name)
-        })
-      });
-
-      if (!initRes.ok) {
-        let detail = '';
-        try {
-          const errData = await initRes.json();
-          detail = errData.detail || errData.message || errData.error;
-        } catch (e) {}
-        throw new Error(detail || `HTTP ${initRes.status}`);
+    let mainOrderId = orderId;
+    if (typeof orderId === 'string' && orderId.startsWith('ORD-')) {
+      const parts = orderId.split('-');
+      if (parts.length >= 2) {
+        mainOrderId = `${parts[0]}-${parts[1]}`;
       }
-
-      await initRes.json();
-    } catch (initErr) {
-      isUploading = false;
-      errorMessage = mapUploadError(initErr.message);
-      render();
-      return;
     }
 
-    const fileChunkCounts = selectedFiles.map(f => Math.max(1, Math.ceil(f.size / CHUNK_SIZE)));
-    const totalChunksSum = fileChunkCounts.reduce((acc, val) => acc + val, 0);
-    let completedChunksGlobal = 0;
+    const uploadedUrls = [];
+    const totalFiles = selectedFiles.length;
 
-    for (let fileIndex = 0; fileIndex < selectedFiles.length; fileIndex++) {
+    for (let fileIndex = 0; fileIndex < totalFiles; fileIndex++) {
       const file = selectedFiles[fileIndex];
-      const totalChunks = Math.max(1, Math.ceil(file.size / CHUNK_SIZE));
+      statusText = `Uploading photo ${fileIndex + 1} of ${totalFiles}...`;
+      overallProgress = Math.round((fileIndex / totalFiles) * 100);
+      render();
 
-      for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
-        const start = chunkIndex * CHUNK_SIZE;
-        const end = Math.min(file.size, start + CHUNK_SIZE);
-        const chunkBlob = file.slice(start, end);
+      let fileSuccess = false;
+      let lastErrMessage = '';
 
+      // Direct Cloudinary upload using unsigned preset memory-remains
+      try {
         const formData = new FormData();
-        formData.append('order_id', orderId);
-        formData.append('upload_index', fileIndex);
-        formData.append('chunk_index', chunkIndex);
-        formData.append('total_chunks', totalChunks);
-        formData.append('file', chunkBlob, file.name);
+        formData.append('file', file);
+        formData.append('upload_preset', 'memory-remains');
+        formData.append('folder', `orders/${mainOrderId}`);
 
-        statusText = `Uploading photo ${fileIndex + 1} of ${selectedFiles.length}... (${chunkIndex + 1}/${totalChunks} parts)`;
-        overallProgress = Math.min(99, Math.round((completedChunksGlobal / totalChunksSum) * 100));
-        render();
+        const cldRes = await fetch('https://api.cloudinary.com/v1_1/cmpl84gp/image/upload', {
+          method: 'POST',
+          body: formData
+        });
 
-        let chunkSuccess = false;
-        let maxRetries = 3;
-        let lastErrDetail = '';
-
-        for (let attempt = 0; attempt <= maxRetries; attempt++) {
-          if (attempt > 0) {
-            statusText = `Upload paused — Retrying... (Attempt ${attempt}/${maxRetries})`;
-            render();
-            await new Promise(r => setTimeout(r, 1500));
+        if (cldRes.ok) {
+          const cldData = await cldRes.json();
+          if (cldData.secure_url) {
+            uploadedUrls.push(cldData.secure_url);
+            fileSuccess = true;
           }
+        } else {
+          const cldErr = await cldRes.json().catch(() => ({}));
+          lastErrMessage = cldErr.error?.message || `Cloudinary status ${cldRes.status}`;
+        }
+      } catch (err) {
+        lastErrMessage = err.message;
+      }
 
-          try {
-            const chunkRes = await fetch(`${API_BASE}/upload-photos/chunk`, {
-              method: 'POST',
-              body: formData
-            });
+      // Fallback to chunk upload if direct Cloudinary fails
+      if (!fileSuccess) {
+        try {
+          const formData = new FormData();
+          formData.append('order_id', mainOrderId);
+          formData.append('upload_index', fileIndex);
+          formData.append('chunk_index', 0);
+          formData.append('total_chunks', 1);
+          formData.append('file', file, file.name);
 
-            if (!chunkRes.ok) {
-              let detail = '';
-              try {
-                const errData = await chunkRes.json();
-                detail = errData.detail || errData.message || errData.error;
-              } catch (e) {}
-              lastErrDetail = detail || `HTTP ${chunkRes.status}`;
-              continue;
-            }
+          const chunkRes = await fetch(`${API_BASE}/upload-photos/chunk`, {
+            method: 'POST',
+            body: formData
+          });
 
+          if (chunkRes.ok) {
             const chunkData = await chunkRes.json();
-            chunkSuccess = true;
-            completedChunksGlobal++;
-            overallProgress = Math.min(100, Math.round((completedChunksGlobal / totalChunksSum) * 100));
-
-            if (fileIndex === selectedFiles.length - 1 && chunkIndex === totalChunks - 1 && chunkData.all_complete) {
-              
-            }
-            break;
-          } catch (fetchErr) {
-            lastErrDetail = fetchErr.message;
+            if (chunkData.url) uploadedUrls.push(chunkData.url);
+            fileSuccess = true;
+          } else {
+            const errData = await chunkRes.json().catch(() => ({}));
+            lastErrMessage = errData.detail || errData.message || `API status ${chunkRes.status}`;
           }
+        } catch (apiErr) {
+          lastErrMessage = apiErr.message;
         }
+      }
 
-        if (!chunkSuccess) {
-          isUploading = false;
-          errorMessage = mapUploadError(lastErrDetail);
-          render();
-          return;
-        }
+      if (!fileSuccess) {
+        isUploading = false;
+        errorMessage = mapUploadError(lastErrMessage);
+        render();
+        return;
       }
     }
 
@@ -364,14 +353,55 @@ export function renderPhotoUploadUI(container, options = {}) {
 
     try {
       const { db } = getFirebaseServices();
-      if (db && orderId) {
-        await db.collection('purchases').doc(orderId).set({
-          photos_uploaded: true,
-          photosUploaded: true,
-          updated_at: new Date().toISOString()
-        }, { merge: true });
+      if (db && mainOrderId) {
+        const docRef = db.collection('purchases').doc(mainOrderId);
+        const docSnap = await docRef.get();
+
+        if (docSnap.exists) {
+          const docData = docSnap.data();
+          let itemsList = Array.isArray(docData.items) ? [...docData.items] : [];
+
+          if (itemsList.length > 0) {
+            const targetIdx = options.itemIndex !== undefined && options.itemIndex !== null
+                ? options.itemIndex
+                : itemsList.findIndex(it => it.item_id === options.itemId || it.template_id === options.templateId);
+
+            const recInput = document.getElementById(`recipient-input-${safeOrderId}`);
+            const recName = recInput ? recInput.value.trim() : '';
+
+            if (targetIdx >= 0 && targetIdx < itemsList.length) {
+              itemsList[targetIdx].photos_uploaded = true;
+              itemsList[targetIdx].photosUploaded = true;
+              itemsList[targetIdx].photo_urls = uploadedUrls;
+              itemsList[targetIdx].imageUrls = uploadedUrls;
+              if (recName) {
+                itemsList[targetIdx].recipient_name = recName;
+                itemsList[targetIdx].recipientName = recName;
+              }
+            }
+          }
+
+          const allMagazinesUploaded = itemsList.length === 0 || itemsList.every(it => it.product_type !== 'magazine' || it.photos_uploaded || it.photosUploaded);
+
+          await docRef.set({
+            items: itemsList.length > 0 ? itemsList : docData.items,
+            photos_uploaded: allMagazinesUploaded,
+            photosUploaded: allMagazinesUploaded,
+            imageUrls: uploadedUrls.length > 0 ? uploadedUrls : (docData.imageUrls || []),
+            updated_at: new Date().toISOString()
+          }, { merge: true });
+        } else {
+          await docRef.set({
+            photos_uploaded: true,
+            photosUploaded: true,
+            imageUrls: uploadedUrls,
+            updated_at: new Date().toISOString()
+          }, { merge: true });
+        }
       }
-    } catch (fsErr) {}
+    } catch (fsErr) {
+      console.warn('Error updating Firestore upload status:', fsErr);
+    }
 
     cleanupObjectUrls();
 

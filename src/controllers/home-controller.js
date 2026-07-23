@@ -4,7 +4,7 @@ import { setupLazyCloudinaryImages, buildCloudinaryDeliveryUrl } from '../utils/
 import { escapeHtml, qs } from '../utils/ui.js';
 
 function renderShowcaseCard(template = {}) {
-  const price = Number(template.price || 0);
+  const price = Number(template.price || template.customPrice || 0);
   const compare = comparePrice(template);
   const discount = discountPercent(template);
   const templateId = template.id || template._id || template.templateId;
@@ -13,21 +13,26 @@ function renderShowcaseCard(template = {}) {
   const gallery = [primaryImg, ...(template.galleryUrls || [])].filter(Boolean);
 
   return `
-    <div class="showcase-card bg-white rounded-2xl overflow-hidden shadow-xl border border-pink-100 grid grid-cols-1 lg:grid-cols-2">
-      <!-- Left Column: Product Image Gallery -->
-      <div class="relative bg-[#1a1a1a] flex items-center justify-center min-h-[380px] md:min-h-[460px] overflow-hidden">
-        <img id="showcase-img-${template.id || 'default'}" src="${buildCloudinaryDeliveryUrl(primaryImg, { width: 800 })}" alt="${escapeHtml(template.title)}" class="w-full h-full object-cover transition-all duration-300">
+    <div class="showcase-card bg-white rounded-2xl overflow-hidden shadow-2xl border border-pink-100 grid grid-cols-1 lg:grid-cols-12 max-w-5xl mx-auto my-2 max-h-[85vh] lg:max-h-[540px]">
+      <!-- Left Column: Product Image Gallery (Fixed container showing 100% full uncropped image) -->
+      <div class="relative bg-gray-950 lg:col-span-6 flex items-center justify-center p-4 overflow-hidden h-[360px] sm:h-[440px] lg:h-[540px] group">
+        <!-- Ambient Blurred Background Image for rich visual aesthetics -->
+        <img id="showcase-bg-${template.id || 'default'}" src="${buildCloudinaryDeliveryUrl(primaryImg, { width: 300 })}" alt="" class="absolute inset-0 w-full h-full object-cover blur-2xl opacity-30 scale-125 pointer-events-none transition-all duration-300">
+
+        <!-- 100% Uncropped Full View Display Image -->
+        <img id="showcase-img-${template.id || 'default'}" src="${buildCloudinaryDeliveryUrl(primaryImg, { width: 900 })}" alt="${escapeHtml(template.title || template.name)}" class="relative z-10 max-w-full max-h-full object-contain drop-shadow-2xl transition-all duration-300">
+
         ${gallery.length > 1 ? `
-          <button type="button" onclick="const img = document.getElementById('showcase-img-${template.id}'); const urls = ${JSON.stringify(gallery).replace(/"/g, '&quot;')}; let idx = parseInt(img.dataset.idx || 0); idx = (idx - 1 + urls.length) % urls.length; img.src = urls[idx]; img.dataset.idx = idx;" class="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 text-[#2A2A2A] flex items-center justify-center shadow-md cursor-pointer hover:bg-white text-xs z-10"><i class="fa-solid fa-chevron-left"></i></button>
-          <button type="button" onclick="const img = document.getElementById('showcase-img-${template.id}'); const urls = ${JSON.stringify(gallery).replace(/"/g, '&quot;')}; let idx = parseInt(img.dataset.idx || 0); idx = (idx + 1) % urls.length; img.src = urls[idx]; img.dataset.idx = idx;" class="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 text-[#2A2A2A] flex items-center justify-center shadow-md cursor-pointer hover:bg-white text-xs z-10"><i class="fa-solid fa-chevron-right"></i></button>
+          <button type="button" onclick="const img = document.getElementById('showcase-img-${template.id}'); const bg = document.getElementById('showcase-bg-${template.id}'); const urls = ${JSON.stringify(gallery).replace(/"/g, '&quot;')}; let idx = parseInt(img.dataset.idx || 0); idx = (idx - 1 + urls.length) % urls.length; img.src = urls[idx]; if(bg) bg.src = urls[idx]; img.dataset.idx = idx;" class="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/90 text-[#2A2A2A] flex items-center justify-center shadow-lg cursor-pointer hover:bg-white hover:scale-110 active:scale-95 text-xs z-20 border border-pink-100"><i class="fa-solid fa-chevron-left"></i></button>
+          <button type="button" onclick="const img = document.getElementById('showcase-img-${template.id}'); const bg = document.getElementById('showcase-bg-${template.id}'); const urls = ${JSON.stringify(gallery).replace(/"/g, '&quot;')}; let idx = parseInt(img.dataset.idx || 0); idx = (idx + 1) % urls.length; img.src = urls[idx]; if(bg) bg.src = urls[idx]; img.dataset.idx = idx;" class="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/90 text-[#2A2A2A] flex items-center justify-center shadow-lg cursor-pointer hover:bg-white hover:scale-110 active:scale-95 text-xs z-20 border border-pink-100"><i class="fa-solid fa-chevron-right"></i></button>
         ` : ''}
       </div>
 
       <!-- Right Column: Product Info & Purchase Options -->
-      <div class="bg-[#FDF0F4] p-6 md:p-8 flex flex-col justify-between space-y-6">
+      <div class="bg-[#FDF0F4] lg:col-span-6 p-6 sm:p-8 flex flex-col justify-between space-y-4 overflow-y-auto max-h-[540px]">
         <div>
           <h3 class="font-heading text-2xl md:text-3xl text-[#2A2A2A] font-normal mb-3 leading-snug">
-            <a href="${detailsUrl}" class="hover:text-primary transition-colors">${escapeHtml(template.title || 'Untitled Product')}</a>
+            <a href="${detailsUrl}" class="hover:text-primary transition-colors">${escapeHtml(template.title || template.name || 'Untitled Product')}</a>
           </h3>
           <div class="flex items-baseline gap-3 mb-1">
             <strong class="text-2xl md:text-3xl font-bold text-[#2A2A2A]">₹${price}</strong>
@@ -37,8 +42,8 @@ function renderShowcaseCard(template = {}) {
           <p class="text-xs text-text-soft mb-6">Incl. of all taxes</p>
 
           <div class="grid grid-cols-2 gap-4 mb-6">
-            <button onclick="addTemplateToCart(${JSON.stringify(template).replace(/"/g, '&quot;')})" type="button" class="py-3 px-4 rounded-xl border-2 border-primary bg-white/60 hover:bg-white text-primary font-bold text-sm transition-colors cursor-pointer text-center">Add To Cart</button>
-            <button onclick="addTemplateToCart(${JSON.stringify(template).replace(/"/g, '&quot;')}); window.location.href='/pages/cart'" type="button" class="py-3 px-4 rounded-xl bg-[#DC3C71] hover:bg-[#c23260] text-white font-bold text-sm shadow-md transition-colors cursor-pointer text-center">Buy Now</button>
+            <button onclick="addTemplateToCart(${JSON.stringify(template).replace(/"/g, '&quot;')})" type="button" class="py-3 px-4 rounded-xl border-2 border-primary bg-white/80 hover:bg-white text-primary font-bold text-sm transition-all cursor-pointer text-center active:scale-95 shadow-sm">Add To Cart</button>
+            <button onclick="addTemplateToCart(${JSON.stringify(template).replace(/"/g, '&quot;')}); window.location.href='/pages/cart'" type="button" class="py-3 px-4 rounded-xl bg-[#DC3C71] hover:bg-[#c23260] text-white font-bold text-sm shadow-md transition-all cursor-pointer text-center active:scale-95">Buy Now</button>
           </div>
 
           <div class="space-y-2.5 text-xs text-[#2A2A2A] pt-4 border-t border-pink-200/60">

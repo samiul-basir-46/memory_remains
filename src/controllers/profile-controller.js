@@ -1,7 +1,7 @@
 import { getFirebaseServices } from '../services/firebase-service.js';
 import { updateUserProfileInfo, openAuthModal } from '../services/auth-service.js';
 import { renderPhotoUploadUI } from '../components/photo-upload.js';
-import { createToast, qs } from '../utils/ui.js';
+import { createToast, qs, escapeHtml } from '../utils/ui.js';
 
 let currentActiveUser = null;
 
@@ -142,51 +142,51 @@ async function loadUserOrders(user) {
     const { db } = getFirebaseServices();
     if (!db) return;
 
-    const snapshot = await db.collection('purchases')
-      .where('user_id', '==', user.uid)
-      .get();
+    if (window.__userOrdersUnsub) {
+      window.__userOrdersUnsub();
+      window.__userOrdersUnsub = null;
+    }
 
-    let orders = [];
-    snapshot.forEach(doc => {
-      orders.push({ id: doc.id, ...doc.data() });
-    });
-
-    if (orders.length === 0 && (user.phoneNumber || user.email)) {
-      const altSnap = await db.collection('purchases').get();
-      altSnap.forEach(doc => {
+    window.__userOrdersUnsub = db.collection('purchases').onSnapshot((snapshot) => {
+      let orders = [];
+      snapshot.forEach(doc => {
         const d = doc.data();
-        if (d.customer_phone === user.phoneNumber || (user.email && d.customer_email === user.email)) {
-          if (!orders.some(o => o.id === doc.id)) {
-            orders.push({ id: doc.id, ...d });
-          }
+        const matchesUser = (user.uid && (d.user_id === user.uid || d.userId === user.uid)) ||
+                            (user.email && (d.email === user.email || d.customer_email === user.email)) ||
+                            (user.phoneNumber && (d.customer_phone === user.phoneNumber || d.customerPhone === user.phoneNumber));
+
+        if (matchesUser) {
+          orders.push({ id: doc.id, order_id: doc.id, ...d });
         }
       });
-    }
 
-    orders.sort((a, b) => {
-      const da = a.created_at?.toDate ? a.created_at.toDate() : new Date(a.created_at || 0);
-      const db = b.created_at?.toDate ? b.created_at.toDate() : new Date(b.created_at || 0);
-      return db - da;
-    });
+      orders.sort((a, b) => {
+        const da = a.created_at?.toDate ? a.created_at.toDate() : new Date(a.created_at || a.purchaseDate || 0);
+        const dbTime = b.created_at?.toDate ? b.created_at.toDate() : new Date(b.created_at || b.purchaseDate || 0);
+        return dbTime - da;
+      });
 
-    loadingState.classList.add('hidden');
+      loadingState.classList.add('hidden');
 
-    if (ordersBadge) {
-      ordersBadge.textContent = orders.length;
-      ordersBadge.classList.remove('hidden');
-    }
+      if (ordersBadge) {
+        ordersBadge.textContent = orders.length;
+        ordersBadge.classList.remove('hidden');
+      }
 
-    if (orders.length === 0) {
-      emptyState.classList.remove('hidden');
-      return;
-    }
+      if (orders.length === 0) {
+        emptyState.classList.remove('hidden');
+        listContainer.classList.add('hidden');
+        return;
+      }
 
-    listContainer.innerHTML = '';
-    listContainer.classList.remove('hidden');
+      emptyState.classList.add('hidden');
+      listContainer.innerHTML = '';
+      listContainer.classList.remove('hidden');
 
-    orders.forEach(order => {
-      const orderCard = renderOrderCard(order);
-      listContainer.appendChild(orderCard);
+      orders.forEach(order => {
+        const orderCard = renderOrderCard(order);
+        listContainer.appendChild(orderCard);
+      });
     });
 
   } catch (err) {
@@ -204,13 +204,22 @@ function renderOrderCard(order) {
   const status = (order.status || 'pending').toLowerCase();
   let statusBadge = `<span class="px-3 py-1 bg-amber-50 text-amber-800 border border-amber-200 text-xs font-bold rounded-full">⏳ Payment Pending</span>`;
 
-  if (status === 'paid') {
+  if (status === 'confirmed' || status === 'paid') {
     statusBadge = `<span class="px-3 py-1 bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-bold rounded-full">✅ Payment Verified</span>`;
+  } else if (status === 'preparing') {
+    statusBadge = `<span class="px-3 py-1 bg-purple-50 text-purple-800 border border-purple-200 text-xs font-bold rounded-full">📦 Preparing Order</span>`;
+  } else if (status === 'shipped') {
+    statusBadge = `<span class="px-3 py-1 bg-blue-50 text-blue-800 border border-blue-200 text-xs font-bold rounded-full">🚚 Shipped</span>`;
   } else if (status === 'delivered') {
-    statusBadge = `<span class="px-3 py-1 bg-blue-50 text-blue-800 border border-blue-200 text-xs font-bold rounded-full">🚀 Delivered</span>`;
+    statusBadge = `<span class="px-3 py-1 bg-emerald-100 text-emerald-800 border border-emerald-300 text-xs font-bold rounded-full">🎉 Delivered Successfully</span>`;
   } else if (status === 'completed') {
-    statusBadge = `<span class="px-3 py-1 bg-gray-100 text-gray-800 border border-gray-200 text-xs font-bold rounded-full">🎉 Completed</span>`;
+    statusBadge = `<span class="px-3 py-1 bg-emerald-100 text-emerald-800 border border-emerald-300 text-xs font-bold rounded-full">🎉 Completed</span>`;
   }
+
+  const isConfirmed = ['paid', 'confirmed', 'preparing', 'shipped', 'delivered', 'completed'].includes(status);
+  const isPreparing = ['preparing', 'shipped', 'delivered', 'completed'].includes(status);
+  const isShipped = ['shipped', 'delivered', 'completed'].includes(status);
+  const isDelivered = ['delivered', 'completed'].includes(status);
 
   const items = order.items && Array.isArray(order.items) && order.items.length > 0
     ? order.items
@@ -240,6 +249,43 @@ function renderOrderCard(order) {
         <span class="text-xs text-gray-500 block">Total Amount</span>
         <span class="text-lg font-bold text-primary font-mono">৳${(order.expected_amount || order.amount || 0).toFixed(0)}</span>
       </div>
+    </div>
+
+    <!-- Timeline Progression -->
+    <div class="p-3.5 bg-pink-50/40 rounded-xl border border-pink-100 space-y-2">
+      <span class="text-[10px] font-bold text-gray-500 uppercase tracking-wider block">Order Status Timeline</span>
+      <div class="flex items-center justify-between text-xs">
+        <div class="flex flex-col items-center text-center">
+          <div class="w-6 h-6 rounded-full flex items-center justify-center font-bold text-[11px] ${isConfirmed ? 'bg-emerald-500 text-white shadow-sm' : 'bg-gray-200 text-gray-400'}">✓</div>
+          <span class="text-[9px] font-bold mt-1 ${isConfirmed ? 'text-emerald-700' : 'text-gray-400'}">Verified</span>
+        </div>
+        <div class="h-0.5 flex-1 mx-1 ${isPreparing ? 'bg-purple-500' : 'bg-gray-200'}"></div>
+        <div class="flex flex-col items-center text-center">
+          <div class="w-6 h-6 rounded-full flex items-center justify-center font-bold text-[11px] ${isPreparing ? 'bg-purple-600 text-white shadow-sm' : 'bg-gray-200 text-gray-400'}">📦</div>
+          <span class="text-[9px] font-bold mt-1 ${isPreparing ? 'text-purple-700' : 'text-gray-400'}">Preparing</span>
+        </div>
+        <div class="h-0.5 flex-1 mx-1 ${isShipped ? 'bg-blue-500' : 'bg-gray-200'}"></div>
+        <div class="flex flex-col items-center text-center">
+          <div class="w-6 h-6 rounded-full flex items-center justify-center font-bold text-[11px] ${isShipped ? 'bg-blue-600 text-white shadow-sm' : 'bg-gray-200 text-gray-400'}">🚚</div>
+          <span class="text-[9px] font-bold mt-1 ${isShipped ? 'text-blue-700' : 'text-gray-400'}">Shipped</span>
+        </div>
+        <div class="h-0.5 flex-1 mx-1 ${isDelivered ? 'bg-emerald-500' : 'bg-gray-200'}"></div>
+        <div class="flex flex-col items-center text-center">
+          <div class="w-6 h-6 rounded-full flex items-center justify-center font-bold text-[11px] ${isDelivered ? 'bg-emerald-600 text-white shadow-sm' : 'bg-gray-200 text-gray-400'}">🎉</div>
+          <span class="text-[9px] font-bold mt-1 ${isDelivered ? 'text-emerald-700' : 'text-gray-400'}">Delivered</span>
+        </div>
+      </div>
+      ${(order.courier_name || order.courierName || order.tracking_number || order.trackingNumber) ? `
+        <div class="mt-2 p-2.5 bg-blue-50/80 rounded-xl border border-blue-200 text-xs text-blue-900 flex items-center justify-between shadow-sm">
+          <div class="flex items-center gap-2.5">
+            <i class="fa-solid fa-truck-fast text-blue-600 text-base"></i>
+            <div>
+              <span class="font-bold text-blue-900 block">Courier: ${escapeHtml(order.courier_name || order.courierName || 'Courier Delivery')}</span>
+              ${(order.tracking_number || order.trackingNumber) ? `<span class="text-[11px] text-blue-700 font-medium">Tracking Code: <strong class="font-mono bg-blue-100 px-1.5 py-0.5 rounded text-blue-900">${escapeHtml(order.tracking_number || order.trackingNumber)}</strong></span>` : ''}
+            </div>
+          </div>
+        </div>
+      ` : ''}
     </div>
 
     <!-- Items List -->
@@ -274,8 +320,10 @@ function renderOrderCard(order) {
       const uploadArea = document.createElement('div');
       uploadArea.className = 'mt-3 pt-3 border-t border-pink-100';
 
-      const isPaid = status === 'paid' || status === 'delivered' || status === 'completed';
-      const itemOrderId = item.item_id || `${order.id || order.order_id}-${index + 1}`;
+      const isPaid = ['paid', 'confirmed', 'preparing', 'shipped', 'delivered', 'completed'].includes(status);
+      const mainOrderId = order.id || order.order_id || order.orderId;
+
+      const itemUploaded = Boolean(item.photos_uploaded || item.photosUploaded || order.photos_uploaded || order.photosUploaded);
 
       if (!isPaid) {
         uploadArea.innerHTML = `
@@ -284,11 +332,20 @@ function renderOrderCard(order) {
             <span>Payment Verification Pending — Photo upload will unlock automatically once your payment is verified by Admin.</span>
           </div>
         `;
+      } else if (itemUploaded) {
+        uploadArea.innerHTML = `
+          <div class="p-3 bg-emerald-50 rounded-xl border border-emerald-200 text-xs text-emerald-800 font-bold flex items-center gap-2 shadow-sm">
+            <i class="fa-solid fa-circle-check text-emerald-600 text-base"></i>
+            <span>✅ Photos Received (${item.required_photo_count || 10} photos uploaded) — Your magazine is being prepared by our team.</span>
+          </div>
+        `;
       } else {
         renderPhotoUploadUI(uploadArea, {
-          orderId: itemOrderId,
+          orderId: mainOrderId,
+          itemId: item.item_id,
+          itemIndex: index,
           requiredPhotoCount: item.required_photo_count || 10,
-          photosUploaded: item.photos_uploaded || false,
+          photosUploaded: false,
           onSuccess: () => {
             createToast(`Photos uploaded for ${item.template_name || 'item'}!`);
             item.photos_uploaded = true;

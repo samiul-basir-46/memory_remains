@@ -516,6 +516,9 @@ function renderPaymentInstructionsStep(db, checkoutData) {
           paymentMethod: checkoutData.payment_method === 'cod' ? 'bKash (COD Advance)' : 'bKash (Full Online)',
           amount: expectedAmount,
           pricePaid: expectedAmount,
+          expected_amount: expectedAmount,
+          expectedAmount: expectedAmount,
+          expected: expectedAmount,
           user_id: currentUser?.uid || 'guest',
           userId: currentUser?.uid || currentUser?.email || checkoutData.customer_phone || 'guest',
           email: currentUser?.email || '',
@@ -573,7 +576,9 @@ function renderPaymentInstructionsStep(db, checkoutData) {
           customer_phone: checkoutData.customer_phone,
           product_amount: checkoutData.product_amount,
           delivery_charge: checkoutData.delivery_charge,
-          payment_method: checkoutData.payment_method
+          payment_method: checkoutData.payment_method,
+          expected_amount: expectedAmount,
+          expected_advance: expectedAmount
         })
       });
 
@@ -603,6 +608,29 @@ async function startVerificationPolling(db, orderId, trxId, checkoutData) {
 
   currentAttemptCount++;
   renderPendingPollingState(orderId, trxId, currentAttemptCount);
+
+  // Subscribe to real-time Firestore updates so Admin approval instantly triggers Success screen
+  if (db && typeof db.collection === 'function' && !window.__orderSnapshotUnsub) {
+    window.__orderSnapshotUnsub = db.collection('purchases').doc(orderId).onSnapshot((docSnap) => {
+      if (docSnap.exists) {
+        const docData = docSnap.data();
+        const status = (docData.status || docData.paymentStatus || '').toLowerCase();
+        if (['paid', 'confirmed', 'preparing', 'shipped', 'delivered', 'completed'].includes(status)) {
+          if (window.__orderSnapshotUnsub) {
+            window.__orderSnapshotUnsub();
+            window.__orderSnapshotUnsub = null;
+          }
+          if (activePollingTimer) {
+            clearTimeout(activePollingTimer);
+            activePollingTimer = null;
+          }
+          clearCart();
+          updateCartCount();
+          renderPaidSuccessScreen(orderId, checkoutData, docData);
+        }
+      }
+    });
+  }
 
   try {
     const res = await fetch(`${API_BASE}/verify-payment`, {
@@ -995,6 +1023,14 @@ function renderPollingTimeoutState(db, orderId, trxId) {
           </div>
         </div>
 
+        <div class="p-3.5 bg-amber-50/80 border border-amber-200/90 rounded-xl text-left text-xs text-amber-900 leading-relaxed space-y-1 shadow-sm">
+          <div class="flex items-center gap-1.5 text-amber-800 font-bold">
+            <i class="fa-solid fa-circle-exclamation text-amber-600"></i>
+            <span>Note:</span>
+          </div>
+          <p>If your status does not change to <strong class="font-bold text-amber-950">"Paid" / "Verified"</strong> within <strong class="font-bold text-amber-950">5 minutes</strong>, please contact our support team on <strong class="font-bold text-emerald-700">WhatsApp</strong>.</p>
+        </div>
+
         <div class="space-y-3">
           <a href="/pages/profile#orders" class="w-full py-3.5 bg-[#DC3C71] hover:bg-[#c23260] text-white font-bold text-sm rounded-xl shadow-md transition-colors inline-flex items-center justify-center gap-2 no-underline">
             <i class="fa-solid fa-box-archive"></i>
@@ -1179,7 +1215,7 @@ async function handlePageRefreshRecovery(db, orderId) {
       renderPaymentInstructionsStep(db, orderData);
     } else if (status === 'pending') {
       startVerificationPolling(db, orderId, orderData.trx_id || '', orderData);
-    } else if (status === 'paid' || status === 'delivered' || status === 'completed') {
+    } else if (['paid', 'confirmed', 'preparing', 'shipped', 'delivered', 'completed'].includes(status)) {
       renderPaidSuccessScreen(orderId, orderData, orderData);
     } else if (status === 'flagged') {
       const reason = orderData.reason || orderData.flag_reason;
