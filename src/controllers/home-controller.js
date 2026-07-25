@@ -1,4 +1,4 @@
-import { fetchTemplates, getCachedTemplates, setCachedTemplates, DEFAULT_FEATURED_TEMPLATES, comparePrice, discountPercent } from '../services/templates-service.js';
+import { fetchTemplates, fetchCollections, getCachedTemplates, setCachedTemplates, DEFAULT_FEATURED_TEMPLATES, comparePrice, discountPercent } from '../services/templates-service.js';
 import { renderProductCard } from '../components/product-card.js';
 import { setupLazyCloudinaryImages, buildCloudinaryDeliveryUrl } from '../utils/cloudinary.js';
 import { escapeHtml, qs } from '../utils/ui.js';
@@ -64,18 +64,49 @@ function renderShowcaseCard(template = {}) {
 
 export async function renderHomePage(db) {
   let homeTemplates = [];
-
-  const collections = [
-    { title: 'FOR HER', display: 'FOR HER', linkTitle: 'FOR HER' },
-    { title: 'I Love My Self', display: 'I LOVE<br>MY SELF', linkTitle: 'I Love My Self' },
-    { title: 'Best Selling', display: 'BEST<br>SELLING', linkTitle: 'Best Selling' },
-    { title: 'Birthday Special', display: 'BIRTHDAY<br>SPECIAL', linkTitle: 'Birthday Special' }
-  ];
+  let fetchedCollections = [];
 
   const categories = ['FOR HIM', 'FOR HER', 'Birthday Special', 'Anniversary', 'Best Selling', 'Self Love'];
 
-  const renderHomeSections = (templatesList = []) => {
+  const renderHomeSections = (templatesList = [], collectionsList = []) => {
     const list = (templatesList && templatesList.length > 0) ? templatesList : DEFAULT_FEATURED_TEMPLATES;
+
+    // Determine dynamic collections
+    let collectionsToRender = [];
+    if (collectionsList && collectionsList.length > 0) {
+      collectionsToRender = collectionsList.map((c) => ({
+        name: c.name || c.title || 'Collection',
+        slug: c.slug || c.id || c.name,
+        cover_image_url: c.cover_image_url || c.coverImageUrl || c.image || ''
+      }));
+    } else {
+      const colMap = new Map();
+      list.forEach((t) => {
+        const colName = (t.collection || t.category || '').trim();
+        if (colName && !colMap.has(colName.toLowerCase())) {
+          colMap.set(colName.toLowerCase(), {
+            name: colName,
+            slug: colName,
+            cover_image_url: t.imageUrl || ''
+          });
+        }
+      });
+      collectionsToRender = Array.from(colMap.values());
+
+      if (collectionsToRender.length === 0) {
+        collectionsToRender = [
+          { name: 'FOR HER', slug: 'FOR HER' },
+          { name: 'I Love My Self', slug: 'I Love My Self' },
+          { name: 'Best Selling', slug: 'Best Selling' },
+          { name: 'Birthday Special', slug: 'Birthday Special' }
+        ];
+      }
+    }
+
+    // Limit to 4-8 collections for layout harmony
+    if (collectionsToRender.length > 8) {
+      collectionsToRender = collectionsToRender.slice(0, 8);
+    }
 
     // 1. Featured Products Slider
     const featuredCarousel = qs('#featured-carousel');
@@ -84,17 +115,27 @@ export async function renderHomePage(db) {
       featuredCarousel.innerHTML = featuredList.map(renderProductCard).join('');
     }
 
-    // 2. Shop by Collection (Dark Maroon Cards)
+    // 2. Shop by Collection (Dynamic Cards)
     const collectionsGrid = qs('#collections-grid');
     if (collectionsGrid) {
-      collectionsGrid.innerHTML = collections.map((col) => `
-        <a href="/collections/paid-products?title=${encodeURIComponent(col.linkTitle)}" class="megamenu-card flex flex-col gap-3 no-underline group">
-          <div class="megamenu-card-bg bg-[#360505] rounded-xl aspect-[3/4] flex items-center justify-center p-4 text-center border-2 border-transparent transition-all duration-300 group-hover:scale-105 group-hover:-translate-y-1 group-hover:border-primary group-hover:shadow-2xl">
-            <span class="text-white font-heading text-2xl font-bold leading-tight text-glow">${col.display}</span>
-          </div>
-          <span class="megamenu-card-title text-text-dark text-sm font-semibold text-center group-hover:text-primary transition-colors">${escapeHtml(col.title)}</span>
-        </a>
-      `).join('');
+      collectionsGrid.innerHTML = collectionsToRender.map((col) => {
+        const name = col.name;
+        const coverImg = col.cover_image_url;
+        const linkUrl = `/collections/paid-products?title=${encodeURIComponent(name)}`;
+
+        return `
+          <a href="${linkUrl}" class="megamenu-card flex flex-col gap-3 no-underline group">
+            <div class="megamenu-card-bg relative bg-[#360505] rounded-xl aspect-[3/4] overflow-hidden flex items-center justify-center p-4 text-center border-2 border-transparent transition-all duration-300 group-hover:scale-105 group-hover:-translate-y-1 group-hover:border-primary group-hover:shadow-2xl">
+              ${coverImg ? `
+                <img src="${buildCloudinaryDeliveryUrl(coverImg, { width: 400 })}" alt="${escapeHtml(name)}" class="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-75 transition-opacity">
+                <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
+              ` : ''}
+              <span class="relative z-10 text-white font-heading text-2xl font-bold leading-tight text-glow uppercase">${escapeHtml(name)}</span>
+            </div>
+            <span class="megamenu-card-title text-text-dark text-sm font-semibold text-center group-hover:text-primary transition-colors">${escapeHtml(name)}</span>
+          </a>
+        `;
+      }).join('');
     }
 
     // 3. Best Selling Showcase
@@ -160,21 +201,30 @@ export async function renderHomePage(db) {
     const cached = getCachedTemplates();
     if (cached && cached.length > 0) {
       homeTemplates = cached;
-      renderHomeSections(homeTemplates);
     } else {
-      renderHomeSections(DEFAULT_FEATURED_TEMPLATES);
+      homeTemplates = DEFAULT_FEATURED_TEMPLATES;
     }
 
+    renderHomeSections(homeTemplates, fetchedCollections);
     initCarouselButtons();
 
-    const fresh = await fetchTemplates(db, { orderByCreated: false });
-    if (fresh && fresh.length > 0) {
-      homeTemplates = fresh;
-      setCachedTemplates(fresh);
-      renderHomeSections(homeTemplates);
+    const [freshTemplates, cols] = await Promise.all([
+      fetchTemplates(db, { orderByCreated: false }),
+      fetchCollections(db)
+    ]);
+
+    if (cols && cols.length > 0) {
+      fetchedCollections = cols;
     }
+
+    if (freshTemplates && freshTemplates.length > 0) {
+      homeTemplates = freshTemplates;
+      setCachedTemplates(freshTemplates);
+    }
+
+    renderHomeSections(homeTemplates, fetchedCollections);
   } catch (error) {
     console.error('Failed to load home templates:', error);
-    renderHomeSections(DEFAULT_FEATURED_TEMPLATES);
+    renderHomeSections(DEFAULT_FEATURED_TEMPLATES, fetchedCollections);
   }
 }
