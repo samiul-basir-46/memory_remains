@@ -31,16 +31,25 @@ export function renderProductCard(template = {}) {
   const discount = discountPercent(template);
   const requiredPhotos = template.requiredPhotos || 12;
   const templateId = template.id || template._id || template.templateId;
-  const detailsUrl = templateId ? `/pages/product-details?id=${encodeURIComponent(templateId)}` : '#';
+  const detailsUrl = templateId ? `/pages/product-details/?id=${encodeURIComponent(templateId)}` : '#';
 
   const primaryImg = template.imageUrl || FALLBACK_IMAGE;
   const secondaryImg = (template.galleryUrls && template.galleryUrls.length > 0) ? template.galleryUrls[0] : null;
+
+  const isPoster = meta.label === 'Poster';
+  const comboPrices = template.comboPrices || {};
+  let priceText = `৳${price}`;
+  if (isPoster && comboPrices['5']) {
+    priceText = `From ৳${comboPrices['5']}`;
+  }
 
   return `
     <article class="product-card flex-shrink-0 w-[270px] rounded-xl overflow-hidden border shadow-sm hover:shadow-md transition-all duration-300" style="background:${meta.cardBg};border-color:${meta.cardBorder}" data-product-card>
       <a href="${detailsUrl}" class="product-card__media relative block aspect-square bg-[#1a1a1a] overflow-hidden ${secondaryImg ? 'has-hover-image' : ''}">
         <span class="product-badge absolute top-2.5 left-2.5 z-10 px-3 py-1 ${meta.badgeBg} text-white text-xs font-semibold rounded-md shadow-sm">${escapeHtml(badge)}</span>
-        <span class="absolute top-2.5 right-2.5 z-10 px-2 py-0.5 bg-black/60 backdrop-blur-md text-white text-[11px] font-medium rounded-md flex items-center gap-1"><i class="fa-solid fa-camera text-[10px]"></i> ${requiredPhotos} Photos</span>
+        <span class="absolute top-2.5 right-2.5 z-10 px-2 py-0.5 bg-black/60 backdrop-blur-md text-white text-[11px] font-medium rounded-md flex items-center gap-1">
+          ${isPoster ? '<i class="fa-solid fa-layer-group text-[10px]"></i> 5-20 Pcs Combo' : `<i class="fa-solid fa-camera text-[10px]"></i> ${requiredPhotos} Photos`}
+        </span>
         ${imageMarkup(primaryImg, template.title, 'product-card__image primary-image absolute inset-0 w-full h-full object-cover transition-transform duration-300 hover:scale-105')}
         ${secondaryImg ? imageMarkup(secondaryImg, template.title, 'product-card__image secondary-image absolute inset-0 w-full h-full object-cover transition-transform duration-300 hover:scale-105') : ''}
       </a>
@@ -49,8 +58,8 @@ export function renderProductCard(template = {}) {
           <a href="${detailsUrl}" class="hover:text-primary transition-colors">${escapeHtml(template.title || 'Untitled product')}</a>
         </h3>
         <div class="product-price-row flex items-baseline gap-2 flex-wrap">
-          <strong class="text-[#2A2A2A] text-xl font-bold">₹${price}</strong>
-          ${compare ? `<span class="text-gray-500 line-through text-sm">₹${compare}</span>` : ''}
+          <strong class="text-[#2A2A2A] text-xl font-bold">${priceText}</strong>
+          ${compare ? `<span class="text-gray-500 line-through text-sm">৳${compare}</span>` : ''}
           ${discount ? `<span class="text-[#00664E] text-sm font-normal ml-auto">${discount}% Off</span>` : ''}
         </div>
       </div>
@@ -62,6 +71,7 @@ export function renderProductCardV2(template = {}) {
   const meta = getTypeMeta(template.product_type);
   const productType = String(template.product_type || 'magazine').toLowerCase().replace(/\s+/g, '_');
   const isMagazine = productType === 'magazine';
+  const isPoster = productType === 'poster';
 
   const badge = template.badge || meta.label;
   const price = Number(template.price || template.magazine_price || 0);
@@ -73,7 +83,13 @@ export function renderProductCardV2(template = {}) {
   const deliveryCharge = Number(template.delivery_charge || template.deliveryCharge || 0);
 
   const templateId = template.id || template._id || template.templateId;
-  const detailsUrl = templateId ? `/pages/product-details?id=${encodeURIComponent(templateId)}` : '#';
+  const detailsUrl = templateId ? `/pages/product-details/?id=${encodeURIComponent(templateId)}` : '#';
+
+  const comboPrices = template.comboPrices || {};
+  let displayPrice = `৳${price}`;
+  if (isPoster && comboPrices['5']) {
+    displayPrice = `From ৳${comboPrices['5']}`;
+  }
 
   const safeData = encodeURIComponent(JSON.stringify({
     id: template.id,
@@ -93,24 +109,38 @@ export function renderProductCardV2(template = {}) {
 
   const typeLabel = `<span class="inline-flex items-center gap-1 absolute bottom-2 left-2.5 z-10 px-2 py-0.5 ${meta.badgeBg} text-white text-[10px] font-semibold rounded-full shadow-sm opacity-90">${meta.emoji} ${meta.label}</span>`;
 
-  const priceBlock = isMagazine && canSellTemplate ? `
-    <div class="flex items-center gap-1.5 mt-2.5">
-      <button type="button" class="card-add-to-cart flex-1 py-2 text-center rounded-lg bg-primary text-white text-xs font-bold hover:bg-primary-strong transition-colors cursor-pointer" data-mode="magazine" data-template="${safeData}">🛍️ Order ₹${price}</button>
-      <button type="button" class="card-add-to-cart flex-1 py-2 text-center rounded-lg border border-primary text-primary text-xs font-bold hover:bg-pink-50 transition-colors cursor-pointer" data-mode="template" data-template="${safeData}">🎨 Template ₹${templatePrice}</button>
-    </div>
-    <a href="${detailsUrl}" class="block text-center text-[10px] text-gray-400 hover:text-primary mt-1.5 transition-colors">View Details →</a>
-  ` : `
-    <div class="mt-2.5">
-      <button type="button" class="card-add-to-cart block w-full py-2 text-center rounded-lg bg-primary text-white text-xs font-bold hover:bg-primary-strong transition-colors cursor-pointer" data-mode="magazine" data-template="${safeData}">🛍️ Order Now ₹${price}</button>
-    </div>
-    <a href="${detailsUrl}" class="block text-center text-[10px] text-gray-400 hover:text-primary mt-1.5 transition-colors">View Details →</a>
-  `;
+  let priceBlock = '';
+  if (isPoster) {
+    priceBlock = `
+      <div class="mt-2.5">
+        <a href="${detailsUrl}" class="block w-full py-2 text-center rounded-lg bg-primary text-white text-xs font-bold hover:bg-primary-strong transition-colors cursor-pointer">📜 Customize Combo (${displayPrice})</a>
+      </div>
+      <a href="${detailsUrl}" class="block text-center text-[10px] text-gray-400 hover:text-primary mt-1.5 transition-colors">View Details →</a>
+    `;
+  } else if (isMagazine && canSellTemplate) {
+    priceBlock = `
+      <div class="flex items-center gap-1.5 mt-2.5">
+        <button type="button" class="card-add-to-cart flex-1 py-2 text-center rounded-lg bg-primary text-white text-xs font-bold hover:bg-primary-strong transition-colors cursor-pointer" data-mode="magazine" data-template="${safeData}">🛍️ Order ৳${price}</button>
+        <button type="button" class="card-add-to-cart flex-1 py-2 text-center rounded-lg border border-primary text-primary text-xs font-bold hover:bg-pink-50 transition-colors cursor-pointer" data-mode="template" data-template="${safeData}">🎨 Template ৳${templatePrice}</button>
+      </div>
+      <a href="${detailsUrl}" class="block text-center text-[10px] text-gray-400 hover:text-primary mt-1.5 transition-colors">View Details →</a>
+    `;
+  } else {
+    priceBlock = `
+      <div class="mt-2.5">
+        <button type="button" class="card-add-to-cart block w-full py-2 text-center rounded-lg bg-primary text-white text-xs font-bold hover:bg-primary-strong transition-colors cursor-pointer" data-mode="magazine" data-template="${safeData}">🛍️ Order Now ৳${price}</button>
+      </div>
+      <a href="${detailsUrl}" class="block text-center text-[10px] text-gray-400 hover:text-primary mt-1.5 transition-colors">View Details →</a>
+    `;
+  }
 
   return `
     <article class="product-card-v2 rounded-xl overflow-hidden border shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300" style="background:${meta.cardBg};border-color:${meta.cardBorder}" data-product-card>
       <a href="${detailsUrl}" class="product-card-v2__media relative block aspect-square bg-[#1a1a1a] overflow-hidden ${secondaryImg ? 'has-hover-image' : ''}">
         <span class="product-card-v2__badge absolute top-2.5 left-2.5 z-10 px-3 py-1 ${meta.badgeBg} text-white text-xs font-semibold rounded-md shadow-sm">${escapeHtml(badge)}</span>
-        <span class="absolute top-2.5 right-2.5 z-10 px-2 py-0.5 bg-black/60 backdrop-blur-md text-white text-[11px] font-medium rounded-md flex items-center gap-1"><i class="fa-solid fa-camera text-[10px]"></i> ${requiredPhotos}</span>
+        <span class="absolute top-2.5 right-2.5 z-10 px-2 py-0.5 bg-black/60 backdrop-blur-md text-white text-[11px] font-medium rounded-md flex items-center gap-1">
+          ${isPoster ? '<i class="fa-solid fa-layer-group text-[10px]"></i> 5-20 Pcs' : `<i class="fa-solid fa-camera text-[10px]"></i> ${requiredPhotos}`}
+        </span>
         ${imageMarkup(primaryImg, template.title, 'product-card-v2__image primary-image absolute inset-0 w-full h-full object-cover transition-transform duration-300 hover:scale-105')}
         ${secondaryImg ? imageMarkup(secondaryImg, template.title, 'product-card-v2__image secondary-image absolute inset-0 w-full h-full object-cover transition-transform duration-300 hover:scale-105') : ''}
         ${typeLabel}
@@ -120,8 +150,8 @@ export function renderProductCardV2(template = {}) {
           <a href="${detailsUrl}" class="hover:text-primary transition-colors">${escapeHtml(template.title || 'Untitled product')}</a>
         </h3>
         <div class="product-card-v2__price-row flex items-baseline gap-2 flex-wrap">
-          <strong class="product-card-v2__price text-[#2A2A2A] text-lg font-bold">₹${price}</strong>
-          ${compare ? `<span class="product-card-v2__mrp text-gray-400 line-through text-xs">₹${compare}</span>` : ''}
+          <strong class="product-card-v2__price text-[#2A2A2A] text-lg font-bold">${displayPrice}</strong>
+          ${compare ? `<span class="product-card-v2__mrp text-gray-400 line-through text-xs">৳${compare}</span>` : ''}
           ${discount ? `<span class="product-card-v2__discount text-[#00664E] text-xs font-semibold ml-auto">${discount}% Off</span>` : ''}
         </div>
         ${priceBlock}

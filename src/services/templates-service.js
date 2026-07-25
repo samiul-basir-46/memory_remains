@@ -167,6 +167,9 @@ export function normalizeTemplateData(docId, data = {}) {
   const collection = data.collection || categoryName || inferCollection(data);
   const badge = hasOffer ? `${Math.round(offerPct)}% OFF` : (data.badge || data.offer_badge || data.offerBadge || '');
 
+  const comboPrices = data.comboPrices || data.combo_prices || {};
+  const showcaseImages = Array.isArray(data.showcaseImages) ? data.showcaseImages : (Array.isArray(data.showcase_images) ? data.showcase_images : (Array.isArray(data.gallery) ? data.gallery : []));
+
   return {
     ...data,
     id: effectiveId,
@@ -202,6 +205,10 @@ export function normalizeTemplateData(docId, data = {}) {
     imageUrl: primaryImage,
     images: uniqueImages,
     galleryUrls: galleryUrls,
+    showcaseImages: showcaseImages,
+    comboPrices: comboPrices,
+    minQuantity: Number(data.minQuantity || data.min_quantity || 5),
+    maxQuantity: Number(data.maxQuantity || data.max_quantity || 20),
     magazineDescription: data.magazineDescription || descriptionText,
     templateDescription: data.templateDescription || descriptionText,
     description: descriptionText,
@@ -283,11 +290,24 @@ export async function fetchTemplates(db, { limit, categoryId, productType } = {}
 
   if (db) {
     try {
-      const snapshot = await db.collection('templates').get();
-      if (snapshot && snapshot.docs && snapshot.docs.length > 0) {
-        let list = snapshot.docs
-          .map((doc) => normalizeTemplateData(doc.id, doc.data()));
+      let combinedDocs = [];
+      const templatesSnap = await db.collection('templates').get();
+      if (templatesSnap && templatesSnap.docs) {
+        combinedDocs.push(...templatesSnap.docs.map((doc) => normalizeTemplateData(doc.id, doc.data())));
+      }
 
+      // Also fetch catalog_posters
+      try {
+        const postersSnap = await db.collection('catalog_posters').get();
+        if (postersSnap && postersSnap.docs) {
+          combinedDocs.push(...postersSnap.docs.map((doc) => normalizeTemplateData(doc.id, { productType: 'poster', product_type: 'poster', ...doc.data() })));
+        }
+      } catch (err) {
+        console.warn('catalog_posters fetch warning:', err);
+      }
+
+      if (combinedDocs.length > 0) {
+        let list = combinedDocs;
         list.sort((a, b) => (a.sort_order || 99) - (b.sort_order || 99));
 
         if (categoryId) {
@@ -328,6 +348,15 @@ export async function fetchTemplateById(db, targetId) {
       }
     } catch (err) {
       console.warn('fetchTemplateById direct doc fetch failed:', err);
+    }
+
+    try {
+      const posterDoc = await db.collection('catalog_posters').doc(cleanId).get();
+      if (posterDoc.exists) {
+        return normalizeTemplateData(posterDoc.id, { productType: 'poster', product_type: 'poster', ...posterDoc.data() });
+      }
+    } catch (err) {
+      console.warn('fetchTemplateById posterDoc fetch failed:', err);
     }
 
     try {

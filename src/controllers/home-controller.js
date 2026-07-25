@@ -8,7 +8,7 @@ function renderShowcaseCard(template = {}) {
   const compare = comparePrice(template);
   const discount = discountPercent(template);
   const templateId = template.id || template._id || template.templateId;
-  const detailsUrl = templateId ? `/pages/product-details?id=${encodeURIComponent(templateId)}` : '#';
+  const detailsUrl = templateId ? `/pages/product-details/?id=${encodeURIComponent(templateId)}` : '#';
   const primaryImg = template.imageUrl || '/assets/product_placeholder.png';
   const gallery = [primaryImg, ...(template.galleryUrls || [])].filter(Boolean);
 
@@ -35,8 +35,8 @@ function renderShowcaseCard(template = {}) {
             <a href="${detailsUrl}" class="hover:text-primary transition-colors">${escapeHtml(template.title || template.name || 'Untitled Product')}</a>
           </h3>
           <div class="flex items-baseline gap-3 mb-1">
-            <strong class="text-2xl md:text-3xl font-bold text-[#2A2A2A]">₹${price}</strong>
-            ${compare ? `<span class="text-gray-500 line-through text-base">₹${compare}</span>` : ''}
+            <strong class="text-2xl md:text-3xl font-bold text-[#2A2A2A]">৳${price}</strong>
+            ${compare ? `<span class="text-gray-500 line-through text-base">৳${compare}</span>` : ''}
             ${discount ? `<span class="text-[#00664E] font-semibold text-base">${discount}% Off</span>` : ''}
           </div>
           <p class="text-xs text-text-soft mb-6">Incl. of all taxes</p>
@@ -48,7 +48,7 @@ function renderShowcaseCard(template = {}) {
 
           <div class="space-y-2.5 text-xs text-[#2A2A2A] pt-4 border-t border-pink-200/60">
             <div class="flex items-center gap-2.5"><i class="fa-solid fa-truck text-primary text-sm"></i> <span>Delivered in 3-15 Days</span></div>
-            <div class="flex items-center gap-2.5"><i class="fa-solid fa-box text-primary text-sm"></i> <span>Free Delivery on all purchases above ₹999</span></div>
+            <div class="flex items-center gap-2.5"><i class="fa-solid fa-box text-primary text-sm"></i> <span>Free Delivery on all purchases above ৳999</span></div>
             <p class="text-[11px] text-text-soft pt-1">after placing order click on WhatsApp icon to share details (92503 03360)</p>
           </div>
         </div>

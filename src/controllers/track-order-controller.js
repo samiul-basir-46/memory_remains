@@ -232,7 +232,8 @@ function renderTrackingResult(orders) {
         }];
 
     let itemsSectionHtml = itemsList.map((item, idx) => {
-      const itemPType = item.product_type || 'magazine';
+      const itemPType = (item.product_type || 'magazine').toLowerCase();
+      const isPhysicalNonMag = itemPType === 'poster' || itemPType === 'sticker' || itemPType === 'wall_frame' || itemPType === 'frame';
       const itemIsPaid = rawStatus === 'paid' || rawStatus === 'delivered' || rawStatus === 'completed';
       const itemUploaded = Boolean(item.photos_uploaded || item.photosUploaded);
       const itemReqCount = Number(item.required_photo_count || item.photo_count || 10);
@@ -256,6 +257,12 @@ function renderTrackingResult(orders) {
             </div>
           `;
         }
+      } else if (isPhysicalNonMag) {
+        itemBannerHtml = `
+          <div class="p-3 bg-blue-50 rounded-xl border border-blue-100 text-xs text-blue-900 font-medium">
+            📦 Physical Order — Our team is printing and packaging your item for courier delivery.
+          </div>
+        `;
       } else {
         if (rawStatus === 'completed') {
           itemBannerHtml = `
@@ -342,23 +349,25 @@ function renderTrackingResult(orders) {
 
         <div class="p-4 bg-pink-50/40 rounded-xl border border-pink-100 space-y-2.5">
           <span class="text-[11px] font-bold text-gray-500 uppercase tracking-wider block">Order Progression</span>
-          <div class="flex items-center justify-between text-xs">
-            <div class="flex flex-col items-center text-center">
+          <div class="relative flex items-center justify-between text-xs">
+            <div class="absolute top-3.5 left-4 right-4 h-0.5 -translate-y-1/2 flex z-0">
+              <div class="h-full flex-1 ${isPreparing ? 'bg-purple-500' : 'bg-gray-200'}"></div>
+              <div class="h-full flex-1 ${isShipped ? 'bg-blue-500' : 'bg-gray-200'}"></div>
+              <div class="h-full flex-1 ${isDelivered ? 'bg-emerald-500' : 'bg-gray-200'}"></div>
+            </div>
+            <div class="relative z-10 flex flex-col items-center text-center">
               <div class="w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs ${isConfirmed ? 'bg-emerald-500 text-white shadow-sm' : 'bg-gray-200 text-gray-400'}">✓</div>
               <span class="text-[10px] font-bold mt-1.5 ${isConfirmed ? 'text-emerald-700' : 'text-gray-400'}">Verified</span>
             </div>
-            <div class="h-0.5 flex-1 mx-1 ${isPreparing ? 'bg-purple-500' : 'bg-gray-200'}"></div>
-            <div class="flex flex-col items-center text-center">
+            <div class="relative z-10 flex flex-col items-center text-center">
               <div class="w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs ${isPreparing ? 'bg-purple-600 text-white shadow-sm' : 'bg-gray-200 text-gray-400'}">📦</div>
               <span class="text-[10px] font-bold mt-1.5 ${isPreparing ? 'text-purple-700' : 'text-gray-400'}">Preparing</span>
             </div>
-            <div class="h-0.5 flex-1 mx-1 ${isShipped ? 'bg-blue-500' : 'bg-gray-200'}"></div>
-            <div class="flex flex-col items-center text-center">
+            <div class="relative z-10 flex flex-col items-center text-center">
               <div class="w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs ${isShipped ? 'bg-blue-600 text-white shadow-sm' : 'bg-gray-200 text-gray-400'}">🚚</div>
               <span class="text-[10px] font-bold mt-1.5 ${isShipped ? 'text-blue-700' : 'text-gray-400'}">Shipped</span>
             </div>
-            <div class="h-0.5 flex-1 mx-1 ${isDelivered ? 'bg-emerald-500' : 'bg-gray-200'}"></div>
-            <div class="flex flex-col items-center text-center">
+            <div class="relative z-10 flex flex-col items-center text-center">
               <div class="w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs ${isDelivered ? 'bg-emerald-600 text-white shadow-sm' : 'bg-gray-200 text-gray-400'}">🎉</div>
               <span class="text-[10px] font-bold mt-1.5 ${isDelivered ? 'text-emerald-700' : 'text-gray-400'}">Delivered</span>
             </div>

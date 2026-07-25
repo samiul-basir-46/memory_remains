@@ -602,8 +602,8 @@ export function renderSiteShell(pageId) {
                 <span>Maximum</span>
               </div>
               <div class="flex justify-between font-semibold text-sm text-[#2b1717] mb-3">
-                <span id="price-min-display">₹0</span>
-                <span id="price-max-display">₹2000</span>
+                <span id="price-min-display">৳0</span>
+                <span id="price-max-display">৳2000</span>
               </div>
               
               <div class="dual-range-slider">

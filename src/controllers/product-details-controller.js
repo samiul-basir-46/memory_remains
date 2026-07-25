@@ -125,8 +125,246 @@ export async function renderProductDetailsPage(db) {
     const templateNoticeBox = qs('#details-template-notice-box');
     const purchaseTypeSection = qs('#details-purchase-type-section');
 
+    // Poster Wallboard Combo Pack Setup
+    const isPoster = productType === 'poster';
+    const comboPrices = template.comboPrices || {
+      '5': Number(template.price || 500),
+      '10': Number(template.price ? template.price * 1.8 : 900),
+      '15': Number(template.price ? template.price * 2.6 : 1300),
+      '20': Number(template.price ? template.price * 3.2 : 1600)
+    };
+
+    let selectedComboQty = 5;
+    let selectedComboPrice = Number(comboPrices['5'] || template.price || 500);
+
+    // Array holding spot selections for the selected combo pack (defaulting to preset designs)
+    const presetGallery = (Array.isArray(template.showcaseImages) && template.showcaseImages.length > 0)
+      ? template.showcaseImages
+      : (Array.isArray(template.galleryUrls) && template.galleryUrls.length > 0 ? template.galleryUrls : [FALLBACK_IMAGE]);
+
+    let posterSpots = [];
+
+    const initPosterSpots = (qty) => {
+      selectedComboQty = qty;
+      selectedComboPrice = Number(comboPrices[qty] || template.price || 500);
+      posterSpots = [];
+      for (let i = 0; i < qty; i++) {
+        const presetImg = presetGallery[i % presetGallery.length];
+        posterSpots.push({
+          spotIndex: i + 1,
+          type: 'catalog', // 'catalog' or 'custom_upload'
+          title: `Preset Design #${(i % presetGallery.length) + 1}`,
+          imageUrl: presetImg,
+          customFile: null
+        });
+      }
+    };
+
+    initPosterSpots(5);
+
     if (purchaseTypeSection) {
-      purchaseTypeSection.hidden = !(isMagazine && saleTypes.magazine && saleTypes.template);
+      if (isPoster) {
+        purchaseTypeSection.hidden = true;
+      } else {
+        purchaseTypeSection.hidden = !(isMagazine && saleTypes.magazine && saleTypes.template);
+      }
+    }
+
+    // Render Poster Combo Section if Poster
+    let posterComboContainer = qs('#details-poster-combo-section');
+    if (isPoster) {
+      if (photoReqBox) photoReqBox.classList.add('hidden');
+      if (templateNoticeBox) templateNoticeBox.classList.add('hidden');
+
+      if (!posterComboContainer && detailsContainer) {
+        const descBox = qs('#details-description')?.parentElement;
+        posterComboContainer = document.createElement('div');
+        posterComboContainer.id = 'details-poster-combo-section';
+        posterComboContainer.className = 'space-y-5 pt-2 border-t border-gray-100 mt-4';
+        if (descBox) {
+          descBox.parentNode.insertBefore(posterComboContainer, descBox);
+        } else {
+          detailsContainer.querySelector('.detail-card')?.appendChild(posterComboContainer);
+        }
+      }
+
+      const renderPosterComboUI = () => {
+        if (!posterComboContainer) return;
+
+        // Update main price display
+        const priceElem = qs('#details-price');
+        if (priceElem) priceElem.textContent = formatCurrency(selectedComboPrice);
+
+        posterComboContainer.innerHTML = `
+          <!-- Combo Pack Selector Header -->
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <h3 class="text-xs font-bold uppercase tracking-wider text-gray-500">Select Combo Pack Size</h3>
+              <span class="text-xs font-semibold text-primary">Min: 5 | Max: 20 Posters</span>
+            </div>
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+              ${[5, 10, 15, 20].map((qty) => {
+                const p = Number(comboPrices[qty] || (qty * 100));
+                const isSelected = selectedComboQty === qty;
+                return `
+                  <button type="button" data-poster-combo-qty="${qty}" class="p-3 rounded-xl border-2 text-center transition-all cursor-pointer focus:outline-none flex flex-col items-center justify-center space-y-1 ${isSelected ? 'border-primary bg-pink-50/80 shadow-md ring-2 ring-primary/20 scale-[1.02]' : 'border-gray-200 bg-white hover:border-pink-200'}">
+                    <span class="text-xs font-bold ${isSelected ? 'text-primary' : 'text-gray-700'}">${qty} Posters</span>
+                    <strong class="text-sm font-extrabold ${isSelected ? 'text-primary' : 'text-gray-900'}">৳${p}</strong>
+                    <span class="text-[10px] text-gray-400">৳${Math.round(p / qty)} / pic</span>
+                  </button>
+                `;
+              }).join('')}
+            </div>
+          </div>
+
+          <!-- Spots Fulfillment Summary & Grid Header -->
+          <div class="bg-gradient-to-r from-violet-50 to-pink-50 border border-violet-200 rounded-xl p-4 shadow-sm space-y-3">
+            <div class="flex items-center justify-between flex-wrap gap-2">
+              <div>
+                <h4 class="font-bold text-gray-900 text-sm flex items-center gap-1.5">
+                  <i class="fa-solid fa-layer-group text-primary"></i>
+                  ${selectedComboQty} Poster Spots Selected
+                </h4>
+                <p class="text-xs text-gray-600 mt-0.5">Customize each spot with our preset designs or upload your own photos.</p>
+              </div>
+              <span class="px-2.5 py-1 bg-white text-primary border border-pink-200 text-xs font-bold rounded-lg shadow-2xs">
+                ${posterSpots.filter(s => s.type === 'custom_upload').length} Custom • ${posterSpots.filter(s => s.type === 'catalog').length} Store Preset
+              </span>
+            </div>
+
+            <!-- Spots List Grid -->
+            <div class="grid grid-cols-5 sm:grid-cols-5 md:grid-cols-5 gap-2 pt-1">
+              ${posterSpots.map((spot, idx) => `
+                <div class="relative aspect-square rounded-lg overflow-hidden border-2 bg-gray-100 group shadow-2xs ${spot.type === 'custom_upload' ? 'border-emerald-500 ring-2 ring-emerald-200' : 'border-gray-200'}">
+                  <img src="${spot.imageUrl}" class="w-full h-full object-cover" alt="Spot ${idx + 1}">
+                  <span class="absolute top-1 left-1 px-1.5 py-0.5 bg-black/70 text-white text-[9px] font-bold rounded">#${idx + 1}</span>
+                  <span class="absolute bottom-1 right-1 px-1 py-0.5 ${spot.type === 'custom_upload' ? 'bg-emerald-600' : 'bg-primary'} text-white text-[8px] font-bold rounded">
+                    ${spot.type === 'custom_upload' ? '📷 Photo' : '🎨 Store'}
+                  </span>
+                  <button type="button" data-spot-change-idx="${idx}" class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white text-[10px] font-bold gap-1 cursor-pointer">
+                    <i class="fa-solid fa-pen-to-square"></i> Change
+                  </button>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+
+        // Bind Combo Qty Selector Clicks
+        posterComboContainer.querySelectorAll('button[data-poster-combo-qty]').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const qty = parseInt(btn.dataset.posterComboQty, 10);
+            initPosterSpots(qty);
+            renderPosterComboUI();
+          });
+        });
+
+        // Bind Spot Change Clicks
+        posterComboContainer.querySelectorAll('button[data-spot-change-idx]').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const idx = parseInt(btn.dataset.spotChangeIdx, 10);
+            openPosterSpotModal(idx);
+          });
+        });
+      };
+
+      const openPosterSpotModal = (spotIdx) => {
+        let modal = qs('#poster-spot-picker-modal');
+        if (!modal) {
+          modal = document.createElement('div');
+          modal.id = 'poster-spot-picker-modal';
+          modal.className = 'fixed inset-0 z-[1050] bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 transition-opacity';
+          document.body.appendChild(modal);
+        }
+
+        const currentSpot = posterSpots[spotIdx];
+
+        modal.innerHTML = `
+          <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4 relative">
+            <div class="flex items-center justify-between border-b border-gray-100 pb-3">
+              <h3 class="font-bold text-gray-900 text-base">Customize Poster Spot #${spotIdx + 1}</h3>
+              <button type="button" id="spot-modal-close-btn" class="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 flex items-center justify-center text-sm cursor-pointer">
+                <i class="fa-solid fa-xmark"></i>
+              </button>
+            </div>
+
+            <!-- Choice Option Tabs -->
+            <div class="space-y-4">
+              <!-- Option A: Upload Custom Photo -->
+              <div class="p-4 rounded-xl border-2 border-dashed border-emerald-300 bg-emerald-50/50 text-center space-y-2">
+                <i class="fa-solid fa-cloud-arrow-up text-2xl text-emerald-600"></i>
+                <h4 class="font-bold text-gray-800 text-sm m-0">Upload Your Own Photo</h4>
+                <p class="text-xs text-gray-500 m-0">Select an image from your device for this spot</p>
+                <input type="file" id="spot-file-input" accept="image/*" class="hidden">
+                <button type="button" id="spot-upload-btn" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg shadow-sm transition-all cursor-pointer">
+                  <i class="fa-solid fa-camera mr-1"></i> Choose Photo from Device
+                </button>
+              </div>
+
+              <!-- Option B: Select Preset Design from Gallery -->
+              <div>
+                <h4 class="font-bold text-gray-800 text-xs uppercase tracking-wider mb-2">Or Choose from Store Designs (${presetGallery.length})</h4>
+                <div class="grid grid-cols-4 gap-2 max-h-48 overflow-y-auto p-1 border border-gray-200 rounded-xl">
+                  ${presetGallery.map((imgUrl, pIdx) => `
+                    <button type="button" data-preset-select-url="${escapeHtml(imgUrl)}" data-preset-idx="${pIdx}" class="aspect-square rounded-lg overflow-hidden border-2 border-gray-200 hover:border-primary transition-all cursor-pointer relative group">
+                      <img src="${imgUrl}" class="w-full h-full object-cover">
+                      <span class="absolute bottom-0 inset-x-0 bg-black/60 text-white text-[9px] text-center font-bold py-0.5">Design #${pIdx + 1}</span>
+                    </button>
+                  `).join('')}
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+
+        const closeModal = () => {
+          modal.remove();
+        };
+
+        modal.querySelector('#spot-modal-close-btn')?.addEventListener('click', closeModal);
+
+        const fileInput = modal.querySelector('#spot-file-input');
+        const uploadBtn = modal.querySelector('#spot-upload-btn');
+
+        uploadBtn?.addEventListener('click', () => fileInput?.click());
+
+        fileInput?.addEventListener('change', (e) => {
+          const file = e.target.files?.[0];
+          if (file) {
+            const reader = new FileReader();
+            reader.onload = (evt) => {
+              posterSpots[spotIdx] = {
+                spotIndex: spotIdx + 1,
+                type: 'custom_upload',
+                title: `Custom Upload (${file.name})`,
+                imageUrl: evt.target.result,
+                customFile: file
+              };
+              renderPosterComboUI();
+              closeModal();
+            };
+            reader.readAsDataURL(file);
+          }
+        });
+
+        modal.querySelectorAll('button[data-preset-select-url]').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const url = btn.dataset.presetSelectUrl;
+            const pIdx = btn.dataset.presetIdx;
+            posterSpots[spotIdx] = {
+              spotIndex: spotIdx + 1,
+              type: 'catalog',
+              title: `Preset Design #${parseInt(pIdx, 10) + 1}`,
+              imageUrl: url,
+              customFile: null
+            };
+            renderPosterComboUI();
+            closeModal();
+          });
+        });
+      };
+
+      renderPosterComboUI();
     }
 
     let typeLabel = 'product';
@@ -418,26 +656,50 @@ export async function renderProductDetailsPage(db) {
 
     // Add to Bag Button
     qs('#details-add-to-bag-btn')?.addEventListener('click', () => {
-      const activePrice = activeMode === 'magazine' ? magazinePrice : templatePrice;
-      const titleSuffix = activeMode === 'template' ? ' (Digital Template)' : ' (Printed Magazine)';
-      addTemplateToCart({
-        ...template,
-        title: `${template.title || 'Product'}${titleSuffix}`,
-        price: activePrice,
-        purchaseMode: activeMode
-      });
+      if (isPoster) {
+        addTemplateToCart({
+          ...template,
+          title: `${template.title || 'Poster Combo'} (${selectedComboQty} Posters Pack)`,
+          price: selectedComboPrice,
+          purchaseMode: 'poster',
+          product_type: 'poster',
+          comboQuantity: selectedComboQty,
+          selectedPosters: posterSpots
+        });
+      } else {
+        const activePrice = activeMode === 'magazine' ? magazinePrice : templatePrice;
+        const titleSuffix = activeMode === 'template' ? ' (Digital Template)' : ' (Printed Magazine)';
+        addTemplateToCart({
+          ...template,
+          title: `${template.title || 'Product'}${titleSuffix}`,
+          price: activePrice,
+          purchaseMode: activeMode
+        });
+      }
     });
 
     // Buy Now Button
     qs('#details-buy-now-btn')?.addEventListener('click', () => {
-      const activePrice = activeMode === 'magazine' ? magazinePrice : templatePrice;
-      const titleSuffix = activeMode === 'template' ? ' (Digital Template)' : ' (Printed Magazine)';
-      addTemplateToCart({
-        ...template,
-        title: `${template.title || 'Product'}${titleSuffix}`,
-        price: activePrice,
-        purchaseMode: activeMode
-      });
+      if (isPoster) {
+        addTemplateToCart({
+          ...template,
+          title: `${template.title || 'Poster Combo'} (${selectedComboQty} Posters Pack)`,
+          price: selectedComboPrice,
+          purchaseMode: 'poster',
+          product_type: 'poster',
+          comboQuantity: selectedComboQty,
+          selectedPosters: posterSpots
+        });
+      } else {
+        const activePrice = activeMode === 'magazine' ? magazinePrice : templatePrice;
+        const titleSuffix = activeMode === 'template' ? ' (Digital Template)' : ' (Printed Magazine)';
+        addTemplateToCart({
+          ...template,
+          title: `${template.title || 'Product'}${titleSuffix}`,
+          price: activePrice,
+          purchaseMode: activeMode
+        });
+      }
       window.location.href = '/pages/cart';
     });
 
