@@ -60,7 +60,7 @@ export function renderShowcaseSkeleton() {
  */
 export function renderProductDetailsSkeleton() {
   return `
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 max-w-7xl mx-auto px-4 py-8 animate-pulse">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 max-w-7xl mx-auto px-4 py-8">
       <!-- Image Gallery Skeleton -->
       <div class="lg:col-span-6 space-y-4">
         <div class="skeleton-box w-full aspect-square rounded-2xl"></div>
@@ -103,7 +103,7 @@ export function renderEmptyState({
       <h3 class="font-heading text-2xl font-bold text-[#2A2A2A] mb-2">${escapeHtml(title)}</h3>
       <p class="text-gray-500 text-sm max-w-md mb-6 leading-relaxed">${escapeHtml(message)}</p>
       ${actionText ? `
-        <a href="${actionUrl}" class="px-6 py-3 rounded-xl bg-primary text-white font-bold text-sm shadow-md hover:bg-primary-dark transition-all hover:scale-105 active:scale-95 no-underline">
+        <a href="${actionUrl}" class="px-6 py-3 rounded-xl bg-primary text-white font-bold text-sm shadow-md hover:bg-primary-strong transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg active:scale-95 no-underline">
           ${escapeHtml(actionText)}
         </a>
       ` : ''}
@@ -126,7 +126,7 @@ export function renderErrorState({
       </div>
       <h3 class="font-heading text-2xl font-bold text-[#2A2A2A] mb-2">${escapeHtml(title)}</h3>
       <p class="text-gray-500 text-sm max-w-md mb-6 leading-relaxed">${escapeHtml(message)}</p>
-      <button type="button" onclick="${retryAction}" class="px-6 py-3 rounded-xl bg-primary text-white font-bold text-sm shadow-md hover:bg-primary-dark transition-all hover:scale-105 active:scale-95 cursor-pointer">
+      <button type="button" onclick="${retryAction}" class="px-6 py-3 rounded-xl bg-primary text-white font-bold text-sm shadow-md hover:bg-primary-strong transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg active:scale-95 cursor-pointer">
         <i class="fa-solid fa-rotate-right mr-2"></i> Try Again
       </button>
     </div>

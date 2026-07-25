@@ -153,16 +153,22 @@ export function watchAuthState(onAuthStateChangedCallback) {
         }
       }
 
+      // Only write to Firestore once per session to save writes
       if (db) {
-        try {
-          await db.collection('users').doc(user.uid).set({
-            uid: user.uid,
-            name: displayName,
-            email: user.email || '',
-            photoURL: user.photoURL || '',
-            updatedAt: new Date().toISOString()
-          }, { merge: true });
-        } catch (_) {}
+        const sessionKey = `user_synced_${user.uid}`;
+        const alreadySynced = sessionStorage.getItem(sessionKey);
+        if (!alreadySynced) {
+          try {
+            await db.collection('users').doc(user.uid).set({
+              uid: user.uid,
+              name: displayName,
+              email: user.email || '',
+              photoURL: user.photoURL || '',
+              updatedAt: new Date().toISOString()
+            }, { merge: true });
+            sessionStorage.setItem(sessionKey, '1');
+          } catch (_) {}
+        }
       }
     } else {
       if (userBtnText) userBtnText.textContent = 'Sign In';

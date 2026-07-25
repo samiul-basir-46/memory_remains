@@ -22,7 +22,10 @@ export default {
     'lg:block',
     'lg:hidden',
     'max-w-7xl',
-    'max-w-container'
+    'max-w-container',
+    'animate-fade-in-up',
+    'animate-fade-in',
+    'animate-slide-in-right'
   ],
   theme: {
     extend: {
@@ -59,8 +62,33 @@ export default {
         md: '8px',
         lg: '12px',
         xl: '16px'
+      },
+      keyframes: {
+        'fade-in-up': {
+          '0%': { opacity: '0', transform: 'translateY(18px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' }
+        },
+        'fade-in': {
+          '0%': { opacity: '0' },
+          '100%': { opacity: '1' }
+        },
+        'slide-in-right': {
+          '0%': { opacity: '0', transform: 'translateX(24px)' },
+          '100%': { opacity: '1', transform: 'translateX(0)' }
+        },
+        shimmer: {
+          '0%': { backgroundPosition: '-400px 0' },
+          '100%': { backgroundPosition: '400px 0' }
+        }
+      },
+      animation: {
+        'fade-in-up': 'fade-in-up 0.45s cubic-bezier(0.25, 0.46, 0.45, 0.94) both',
+        'fade-in': 'fade-in 0.35s ease both',
+        'slide-in-right': 'slide-in-right 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) both',
+        shimmer: 'shimmer 1.6s linear infinite'
       }
     }
   },
   plugins: []
 };
+

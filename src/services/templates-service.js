@@ -1,7 +1,8 @@
 import { safeJsonParse } from '../utils/ui.js';
 
 export const API_BASE = "https://bkash-sms-gateway.onrender.com";
-const TEMPLATES_CACHE_KEY = 'memory_remains_templates_cache_v1';
+const TEMPLATES_CACHE_KEY = 'memory_remains_templates_cache_v2';
+const TEMPLATES_CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
 const FALLBACK_IMAGE = '/assets/product_placeholder.png';
 
 export const DEFAULT_FEATURED_TEMPLATES = [
@@ -112,12 +113,26 @@ export function effectivePrice(template = {}) {
 }
 
 export function getCachedTemplates() {
-  return safeJsonParse(localStorage.getItem(TEMPLATES_CACHE_KEY), []);
+  try {
+    const raw = localStorage.getItem(TEMPLATES_CACHE_KEY);
+    if (!raw) return [];
+    const { data, cachedAt } = JSON.parse(raw);
+    if (!cachedAt || Date.now() - cachedAt > TEMPLATES_CACHE_TTL_MS) {
+      localStorage.removeItem(TEMPLATES_CACHE_KEY);
+      return [];
+    }
+    return Array.isArray(data) ? data : [];
+  } catch (_) {
+    return [];
+  }
 }
 
 export function setCachedTemplates(templates) {
   if (Array.isArray(templates) && templates.length > 0) {
-    localStorage.setItem(TEMPLATES_CACHE_KEY, JSON.stringify(templates));
+    localStorage.setItem(TEMPLATES_CACHE_KEY, JSON.stringify({
+      data: templates,
+      cachedAt: Date.now()
+    }));
   }
 }
 

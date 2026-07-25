@@ -76,15 +76,15 @@ export function renderProductCard(template = {}) {
   }
 
   return `
-    <article class="product-card flex-shrink-0 w-[270px] rounded-xl overflow-hidden border shadow-sm hover:shadow-md transition-all duration-300" style="background:${meta.cardBg};border-color:${meta.cardBorder}" data-product-card>
+    <article class="product-card group flex-shrink-0 w-[270px] rounded-xl overflow-hidden border shadow-sm hover:shadow-md transition-all duration-300" style="background:${meta.cardBg};border-color:${meta.cardBorder}" data-product-card>
       <a href="${detailsUrl}" class="product-card__media relative block aspect-square bg-[#1a1a1a] overflow-hidden ${secondaryImg ? 'has-hover-image' : ''}">
         <span class="product-type-badge absolute top-2.5 left-2.5 z-10 px-3 py-1 ${meta.badgeBg} text-white text-xs font-semibold rounded-md shadow-sm">${meta.emoji} ${meta.label}</span>
         <span class="absolute bottom-2.5 left-2.5 z-10 px-2 py-0.5 bg-black/60 backdrop-blur-md text-white text-[11px] font-medium rounded-md flex items-center gap-1">
           ${isPoster ? '<i class="fa-solid fa-layer-group text-[10px]"></i> 5-20 Pcs Combo' : `<i class="fa-solid fa-camera text-[10px]"></i> ${requiredPhotos} Photos`}
         </span>
         ${renderBadgePills(template.badge)}
-        ${imageMarkup(primaryImg, template.title, 'product-card__image primary-image absolute inset-0 w-full h-full object-cover transition-transform duration-300 hover:scale-105')}
-        ${secondaryImg ? imageMarkup(secondaryImg, template.title, 'product-card__image secondary-image absolute inset-0 w-full h-full object-cover transition-transform duration-300 hover:scale-105') : ''}
+        ${imageMarkup(primaryImg, template.title, 'product-card__image primary-image absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105')}
+        ${secondaryImg ? imageMarkup(secondaryImg, template.title, 'product-card__image secondary-image absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105') : ''}
       </a>
       <div class="product-card__body p-4" style="background:${meta.cardBg}">
         <h3 class="product-card__title font-body text-base font-normal text-[#2A2A2A] mb-2 truncate">
@@ -167,14 +167,14 @@ export function renderProductCardV2(template = {}) {
   }
 
   return `
-    <article class="product-card-v2 rounded-xl overflow-hidden border shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300" style="background:${meta.cardBg};border-color:${meta.cardBorder}" data-product-card>
+    <article class="product-card-v2 group rounded-xl overflow-hidden border shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300" style="background:${meta.cardBg};border-color:${meta.cardBorder}" data-product-card>
       <a href="${detailsUrl}" class="product-card-v2__media relative block aspect-square bg-[#1a1a1a] overflow-hidden ${secondaryImg ? 'has-hover-image' : ''}">
         ${renderBadgePills(template.badge)}
         <span class="absolute top-2.5 left-2.5 z-10 px-2 py-0.5 bg-black/60 backdrop-blur-md text-white text-[11px] font-medium rounded-md flex items-center gap-1">
           ${isPoster ? '<i class="fa-solid fa-layer-group text-[10px]"></i> 5-20 Pcs' : `<i class="fa-solid fa-camera text-[10px]"></i> ${requiredPhotos}`}
         </span>
-        ${imageMarkup(primaryImg, template.title, 'product-card-v2__image primary-image absolute inset-0 w-full h-full object-cover transition-transform duration-300 hover:scale-105')}
-        ${secondaryImg ? imageMarkup(secondaryImg, template.title, 'product-card-v2__image secondary-image absolute inset-0 w-full h-full object-cover transition-transform duration-300 hover:scale-105') : ''}
+        ${imageMarkup(primaryImg, template.title, 'product-card-v2__image primary-image absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105')}
+        ${secondaryImg ? imageMarkup(secondaryImg, template.title, 'product-card-v2__image secondary-image absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105') : ''}
         ${typeLabel}
       </a>
       <div class="product-card-v2__body p-3" style="background:${meta.cardBg}">

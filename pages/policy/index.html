@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Store Policies — Return & Privacy | Petty Bloom</title>
+  <meta name="description" content="Petty Bloom store policies — return policy, privacy policy, and how we handle your data and orders.">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="/src/styles/main.css">
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+</head>
+<body data-page="policy" class="font-body bg-bg text-text-dark antialiased">
+  <div id="site-shell"></div>
+
+  <main>
+    <!-- Hero -->
+    <section class="bg-gradient-to-r from-pink-50/80 to-violet-50 border-b border-pink-100 py-14">
+      <div class="max-w-container mx-auto px-4 text-center">
+        <span class="inline-block text-xs font-bold uppercase tracking-widest text-primary mb-3">Legal & Policies</span>
+        <h1 class="font-heading text-3xl md:text-5xl text-[#3b1c1c] mb-4">Store Policies</h1>
+        <p class="text-text-soft text-base max-w-xl mx-auto">Everything you need to know about returns, privacy, and how Petty Bloom works.</p>
+
+        <!-- Quick Nav Pills -->
+        <div class="flex flex-wrap justify-center gap-3 mt-8">
+          <a href="#return" class="px-5 py-2 rounded-full bg-primary text-white text-sm font-semibold hover:bg-primary-strong transition-colors no-underline">
+            <i class="fa-solid fa-rotate-left mr-1.5"></i> Return Policy
+          </a>
+          <a href="#privacy" class="px-5 py-2 rounded-full bg-white border border-pink-200 text-primary text-sm font-semibold hover:bg-pink-50 transition-colors no-underline">
+            <i class="fa-solid fa-shield-halved mr-1.5"></i> Privacy Policy
+          </a>
+          <a href="#cod" class="px-5 py-2 rounded-full bg-white border border-pink-200 text-primary text-sm font-semibold hover:bg-pink-50 transition-colors no-underline">
+            <i class="fa-solid fa-money-bill-1 mr-1.5"></i> Payment & COD
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <div class="max-w-3xl mx-auto px-4 py-14 space-y-16">
+
+      <!-- ── Return Policy ── -->
+      <section id="return" class="scroll-mt-24">
+        <div class="flex items-center gap-3 mb-6">
+          <div class="w-10 h-10 rounded-full bg-pink-100 text-primary flex items-center justify-center text-lg flex-shrink-0">
+            <i class="fa-solid fa-rotate-left"></i>
+          </div>
+          <h2 class="font-heading text-2xl text-[#3b1c1c] m-0">Return Policy</h2>
+        </div>
+
+        <div class="bg-amber-50/80 border border-amber-200/90 rounded-2xl p-5 mb-6 flex gap-3">
+          <i class="fa-solid fa-triangle-exclamation text-amber-600 mt-0.5 flex-shrink-0"></i>
+          <p class="text-amber-800 text-sm m-0 leading-relaxed">
+            <strong>Custom products are non-refundable.</strong> Since all our products are custom-made specifically for you using your photos, we cannot accept returns or exchanges once production has started.
+          </p>
+        </div>
+
+        <div class="space-y-5 text-text-soft text-sm leading-relaxed">
+          <div class="bg-white rounded-xl border border-pink-100 p-5 space-y-3">
+            <h3 class="font-heading text-base text-[#3b1c1c] m-0">When we accept a return / replacement</h3>
+            <ul class="list-none m-0 p-0 space-y-2">
+              <li class="flex items-start gap-2.5"><i class="fa-solid fa-circle-check text-emerald-500 mt-0.5 flex-shrink-0"></i> Product arrived damaged or broken during delivery</li>
+              <li class="flex items-start gap-2.5"><i class="fa-solid fa-circle-check text-emerald-500 mt-0.5 flex-shrink-0"></i> Wrong item delivered (different product than ordered)</li>
+              <li class="flex items-start gap-2.5"><i class="fa-solid fa-circle-check text-emerald-500 mt-0.5 flex-shrink-0"></i> Significant print quality issue (blurry, color mismatch) due to our error</li>
+            </ul>
+          </div>
+
+          <div class="bg-white rounded-xl border border-red-100 p-5 space-y-3">
+            <h3 class="font-heading text-base text-[#3b1c1c] m-0">We cannot accept returns for</h3>
+            <ul class="list-none m-0 p-0 space-y-2">
+              <li class="flex items-start gap-2.5"><i class="fa-solid fa-circle-xmark text-red-400 mt-0.5 flex-shrink-0"></i> Change of mind after placing order</li>
+              <li class="flex items-start gap-2.5"><i class="fa-solid fa-circle-xmark text-red-400 mt-0.5 flex-shrink-0"></i> Low quality photos submitted by customer causing blurry prints</li>
+              <li class="flex items-start gap-2.5"><i class="fa-solid fa-circle-xmark text-red-400 mt-0.5 flex-shrink-0"></i> Incorrect delivery address provided by customer</li>
+              <li class="flex items-start gap-2.5"><i class="fa-solid fa-circle-xmark text-red-400 mt-0.5 flex-shrink-0"></i> Product already used or opened</li>
+            </ul>
+          </div>
+
+          <div class="bg-white rounded-xl border border-pink-100 p-5 space-y-3">
+            <h3 class="font-heading text-base text-[#3b1c1c] m-0">How to raise a return request</h3>
+            <ol class="list-none m-0 p-0 space-y-3">
+              <li class="flex gap-3">
+                <span class="w-6 h-6 rounded-full bg-primary text-white text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">1</span>
+                <span>Contact us within <strong>48 hours</strong> of delivery via WhatsApp at <a href="https://wa.me/8801622000471" class="text-primary hover:underline no-underline font-semibold">+880 1622-000471</a></span>
+              </li>
+              <li class="flex gap-3">
+                <span class="w-6 h-6 rounded-full bg-primary text-white text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">2</span>
+                <span>Send clear photos/video of the damage or issue</span>
+              </li>
+              <li class="flex gap-3">
+                <span class="w-6 h-6 rounded-full bg-primary text-white text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">3</span>
+                <span>Share your order ID and the name used to place the order</span>
+              </li>
+              <li class="flex gap-3">
+                <span class="w-6 h-6 rounded-full bg-primary text-white text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">4</span>
+                <span>Our team will review and respond within 1–2 business days</span>
+              </li>
+            </ol>
+          </div>
+
+          <p class="text-xs text-text-soft">For faster resolution, you can also use the <a href="/pages/return" class="text-primary hover:underline no-underline">Request Return form</a>.</p>
+        </div>
+      </section>
+
+      <hr class="border-pink-100">
+
+      <!-- ── Payment & COD ── -->
+      <section id="cod" class="scroll-mt-24">
+        <div class="flex items-center gap-3 mb-6">
+          <div class="w-10 h-10 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-lg flex-shrink-0">
+            <i class="fa-solid fa-money-bill-1"></i>
+          </div>
+          <h2 class="font-heading text-2xl text-[#3b1c1c] m-0">Payment & COD</h2>
+        </div>
+
+        <div class="space-y-4 text-sm text-text-soft leading-relaxed">
+          <div class="bg-white rounded-xl border border-emerald-200 p-5">
+            <h3 class="font-heading text-base text-[#3b1c1c] m-0 mb-3">Accepted Payment Method</h3>
+            <div class="flex items-center gap-3 bg-emerald-50/50 rounded-lg px-4 py-3">
+              <i class="fa-solid fa-money-bill-1 text-emerald-600 text-xl"></i>
+              <div>
+                <strong class="text-text-dark">Cash on Delivery (COD)</strong>
+                <p class="m-0 text-xs mt-0.5">Pay when you receive your product at the door</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-amber-50 border border-amber-200/90 rounded-xl p-5">
+            <h3 class="font-heading text-base text-amber-900 m-0 mb-2"><i class="fa-solid fa-circle-info mr-2"></i>COD Advance Charge</h3>
+            <p class="m-0 text-amber-800">An additional <strong>৳110</strong> is charged for Cash on Delivery orders. This amount must be paid in advance before we process your order. This covers delivery handling fees.</p>
+          </div>
+        </div>
+      </section>
+
+      <hr class="border-pink-100">
+
+      <!-- ── Privacy Policy ── -->
+      <section id="privacy" class="scroll-mt-24">
+        <div class="flex items-center gap-3 mb-6">
+          <div class="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-lg flex-shrink-0">
+            <i class="fa-solid fa-shield-halved"></i>
+          </div>
+          <h2 class="font-heading text-2xl text-[#3b1c1c] m-0">Privacy Policy</h2>
+        </div>
+        <p class="text-xs text-text-soft mb-6">Last updated: July 2026</p>
+
+        <div class="space-y-6 text-sm text-text-soft leading-relaxed">
+          <div class="bg-white rounded-xl border border-blue-100 p-5 space-y-2">
+            <h3 class="font-heading text-base text-[#3b1c1c] m-0">Information We Collect</h3>
+            <ul class="list-none m-0 p-0 space-y-1.5 mt-3">
+              <li class="flex items-start gap-2"><i class="fa-solid fa-dot-circle text-primary text-[10px] mt-1.5 flex-shrink-0"></i> Name, email address (via Google/Facebook login)</li>
+              <li class="flex items-start gap-2"><i class="fa-solid fa-dot-circle text-primary text-[10px] mt-1.5 flex-shrink-0"></i> Delivery address and phone number (when you place an order)</li>
+              <li class="flex items-start gap-2"><i class="fa-solid fa-dot-circle text-primary text-[10px] mt-1.5 flex-shrink-0"></i> Photos you upload for custom orders</li>
+              <li class="flex items-start gap-2"><i class="fa-solid fa-dot-circle text-primary text-[10px] mt-1.5 flex-shrink-0"></i> Order history and preferences</li>
+            </ul>
+          </div>
+
+          <div class="bg-white rounded-xl border border-blue-100 p-5 space-y-2">
+            <h3 class="font-heading text-base text-[#3b1c1c] m-0">How We Use Your Information</h3>
+            <ul class="list-none m-0 p-0 space-y-1.5 mt-3">
+              <li class="flex items-start gap-2"><i class="fa-solid fa-circle-check text-emerald-500 mt-0.5 flex-shrink-0"></i> To process and fulfill your custom orders</li>
+              <li class="flex items-start gap-2"><i class="fa-solid fa-circle-check text-emerald-500 mt-0.5 flex-shrink-0"></i> To contact you about your order status</li>
+              <li class="flex items-start gap-2"><i class="fa-solid fa-circle-check text-emerald-500 mt-0.5 flex-shrink-0"></i> To improve our products and services</li>
+            </ul>
+          </div>
+
+          <div class="bg-white rounded-xl border border-blue-100 p-5 space-y-2">
+            <h3 class="font-heading text-base text-[#3b1c1c] m-0">Your Photos</h3>
+            <p class="m-0 mt-2">Photos you upload are used <strong>only</strong> to create your custom product. We do not share, sell, or use your photos for any other purpose. Photos are stored securely and deleted after order fulfillment.</p>
+          </div>
+
+          <div class="bg-white rounded-xl border border-blue-100 p-5 space-y-2">
+            <h3 class="font-heading text-base text-[#3b1c1c] m-0">Data Sharing</h3>
+            <p class="m-0 mt-2">We do not sell your personal data to any third party. Your information is only shared with delivery partners for the purpose of fulfilling your order.</p>
+          </div>
+
+          <div class="bg-white rounded-xl border border-blue-100 p-5">
+            <h3 class="font-heading text-base text-[#3b1c1c] m-0">Contact Us About Privacy</h3>
+            <p class="mt-2 mb-0">For any privacy concerns, contact us via WhatsApp: <a href="https://wa.me/8801622000471" class="text-primary font-semibold hover:underline no-underline">+880 1622-000471</a></p>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <div id="overlays"></div>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

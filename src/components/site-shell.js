@@ -35,11 +35,11 @@ export async function populateNavCategories(db) {
         const titleUpper = (cat.name || '').toUpperCase();
         const display = titleUpper.replace(/\s+/g, '<br>');
         return `
-          <a href="/collections/paid-products?title=${encodeURIComponent(cat.name)}" class="megamenu-card flex flex-col gap-3 no-underline group">
-            <div class="megamenu-card-bg bg-[#360505] rounded-xl aspect-[3/4] flex items-center justify-center p-4 text-center border-2 border-transparent transition-all duration-300 group-hover:scale-105 group-hover:-translate-y-1 group-hover:border-primary group-hover:shadow-2xl">
-              <span class="text-white font-heading text-2xl font-bold leading-tight text-glow">${display}</span>
+          <a href="/collections/paid-products?title=${encodeURIComponent(cat.name)}" class="megamenu-card flex flex-col gap-2 no-underline group">
+            <div class="megamenu-card-bg bg-[#360505] rounded-xl aspect-[3/4] flex items-center justify-center p-3 text-center border-2 border-transparent transition-all duration-300 group-hover:scale-105 group-hover:-translate-y-1 group-hover:border-primary group-hover:shadow-2xl">
+              <span class="text-white font-heading text-base font-bold leading-tight text-glow">${display}</span>
             </div>
-            <span class="megamenu-card-title text-text-dark text-sm font-semibold text-center group-hover:text-primary transition-colors">${cat.name}</span>
+            <span class="megamenu-card-title text-text-dark text-xs font-semibold text-center group-hover:text-primary transition-colors">${cat.name}</span>
           </a>
         `;
       }).join('');
@@ -151,19 +151,26 @@ function renderNavLinks(pageId, isMobile = false) {
       if (link.label === 'Categories') {
         dropdownHtml = `
           <div class="megamenu-dropdown absolute top-full left-0 w-full bg-white border-b border-pink-100 shadow-2xl py-8 opacity-0 invisible transition-all duration-200 z-50 pointer-events-none">
-            <div class="megamenu-inner max-w-container mx-auto px-4 relative">
+            <div class="megamenu-inner max-w-container mx-auto px-4 flex gap-8 relative">
               <button type="button" class="megamenu-close-btn absolute -top-4 right-4 text-3xl text-gray-700 hover:text-primary cursor-pointer p-1" aria-label="Close menu">&times;</button>
-              <div class="megamenu-grid megamenu-grid-categories grid grid-cols-4 gap-6 pr-12">
-                <a href="/collections/paid-products?title=Magazine+%26+Newspaper" class="megamenu-card flex flex-col gap-3 no-underline group">
-                  <div class="megamenu-card-bg bg-[#360505] rounded-xl aspect-[3/4] flex items-center justify-center p-4 text-center border-2 border-transparent transition-all duration-300 group-hover:scale-105 group-hover:-translate-y-1 group-hover:border-primary group-hover:shadow-2xl">
-                    <span class="text-white font-heading text-2xl font-bold leading-tight text-glow">MAGAZINE<br>&<br>NEWSPAPER</span>
+              <div class="megamenu-grid megamenu-grid-categories flex-1 grid grid-cols-5 gap-4 pr-4">
+                <a href="/collections/paid-products?title=Magazine+%26+Newspaper" class="megamenu-card flex flex-col gap-2 no-underline group">
+                  <div class="megamenu-card-bg bg-[#360505] rounded-xl aspect-[3/4] flex items-center justify-center p-3 text-center border-2 border-transparent transition-all duration-300 group-hover:scale-105 group-hover:-translate-y-1 group-hover:border-primary group-hover:shadow-2xl">
+                    <span class="text-white font-heading text-base font-bold leading-tight text-glow">MAGAZINE<br>&<br>NEWSPAPER</span>
                   </div>
-                  <span class="megamenu-card-title text-text-dark text-sm font-semibold text-center group-hover:text-primary transition-colors">Magazine & Newspaper</span>
+                  <span class="megamenu-card-title text-text-dark text-xs font-semibold text-center group-hover:text-primary transition-colors">Magazine & Newspaper</span>
                 </a>
+              </div>
+              <div class="megamenu-sidebar w-[220px] border-l border-pink-100 pl-8 pr-4">
+                <h4 class="text-sm mb-4 text-text-soft font-medium">Browse Categories</h4>
+                <ul class="list-none p-0 m-0 grid gap-3">
+                  <li><a href="/collections/paid-products" class="text-text-dark no-underline text-sm hover:text-primary transition-colors">All Products</a></li>
+                </ul>
               </div>
             </div>
           </div>
         `;
+
       } else if (link.label === 'Collections') {
         dropdownHtml = `
           <div class="megamenu-dropdown absolute top-full left-0 w-full bg-white border-b border-pink-100 shadow-2xl py-8 opacity-0 invisible transition-all duration-200 z-50 pointer-events-none">
@@ -430,7 +437,7 @@ export function renderSiteShell(pageId) {
         
         <div class="flex gap-3 mb-4 items-start text-sm text-white/90">
           <i class="fa-solid fa-location-dot mt-1"></i>
-          <p class="m-0">heartsabeans, Tulsipur, Prayagraj, Uttar Pradesh, 211003</p>
+          <p class="m-0">Rampura Bazar, Dhaka</p>
         </div>
         
         <div class="flex gap-3 mb-6 items-center text-sm text-white/90">
@@ -453,19 +460,17 @@ export function renderSiteShell(pageId) {
     
     <div class="max-w-container mx-auto px-4 py-6 flex flex-wrap items-center justify-between gap-4 text-white text-xs">
       <div class="flex items-center gap-3 flex-wrap">
-        <strong>We accept</strong>
-        <span class="font-bold text-base">VISA</span>
-        <span class="inline-block w-6 h-4 bg-[#ff5f00] rounded-sm relative overflow-hidden"><span class="absolute w-4 h-4 bg-[#eb001b] rounded-full -left-1"></span><span class="absolute w-4 h-4 bg-[#f79e1b] rounded-full -right-1"></span></span>
-        <span class="font-bold text-gray-300">G Pay</span>
-        <span class="font-bold">BHIM UPI</span>
-        <span class="flex items-center gap-1"><i class="fa-solid fa-building-columns"></i> Net Banking</span>
-        <span class="flex items-center gap-1"><i class="fa-solid fa-wallet"></i> Wallet</span>
-        <span class="flex items-center gap-1"><i class="fa-solid fa-money-bill-1"></i> Cash on Delivery</span>
+        <strong>Payment</strong>
+        <span class="flex items-center gap-1.5 bg-white/10 rounded-md px-3 py-1.5">
+          <i class="fa-solid fa-money-bill-1"></i> Cash on Delivery
+        </span>
+        <span class="text-white/60 text-[11px]">• COD charge ৳110 additional</span>
       </div>
-      <div>
-        Built with <span class="font-heading text-base inline-flex items-baseline gap-1">smart<span class="text-[#f79e1b]">biz</span></span> <span class="text-[10px] align-middle">by amazon</span>
+      <div class="text-white/60">
+        © ${new Date().getFullYear()} Petty Bloom. All rights reserved.
       </div>
     </div>
+
     
     <a href="https://wa.me/8801622000471?text=Hi%2C%20I%27m%20interested%20in%20your%20products" target="_blank" rel="noreferrer" class="whatsapp-float fixed bottom-5 right-5 bg-[#25d366] text-white rounded-full w-14 h-14 flex items-center justify-center text-3xl shadow-lg z-[100] hover:scale-110 transition-transform">
       <i class="fa-brands fa-whatsapp"></i>
