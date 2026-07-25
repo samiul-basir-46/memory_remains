@@ -254,23 +254,25 @@ function renderOrderCard(order) {
     <!-- Timeline Progression -->
     <div class="p-3.5 bg-pink-50/40 rounded-xl border border-pink-100 space-y-2">
       <span class="text-[10px] font-bold text-gray-500 uppercase tracking-wider block">Order Status Timeline</span>
-      <div class="flex items-center justify-between text-xs">
-        <div class="flex flex-col items-center text-center">
+      <div class="relative flex items-center justify-between text-xs">
+        <div class="absolute top-3 left-3 right-3 h-0.5 -translate-y-1/2 flex z-0">
+          <div class="h-full flex-1 ${isPreparing ? 'bg-purple-500' : 'bg-gray-200'}"></div>
+          <div class="h-full flex-1 ${isShipped ? 'bg-blue-500' : 'bg-gray-200'}"></div>
+          <div class="h-full flex-1 ${isDelivered ? 'bg-emerald-500' : 'bg-gray-200'}"></div>
+        </div>
+        <div class="relative z-10 flex flex-col items-center text-center">
           <div class="w-6 h-6 rounded-full flex items-center justify-center font-bold text-[11px] ${isConfirmed ? 'bg-emerald-500 text-white shadow-sm' : 'bg-gray-200 text-gray-400'}">✓</div>
           <span class="text-[9px] font-bold mt-1 ${isConfirmed ? 'text-emerald-700' : 'text-gray-400'}">Verified</span>
         </div>
-        <div class="h-0.5 flex-1 mx-1 ${isPreparing ? 'bg-purple-500' : 'bg-gray-200'}"></div>
-        <div class="flex flex-col items-center text-center">
+        <div class="relative z-10 flex flex-col items-center text-center">
           <div class="w-6 h-6 rounded-full flex items-center justify-center font-bold text-[11px] ${isPreparing ? 'bg-purple-600 text-white shadow-sm' : 'bg-gray-200 text-gray-400'}">📦</div>
           <span class="text-[9px] font-bold mt-1 ${isPreparing ? 'text-purple-700' : 'text-gray-400'}">Preparing</span>
         </div>
-        <div class="h-0.5 flex-1 mx-1 ${isShipped ? 'bg-blue-500' : 'bg-gray-200'}"></div>
-        <div class="flex flex-col items-center text-center">
+        <div class="relative z-10 flex flex-col items-center text-center">
           <div class="w-6 h-6 rounded-full flex items-center justify-center font-bold text-[11px] ${isShipped ? 'bg-blue-600 text-white shadow-sm' : 'bg-gray-200 text-gray-400'}">🚚</div>
           <span class="text-[9px] font-bold mt-1 ${isShipped ? 'text-blue-700' : 'text-gray-400'}">Shipped</span>
         </div>
-        <div class="h-0.5 flex-1 mx-1 ${isDelivered ? 'bg-emerald-500' : 'bg-gray-200'}"></div>
-        <div class="flex flex-col items-center text-center">
+        <div class="relative z-10 flex flex-col items-center text-center">
           <div class="w-6 h-6 rounded-full flex items-center justify-center font-bold text-[11px] ${isDelivered ? 'bg-emerald-600 text-white shadow-sm' : 'bg-gray-200 text-gray-400'}">🎉</div>
           <span class="text-[9px] font-bold mt-1 ${isDelivered ? 'text-emerald-700' : 'text-gray-400'}">Delivered</span>
         </div>
@@ -301,17 +303,50 @@ function renderOrderCard(order) {
     const itemEl = document.createElement('div');
     itemEl.className = 'bg-pink-50/40 rounded-xl p-4 border border-pink-100/60 space-y-3';
 
-    const isMagazine = item.product_type === 'magazine' || (!item.product_type && !item.canva_link);
+    const rawType = (item.product_type || (item.canva_link ? 'template' : 'magazine')).toLowerCase();
+    const isMagazine = rawType === 'magazine';
+    const isPoster = rawType === 'poster';
+    const isSticker = rawType === 'sticker';
+    const isWallFrame = rawType === 'wall_frame' || rawType === 'frame';
+    const isTemplate = rawType === 'template';
+    const isPhysicalItem = isPoster || isSticker || isWallFrame;
+
     const recipientText = item.recipient_name ? ` (Recipient: ${item.recipient_name})` : '';
+
+    let iconClass = 'fa-solid fa-box-open text-primary';
+    let badgeText = 'Physical Order';
+    let badgeClass = 'bg-blue-100 text-blue-800';
+
+    if (isMagazine) {
+      iconClass = 'fa-solid fa-book-open text-primary';
+      badgeText = 'Magazine';
+      badgeClass = 'bg-purple-100 text-purple-800';
+    } else if (isPoster) {
+      iconClass = 'fa-solid fa-image text-sky-600';
+      badgeText = `Poster (${item.combo_quantity || item.comboQuantity || 5} Pcs)`;
+      badgeClass = 'bg-sky-100 text-sky-800';
+    } else if (isSticker) {
+      iconClass = 'fa-solid fa-note-sticky text-amber-600';
+      badgeText = 'Sticker Pack';
+      badgeClass = 'bg-amber-100 text-amber-800';
+    } else if (isWallFrame) {
+      iconClass = 'fa-solid fa-crop-simple text-slate-700';
+      badgeText = 'Wall Frame';
+      badgeClass = 'bg-slate-200 text-slate-800';
+    } else if (isTemplate) {
+      iconClass = 'fa-solid fa-file-code text-teal-600';
+      badgeText = 'Template';
+      badgeClass = 'bg-teal-100 text-teal-800';
+    }
 
     itemEl.innerHTML = `
       <div class="flex items-center justify-between gap-2">
         <div class="flex items-center gap-2">
-          <i class="${isMagazine ? 'fa-solid fa-book-open text-primary' : 'fa-solid fa-file-code text-teal-600'} text-lg"></i>
-          <span class="font-bold text-sm text-gray-800">${item.template_name || 'Magazine Item'}${recipientText}</span>
+          <i class="${iconClass} text-lg"></i>
+          <span class="font-bold text-sm text-gray-800">${item.template_name || 'Item'}${recipientText}</span>
         </div>
-        <span class="text-[11px] font-bold px-2.5 py-0.5 rounded-full ${isMagazine ? 'bg-purple-100 text-purple-800' : 'bg-teal-100 text-teal-800'}">
-          ${isMagazine ? 'Magazine' : 'Template'}
+        <span class="text-[11px] font-bold px-2.5 py-0.5 rounded-full ${badgeClass}">
+          ${badgeText}
         </span>
       </div>
     `;
@@ -354,6 +389,27 @@ function renderOrderCard(order) {
         });
       }
       itemEl.appendChild(uploadArea);
+    } else if (isPhysicalItem) {
+      const physicalArea = document.createElement('div');
+      physicalArea.className = 'mt-3 pt-3 border-t border-pink-100';
+      const itemCustomPhotos = Array.isArray(item.photo_urls || item.photoUrls) ? (item.photo_urls || item.photoUrls) : [];
+
+      if (itemCustomPhotos.length > 0) {
+        physicalArea.innerHTML = `
+          <div class="p-3 bg-emerald-50 rounded-xl border border-emerald-200 text-xs text-emerald-800 font-bold flex items-center gap-2 shadow-sm">
+            <i class="fa-solid fa-circle-check text-emerald-600 text-base"></i>
+            <span>✅ Custom Photos Uploaded (${itemCustomPhotos.length} photos) — Printing and preparing for courier delivery.</span>
+          </div>
+        `;
+      } else {
+        physicalArea.innerHTML = `
+          <div class="p-3 bg-blue-50 rounded-xl border border-blue-100 text-xs text-blue-900 flex items-center gap-2 font-medium">
+            <i class="fa-solid fa-truck-ramp-box text-blue-600 text-sm"></i>
+            <span>📦 Physical Order — Our team is printing and packaging your item for courier delivery.</span>
+          </div>
+        `;
+      }
+      itemEl.appendChild(physicalArea);
     } else {
       const canvaArea = document.createElement('div');
       canvaArea.className = 'mt-3 pt-3 border-t border-pink-100';

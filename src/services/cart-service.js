@@ -105,20 +105,26 @@ export function addTemplateToCart(template = {}) {
   const itemPrice = Number(template.price || template.magazine_price || 0);
   const deliveryCharge = Number(template.delivery_charge || template.deliveryCharge || 0);
 
+  const itemPType = template.product_type || template.productType || (template.purchaseMode === 'poster' ? 'poster' : (template.purchaseMode === 'wall_frame' ? 'wall_frame' : (template.purchaseMode === 'sticker' ? 'sticker' : 'magazine')));
+
   if (existingIndex >= 0) {
     cart[existingIndex].quantity = (cart[existingIndex].quantity || 1) + 1;
+    if (template.selectedPosters) cart[existingIndex].selectedPosters = template.selectedPosters;
   } else {
     cart.push({
       cartKey,
-      id: template.id || '',
-      title: template.title || 'Digital Template',
+      id: template.id || template.template_id || template.templateId || '',
+      title: template.title || template.name || template.template_name || 'Product',
       price: itemPrice,
       deliveryCharge: deliveryCharge,
       imageUrl: template.imageUrl || FALLBACK_IMAGE,
       quantity: 1,
-      purchaseMode: template.purchaseMode || 'magazine',
-      product_type: template.product_type || template.productType || 'magazine',
+      purchaseMode: template.purchaseMode || itemPType,
+      product_type: itemPType,
+      productType: itemPType,
       requiredPhotos: template.requiredPhotos || 12,
+      comboQuantity: template.comboQuantity || 5,
+      selectedPosters: template.selectedPosters || null,
       template_price: Number(template.template_price || template.templatePrice || 0),
       magazine_price: Number(template.magazine_price || template.magazinePrice || itemPrice),
     });

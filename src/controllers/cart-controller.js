@@ -162,9 +162,14 @@ function renderCheckoutForm(db, subtotal) {
   if (!container) return;
 
   const cart = getCart();
-  const hasPhysicalMagazine = cart.some(item => item.purchaseMode === 'magazine' || (!item.purchaseMode && item.product_type !== 'template'));
-  const effectiveDeliveryCharge = hasPhysicalMagazine ? DELIVERY_CHARGE : 0;
+  const hasPhysicalDelivery = cart.some(item => item.product_type === 'poster' || item.product_type === 'wall_frame' || item.product_type === 'sticker' || item.purchaseMode === 'magazine' || (!item.purchaseMode && item.product_type !== 'template'));
+  const hasPoster = cart.some(item => item.product_type === 'poster');
+  const hasMagazine = cart.some(item => item.product_type === 'magazine' || item.purchaseMode === 'magazine');
+
+  const effectiveDeliveryCharge = hasPhysicalDelivery ? DELIVERY_CHARGE : 0;
   const totalAmount = subtotal + effectiveDeliveryCharge;
+
+  let amountNote = `You need to pay ৳30 in advance via bKash to confirm this order`;
 
   container.innerHTML = `
     <div class="max-w-xl mx-auto py-8 px-4">
@@ -187,8 +192,8 @@ function renderCheckoutForm(db, subtotal) {
             <p id="phone-error-text" class="text-xs text-amber-600 mt-1 hidden">Please enter a valid 11-digit Bangladeshi mobile number starting with 01.</p>
           </div>
 
-          ${hasPhysicalMagazine ? `
-            <!-- DELIVERY LOCATION SECTION FOR PHYSICAL MAGAZINE PURCHASES -->
+          ${hasPhysicalDelivery ? `
+            <!-- DELIVERY LOCATION SECTION FOR PHYSICAL PURCHASES -->
             <div id="delivery-location-section" class="pt-4 border-t border-pink-100 space-y-4">
               <div class="flex items-center justify-between">
                 <h3 class="text-xs font-bold uppercase tracking-wider text-gray-700 flex items-center gap-2">
@@ -265,21 +270,19 @@ function renderCheckoutForm(db, subtotal) {
           <div>
             <label class="block text-xs font-bold text-[#2A2A2A] mb-2">Payment Method *</label>
             <div class="grid grid-cols-2 gap-3">
-              ${hasPhysicalMagazine ? `
-                <label class="payment-option-label border-2 border-primary bg-pink-50/50 p-4 rounded-xl cursor-pointer flex flex-col items-center justify-center gap-1.5 transition-all text-center">
-                  <input type="radio" name="payment_method" value="cod" checked class="accent-primary">
-                  <span class="text-xs font-bold text-[#2A2A2A]">Cash on Delivery</span>
-                </label>
-              ` : ''}
-              <label class="payment-option-label border-2 ${hasPhysicalMagazine ? 'border-gray-200 bg-white' : 'border-primary bg-purple-50/50'} p-4 rounded-xl cursor-pointer flex flex-col items-center justify-center gap-1.5 transition-all text-center">
-                <input type="radio" name="payment_method" value="online" ${!hasPhysicalMagazine ? 'checked' : ''} class="accent-primary">
+              <label class="payment-option-label border-2 border-primary bg-pink-50/50 p-4 rounded-xl cursor-pointer flex flex-col items-center justify-center gap-1.5 transition-all text-center">
+                <input type="radio" name="payment_method" value="cod" checked class="accent-primary">
+                <span class="text-xs font-bold text-[#2A2A2A]">Cash on Delivery</span>
+              </label>
+              <label class="payment-option-label border-2 border-gray-200 bg-white p-4 rounded-xl cursor-pointer flex flex-col items-center justify-center gap-1.5 transition-all text-center">
+                <input type="radio" name="payment_method" value="online" class="accent-primary">
                 <span class="text-xs font-bold text-[#2A2A2A]">Pay Online (bKash)</span>
               </label>
             </div>
           </div>
 
           <div id="payment-amount-box" class="p-4 rounded-xl bg-[#FDF0F4] border border-pink-200 text-xs text-[#2A2A2A] space-y-1">
-            <p id="amount-note-text" class="font-semibold text-primary text-sm">${hasPhysicalMagazine ? 'You need to pay ৳30 in advance via bKash to confirm this order' : `Total to pay: ৳${totalAmount} (Instant Canva Link Access)`}</p>
+            <p id="amount-note-text" class="font-semibold text-primary text-sm">${amountNote}</p>
           </div>
 
           <div id="checkout-error-msg" class="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-800 hidden"></div>
@@ -293,7 +296,7 @@ function renderCheckoutForm(db, subtotal) {
   qs('#back-to-cart-btn')?.addEventListener('click', () => renderCartState(db));
 
   // Pre-fill delivery location if saved in header modal
-  if (hasPhysicalMagazine) {
+  if (hasPhysicalDelivery) {
     try {
       const savedRaw = localStorage.getItem('user_delivery_location');
       if (savedRaw) {
@@ -336,7 +339,7 @@ function renderCheckoutForm(db, subtotal) {
   }
 
   const radios = document.querySelectorAll('input[name="payment_method"]');
-  const amountNote = qs('#amount-note-text');
+  const amountNoteEl = qs('#amount-note-text');
   const paymentBoxes = document.querySelectorAll('.payment-option-label');
 
   radios.forEach((r) => {
@@ -349,9 +352,9 @@ function renderCheckoutForm(db, subtotal) {
       });
 
       if (r.value === 'cod') {
-        if (amountNote) amountNote.textContent = `You need to pay ৳30 in advance via bKash to confirm this order`;
+        if (amountNoteEl) amountNoteEl.textContent = `You need to pay ৳30 in advance via bKash to confirm this order`;
       } else {
-        if (amountNote) amountNote.textContent = `Total to pay: ৳${totalAmount} (Products: ৳${subtotal} + Delivery: ৳${effectiveDeliveryCharge})`;
+        if (amountNoteEl) amountNoteEl.textContent = `Total to pay: ৳${totalAmount} (Products: ৳${subtotal} + Delivery: ৳${effectiveDeliveryCharge})`;
       }
     });
   });
@@ -360,7 +363,7 @@ function renderCheckoutForm(db, subtotal) {
     e.preventDefault();
     const name = qs('#cust-name').value.trim();
     const phone = qs('#cust-phone').value.trim();
-    const selectedMethod = document.querySelector('input[name="payment_method"]:checked')?.value || (hasPhysicalMagazine ? 'cod' : 'online');
+    const selectedMethod = document.querySelector('input[name="payment_method"]:checked')?.value || 'cod';
 
     const phoneRegex = /^01[3-9]\d{8}$/;
     if (!phoneRegex.test(phone)) {
@@ -369,7 +372,9 @@ function renderCheckoutForm(db, subtotal) {
     }
     qs('#phone-error-text')?.classList.add('hidden');
 
-    if (hasPhysicalMagazine) {
+    const purchaseType = hasPoster ? 'poster' : (hasMagazine ? 'magazine' : 'template');
+
+    if (hasPhysicalDelivery) {
       const division = qs('#cust-division')?.value || 'Dhaka';
       const district = qs('#cust-district')?.value.trim() || '';
       const upazila = qs('#cust-upazila')?.value.trim() || '';
@@ -380,7 +385,7 @@ function renderCheckoutForm(db, subtotal) {
       if (!district || !address) {
         const errBox = qs('#checkout-error-msg');
         if (errBox) {
-          errBox.textContent = 'Please enter your District and Detailed House Address for physical magazine delivery.';
+          errBox.textContent = 'Please enter your District and Detailed House Address for physical delivery.';
           errBox.classList.remove('hidden');
         }
         return;
@@ -389,7 +394,7 @@ function renderCheckoutForm(db, subtotal) {
       renderPaymentInstructionsStep(db, {
         customer_name: name,
         customer_phone: phone,
-        purchase_type: 'magazine',
+        purchase_type: purchaseType,
         payment_method: selectedMethod,
         product_amount: subtotal,
         delivery_charge: effectiveDeliveryCharge,
@@ -407,7 +412,7 @@ function renderCheckoutForm(db, subtotal) {
         customer_name: name,
         customer_phone: phone,
         purchase_type: 'template',
-        payment_method: 'online',
+        payment_method: selectedMethod,
         product_amount: subtotal,
         delivery_charge: 0,
         delivery_info: null
@@ -508,9 +513,18 @@ function renderPaymentInstructionsStep(db, checkoutData) {
         const deliveryInfo = checkoutData.delivery_info || null;
         const purchaseType = checkoutData.purchase_type || (deliveryInfo ? 'magazine' : 'template');
 
+        const cartItems = getCart();
+        const firstCartItem = cartItems && cartItems.length > 0 ? cartItems[0] : null;
+        const derivedProductType = firstCartItem ? (firstCartItem.product_type || firstCartItem.productType || purchaseType || 'magazine') : (purchaseType || 'magazine');
+        const isNonMagOrder = derivedProductType !== 'magazine';
+
         const firestoreData = {
           orderId: newOrderId,
           purchaseType: purchaseType,
+          product_type: derivedProductType,
+          productType: derivedProductType,
+          photos_uploaded: isNonMagOrder,
+          photosUploaded: isNonMagOrder,
           transactionId: trxId,
           txnId: trxId,
           paymentMethod: checkoutData.payment_method === 'cod' ? 'bKash (COD Advance)' : 'bKash (Full Online)',
@@ -542,23 +556,72 @@ function renderPaymentInstructionsStep(db, checkoutData) {
             let itemCounter = 1;
             getCart().forEach((item) => {
               const qty = Math.max(1, Number(item.quantity || 1));
+              const pType = item.product_type || item.productType || (item.purchaseMode === 'poster' ? 'poster' : (item.purchaseMode === 'wall_frame' ? 'wall_frame' : (item.purchaseMode === 'sticker' ? 'sticker' : 'magazine')));
+              const isPoster = pType === 'poster';
+              const isFrame = pType === 'wall_frame' || pType === 'frame';
+              const isSticker = pType === 'sticker';
+              const selectedPosters = Array.isArray(item.selectedPosters) ? item.selectedPosters : [];
+              const customUrls = selectedPosters.filter(s => s.type === 'custom_upload' && s.imageUrl).map(s => s.imageUrl);
+              const hasCustomUploads = customUrls.length > 0;
+
               for (let q = 0; q < qty; q++) {
                 const itemNumLabel = qty > 1 ? ` (Item ${q + 1} of ${qty})` : '';
-                expanded.push({
-                  item_id: `${newOrderId}-${itemCounter}`,
-                  template_id: item.id || 'magazine-template',
-                  template_name: `${item.title || item.name || 'Custom Magazine'}${itemNumLabel}`,
-                  product_type: item.product_type || (item.canva_link ? 'template' : 'magazine'),
-                  recipient_name: item.recipient_name || '',
-                  required_photo_count: Number(item.required_photo_count || item.photo_count || 10),
-                  photos_uploaded: false
-                });
+                const itemTitle = item.title || item.name || item.template_name || (isPoster ? 'Poster Combo' : isFrame ? 'Wall Frame' : isSticker ? 'Sticker' : 'Custom Product');
+                const itemId = item.id || item.template_id || item.templateId || (isPoster ? 'poster-combo' : isFrame ? 'frame-template' : isSticker ? 'sticker-template' : 'custom-item');
+
+                if (isPoster) {
+                  expanded.push({
+                    item_id: `${newOrderId}-${itemCounter}`,
+                    template_id: itemId,
+                    template_name: `${itemTitle}${itemNumLabel}`,
+                    product_type: 'poster',
+                    productType: 'poster',
+                    combo_quantity: Number(item.comboQuantity || 5),
+                    comboQuantity: Number(item.comboQuantity || 5),
+                    customization_type: hasCustomUploads ? 'custom_upload' : 'catalog',
+                    customizationType: hasCustomUploads ? 'custom_upload' : 'catalog',
+                    photos_uploaded: true,
+                    photosUploaded: true,
+                    photo_urls: customUrls,
+                    photoUrls: customUrls,
+                    catalog_preview_url: item.imageUrl || (selectedPosters.length > 0 ? selectedPosters[0].imageUrl : ''),
+                    catalogPreviewUrl: item.imageUrl || (selectedPosters.length > 0 ? selectedPosters[0].imageUrl : ''),
+                    selected_posters: selectedPosters,
+                    selectedPosters: selectedPosters,
+                    required_photo_count: Number(item.comboQuantity || 5)
+                  });
+                } else if (isFrame || isSticker) {
+                  expanded.push({
+                    item_id: `${newOrderId}-${itemCounter}`,
+                    template_id: itemId,
+                    template_name: `${itemTitle}${itemNumLabel}`,
+                    product_type: pType,
+                    productType: pType,
+                    photos_uploaded: true,
+                    photosUploaded: true,
+                    photo_urls: item.imageUrl ? [item.imageUrl] : [],
+                    photoUrls: item.imageUrl ? [item.imageUrl] : [],
+                    recipient_name: item.recipient_name || '',
+                    required_photo_count: 1
+                  });
+                } else {
+                  expanded.push({
+                    item_id: `${newOrderId}-${itemCounter}`,
+                    template_id: itemId,
+                    template_name: `${itemTitle}${itemNumLabel}`,
+                    product_type: pType,
+                    productType: pType,
+                    recipient_name: item.recipient_name || '',
+                    required_photo_count: Number(item.required_photo_count || item.photo_count || item.requiredPhotos || 10),
+                    photos_uploaded: pType === 'template'
+                  });
+                }
                 itemCounter++;
               }
             });
             return expanded;
           })(),
-          productName: checkoutData.product_name || (purchaseType === 'template' ? 'Digital Template Order' : 'Physical Magazine Order'),
+          productName: checkoutData.product_name || (purchaseType === 'poster' ? 'Poster Combo Pack Order' : (purchaseType === 'template' ? 'Digital Template Order' : 'Physical Magazine Order')),
           status: 'pending',
           paymentStatus: 'pending',
           createdAt: new Date().toISOString(),
