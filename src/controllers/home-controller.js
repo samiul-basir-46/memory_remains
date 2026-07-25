@@ -62,12 +62,12 @@ function filterByKeyword(list, keywords) {
 
 // ─── Category metadata ──────────────────────────────────────────────────────
 const CAT_META = {
-  'FOR HIM':          { icon: 'fa-person',       color: '#DC3C71', bg: 'linear-gradient(135deg,#1a4a8a,#3b82f6)' },
-  'FOR HER':          { icon: 'fa-person-dress',  color: '#DC3C71', bg: 'linear-gradient(135deg,#6b1a3a,#DC3C71)' },
-  'Birthday Special': { icon: 'fa-cake-candles',  color: '#DC3C71', bg: 'linear-gradient(135deg,#7a2e00,#f97316)' },
-  'Anniversary':      { icon: 'fa-heart',         color: '#DC3C71', bg: 'linear-gradient(135deg,#5a0a0a,#ef4444)' },
-  'Best Selling':     { icon: 'fa-fire',           color: '#DC3C71', bg: 'linear-gradient(135deg,#1a1a0a,#c47c0a)' },
-  'Self Love':        { icon: 'fa-spa',            color: '#DC3C71', bg: 'linear-gradient(135deg,#2a0a5a,#8b5cf6)' },
+  'FOR HIM':          { icon: 'fa-person',       tagline: 'Gifts for Guys',     bg: 'linear-gradient(135deg,#0d254c,#1e3a8a)' },
+  'FOR HER':          { icon: 'fa-person-dress',  tagline: 'Special for Her',   bg: 'linear-gradient(135deg,#4c0d28,#9f1239)' },
+  'Birthday Special': { icon: 'fa-cake-candles',  tagline: 'Make It Memorable', bg: 'linear-gradient(135deg,#4c220d,#c2410c)' },
+  'Anniversary':      { icon: 'fa-heart',         tagline: 'Romantic Stories',  bg: 'linear-gradient(135deg,#4c0d0d,#b91c1c)' },
+  'Best Selling':     { icon: 'fa-fire',           tagline: 'Top Loved Items',   bg: 'linear-gradient(135deg,#36260d,#b45309)' },
+  'Self Love':        { icon: 'fa-spa',            tagline: 'Personalized Art',  bg: 'linear-gradient(135deg,#240d4c,#6d28d9)' },
 };
 
 export async function renderHomePage(db) {
@@ -77,7 +77,7 @@ export async function renderHomePage(db) {
   const categories = ['FOR HIM', 'FOR HER', 'Birthday Special', 'Anniversary', 'Best Selling', 'Self Love'];
 
   const renderHomeSections = (templatesList = [], collectionsList = []) => {
-    const list = (templatesList && templatesList.length > 0) ? templatesList : DEFAULT_FEATURED_TEMPLATES;
+    const list = templatesList || [];
 
     // ── Collections grid ──────────────────────────────────────────────────
     let collectionsToRender = [];
@@ -99,7 +99,7 @@ export async function renderHomePage(db) {
       if (collectionsToRender.length === 0) {
         collectionsToRender = [
           { name: 'FOR HER', slug: 'FOR HER' },
-          { name: 'I Love My Self', slug: 'I Love My Self' },
+          { name: 'Self Love', slug: 'Self Love' },
           { name: 'Best Selling', slug: 'Best Selling' },
           { name: 'Birthday Special', slug: 'Birthday Special' }
         ];
@@ -109,42 +109,45 @@ export async function renderHomePage(db) {
 
     // 1. Featured Carousel
     const featuredCarousel = qs('#featured-carousel');
-    if (featuredCarousel) {
+    if (featuredCarousel && list.length > 0) {
       featuredCarousel.innerHTML = list.slice(0, 8).map(renderProductCard).join('');
     }
 
     // 2. Hero preview (top 3 cards, small)
     const heroPreview = qs('#hero-preview');
     if (heroPreview) {
-      const top3 = list.slice(0, 3);
-      heroPreview.innerHTML = `
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;opacity:0.9;">
-          ${top3.slice(0, 2).map((t) => {
-            const img = buildCloudinaryDeliveryUrl(t.imageUrl || '/assets/product_placeholder.png', { width: 300 });
-            const url = t.id ? `/pages/product-details/?id=${encodeURIComponent(t.id)}` : '#';
-            return `
-              <a href="${url}" style="border-radius:16px;overflow:hidden;display:block;box-shadow:0 12px 40px rgba(0,0,0,0.35);border:2px solid rgba(255,255,255,0.12);text-decoration:none;">
-                <img src="${img}" alt="${escapeHtml(t.title||'')}" style="width:100%;aspect-ratio:3/4;object-fit:cover;display:block;">
-              </a>
-            `;
-          }).join('')}
-          ${top3[2] ? (() => {
-            const t = top3[2];
-            const img = buildCloudinaryDeliveryUrl(t.imageUrl || '/assets/product_placeholder.png', { width: 300 });
-            const url = t.id ? `/pages/product-details/?id=${encodeURIComponent(t.id)}` : '#';
-            return `
-              <a href="${url}" style="grid-column:1/-1;border-radius:16px;overflow:hidden;display:block;box-shadow:0 12px 40px rgba(0,0,0,0.35);border:2px solid rgba(255,255,255,0.12);text-decoration:none;">
-                <img src="${img}" alt="${escapeHtml(t.title||'')}" style="width:100%;height:140px;object-fit:cover;display:block;">
-              </a>
-            `;
-          })() : ''}
-        </div>
-      `;
+      const productsWithImages = list.filter((t) => t.imageUrl && typeof t.imageUrl === 'string' && t.imageUrl.trim().length > 0);
+      const top3 = productsWithImages.slice(0, 3);
+      if (top3.length > 0) {
+        heroPreview.innerHTML = `
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;opacity:0.9;">
+            ${top3.slice(0, 2).map((t) => {
+              const img = buildCloudinaryDeliveryUrl(t.imageUrl, { width: 350 });
+              const url = t.id ? `/pages/product-details/?id=${encodeURIComponent(t.id)}` : '#';
+              return `
+                <a href="${url}" style="border-radius:18px;overflow:hidden;display:block;box-shadow:0 14px 40px rgba(0,0,0,0.35);border:2px solid rgba(255,255,255,0.15);text-decoration:none;" class="transition-transform duration-300 hover:scale-105">
+                  <img src="${img}" alt="${escapeHtml(t.title||'')}" style="width:100%;aspect-ratio:3/4;object-fit:cover;display:block;">
+                </a>
+              `;
+            }).join('')}
+            ${top3[2] ? (() => {
+              const t = top3[2];
+              const img = buildCloudinaryDeliveryUrl(t.imageUrl, { width: 350 });
+              const url = t.id ? `/pages/product-details/?id=${encodeURIComponent(t.id)}` : '#';
+              return `
+                <a href="${url}" style="grid-column:1/-1;border-radius:18px;overflow:hidden;display:block;box-shadow:0 14px 40px rgba(0,0,0,0.35);border:2px solid rgba(255,255,255,0.15);text-decoration:none;" class="transition-transform duration-300 hover:scale-105">
+                  <img src="${img}" alt="${escapeHtml(t.title||'')}" style="width:100%;height:140px;object-fit:cover;display:block;">
+                </a>
+              `;
+            })() : ''}
+          </div>
+        `;
+      }
     }
 
     // 3. Magazine row
     const magazineRow = qs('#magazine-row');
-    if (magazineRow) {
+    if (magazineRow && list.length > 0) {
       const magazineItems = filterByKeyword(list, ['magazine', 'vogue', 'soulmate', 'couple edition', 'newspaper']);
       const toShow = magazineItems.length > 0 ? magazineItems : list.slice(0, 6);
       magazineRow.innerHTML = toShow.slice(0, 8).map(renderProductCard).join('');
@@ -152,17 +155,16 @@ export async function renderHomePage(db) {
 
     // 4. Best Selling Showcase
     const bestSellingEl = qs('#best-selling-highlight');
-    if (bestSellingEl) {
+    if (bestSellingEl && list.length > 0) {
       const bestItem = list.find((t) => (t.badge || '').toString().toLowerCase().includes('bestseller'))
         || list.find((t) => (t.title || '').toLowerCase().includes('best'))
-        || list[0]
-        || DEFAULT_FEATURED_TEMPLATES[0];
-      bestSellingEl.innerHTML = renderShowcaseCard(bestItem);
+        || list[0];
+      if (bestItem) bestSellingEl.innerHTML = renderShowcaseCard(bestItem);
     }
 
     // 5. Frame row
     const frameRow = qs('#frame-row');
-    if (frameRow) {
+    if (frameRow && list.length > 0) {
       const frameItems = filterByKeyword(list, ['frame', 'wall frame', 'photo frame']);
       const toShow = frameItems.length > 0 ? frameItems : list.slice(1, 7);
       frameRow.innerHTML = toShow.slice(0, 8).map(renderProductCard).join('');
@@ -170,11 +172,11 @@ export async function renderHomePage(db) {
 
     // 6. Vogue Showcase
     const vogueEl = qs('#vogue-highlight');
-    if (vogueEl) {
+    if (vogueEl && list.length > 0) {
       const vogueItem = list.find((t) => (t.title || '').toLowerCase().includes('vogue'))
         || list[1]
-        || DEFAULT_FEATURED_TEMPLATES[1];
-      vogueEl.innerHTML = renderShowcaseCard(vogueItem);
+        || list[0];
+      if (vogueItem) vogueEl.innerHTML = renderShowcaseCard(vogueItem);
     }
 
     // 7. Collections grid
@@ -201,44 +203,50 @@ export async function renderHomePage(db) {
 
     // 8. Soulmate Showcase
     const soulmateEl = qs('#soulmate-highlight');
-    if (soulmateEl) {
+    if (soulmateEl && list.length > 0) {
       const soulmateItem = list.find((t) => (t.title || '').toLowerCase().includes('soulmate'))
         || list[2]
-        || DEFAULT_FEATURED_TEMPLATES[2];
-      soulmateEl.innerHTML = renderShowcaseCard(soulmateItem);
+        || list[0];
+      if (soulmateItem) soulmateEl.innerHTML = renderShowcaseCard(soulmateItem);
     }
 
     // 9. Couple Showcase
     const coupleEl = qs('#couple-highlight');
-    if (coupleEl) {
+    if (coupleEl && list.length > 0) {
       const coupleItem = list.find((t) => (t.title || '').toLowerCase().includes('couple'))
         || list[3]
-        || DEFAULT_FEATURED_TEMPLATES[3];
-      coupleEl.innerHTML = renderShowcaseCard(coupleItem);
+        || list[0];
+      if (coupleItem) coupleEl.innerHTML = renderShowcaseCard(coupleItem);
     }
 
     // 10. Categories — BIG visual cards
     const categoriesCircleGrid = qs('#categories-circle-grid');
     if (categoriesCircleGrid) {
       categoriesCircleGrid.innerHTML = categories.map((cat) => {
-        const meta = CAT_META[cat] || { icon: 'fa-tag', color: '#DC3C71', bg: 'linear-gradient(135deg,#3b1c1c,#DC3C71)' };
-        // Find a product image for this category to use as background
+        const meta = CAT_META[cat] || { icon: 'fa-tag', tagline: 'Personalized Gifts', bg: 'linear-gradient(135deg,#3b1c1c,#DC3C71)' };
+        
+        // Find a matching product image for background if available
         const catProduct = list.find((t) =>
-          (t.title || '').toLowerCase().includes(cat.toLowerCase()) ||
+          ((t.title || '').toLowerCase().includes(cat.toLowerCase()) ||
           (t.category || '').toLowerCase().includes(cat.toLowerCase()) ||
-          (t.collection || '').toLowerCase().includes(cat.toLowerCase())
+          (t.collection || '').toLowerCase().includes(cat.toLowerCase())) &&
+          t.imageUrl && t.imageUrl.trim().length > 0
         );
-        const bgImg = catProduct?.imageUrl ? buildCloudinaryDeliveryUrl(catProduct.imageUrl, { width: 300 }) : null;
+
+        const hasRealImg = Boolean(catProduct && catProduct.imageUrl && catProduct.imageUrl.startsWith('http'));
+        const bgImg = hasRealImg ? buildCloudinaryDeliveryUrl(catProduct.imageUrl, { width: 400 }) : null;
 
         return `
-          <a href="/collections/paid-products?title=${encodeURIComponent(cat)}" class="cat-big-card">
-            <div class="cat-big-card-bg" style="background:${meta.bg};${bgImg ? `background-image:url('${bgImg}');background-size:cover;background-position:center;` : ''}"></div>
+          <a href="/collections/paid-products?title=${encodeURIComponent(cat)}" class="cat-big-card group" style="background:${meta.bg};">
+            ${bgImg ? `<img src="${bgImg}" alt="${escapeHtml(cat)}" class="cat-big-card-img">` : ''}
             <div class="cat-big-card-overlay"></div>
-            <div class="cat-big-card-inner">
-              <div class="cat-big-icon" style="background:rgba(220,60,113,0.85);">
+            <div class="cat-big-card-content">
+              <div class="cat-big-icon">
                 <i class="fa-solid ${meta.icon}"></i>
               </div>
-              <span class="cat-big-name">${escapeHtml(cat)}</span>
+              <h4 class="cat-big-name">${escapeHtml(cat)}</h4>
+              <span class="cat-big-sub">${escapeHtml(meta.tagline)}</span>
+              <span class="cat-big-btn">Explore <i class="fa-solid fa-chevron-right text-[9px] ml-1"></i></span>
             </div>
           </a>
         `;
@@ -260,14 +268,13 @@ export async function renderHomePage(db) {
 
   try {
     const cached = getCachedTemplates();
-    if (cached && cached.length > 0) {
-      homeTemplates = cached;
-    } else {
-      homeTemplates = DEFAULT_FEATURED_TEMPLATES;
-    }
+    const hasRealCachedImages = cached && cached.length > 0 && cached.some((t) => t.imageUrl && t.imageUrl.startsWith('http'));
 
-    renderHomeSections(homeTemplates, fetchedCollections);
-    initCarouselButtons();
+    if (hasRealCachedImages) {
+      homeTemplates = cached;
+      renderHomeSections(homeTemplates, fetchedCollections);
+      initCarouselButtons();
+    }
 
     const [freshTemplates, cols] = await Promise.all([
       fetchTemplates(db, { orderByCreated: false }),
@@ -279,11 +286,10 @@ export async function renderHomePage(db) {
     if (freshTemplates && freshTemplates.length > 0) {
       homeTemplates = freshTemplates;
       setCachedTemplates(freshTemplates);
+      renderHomeSections(homeTemplates, fetchedCollections);
+      initCarouselButtons();
     }
-
-    renderHomeSections(homeTemplates, fetchedCollections);
   } catch (error) {
     console.error('Failed to load home templates:', error);
-    renderHomeSections(DEFAULT_FEATURED_TEMPLATES, fetchedCollections);
   }
 }
