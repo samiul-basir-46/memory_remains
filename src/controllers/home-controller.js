@@ -3,6 +3,7 @@ import { renderProductCard } from '../components/product-card.js';
 import { setupLazyCloudinaryImages, buildCloudinaryDeliveryUrl } from '../utils/cloudinary.js';
 import { escapeHtml, qs } from '../utils/ui.js';
 
+// ─── Showcase Card (large split-layout highlight) ──────────────────────────
 function renderShowcaseCard(template = {}) {
   const price = Number(template.price || template.customPrice || 0);
   const compare = comparePrice(template);
@@ -14,21 +15,14 @@ function renderShowcaseCard(template = {}) {
 
   return `
     <div class="showcase-card bg-white rounded-2xl overflow-hidden shadow-2xl border border-pink-100 grid grid-cols-1 lg:grid-cols-12 max-w-5xl mx-auto my-2 max-h-[85vh] lg:max-h-[540px]">
-      <!-- Left Column: Product Image Gallery (Fixed container showing 100% full uncropped image) -->
       <div class="relative bg-gray-950 lg:col-span-6 flex items-center justify-center p-4 overflow-hidden h-[360px] sm:h-[440px] lg:h-[540px] group">
-        <!-- Ambient Blurred Background Image for rich visual aesthetics -->
         <img id="showcase-bg-${template.id || 'default'}" src="${buildCloudinaryDeliveryUrl(primaryImg, { width: 300 })}" alt="" class="absolute inset-0 w-full h-full object-cover blur-2xl opacity-30 scale-125 pointer-events-none transition-all duration-300">
-
-        <!-- 100% Uncropped Full View Display Image -->
         <img id="showcase-img-${template.id || 'default'}" src="${buildCloudinaryDeliveryUrl(primaryImg, { width: 900 })}" alt="${escapeHtml(template.title || template.name)}" class="relative z-10 max-w-full max-h-full object-contain drop-shadow-2xl transition-all duration-300">
-
         ${gallery.length > 1 ? `
-          <button type="button" onclick="const img = document.getElementById('showcase-img-${template.id}'); const bg = document.getElementById('showcase-bg-${template.id}'); const urls = ${JSON.stringify(gallery).replace(/"/g, '&quot;')}; let idx = parseInt(img.dataset.idx || 0); idx = (idx - 1 + urls.length) % urls.length; img.src = urls[idx]; if(bg) bg.src = urls[idx]; img.dataset.idx = idx;" class="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/90 text-[#2A2A2A] flex items-center justify-center shadow-lg cursor-pointer hover:bg-white hover:scale-110 active:scale-95 text-xs z-20 border border-pink-100"><i class="fa-solid fa-chevron-left"></i></button>
-          <button type="button" onclick="const img = document.getElementById('showcase-img-${template.id}'); const bg = document.getElementById('showcase-bg-${template.id}'); const urls = ${JSON.stringify(gallery).replace(/"/g, '&quot;')}; let idx = parseInt(img.dataset.idx || 0); idx = (idx + 1) % urls.length; img.src = urls[idx]; if(bg) bg.src = urls[idx]; img.dataset.idx = idx;" class="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/90 text-[#2A2A2A] flex items-center justify-center shadow-lg cursor-pointer hover:bg-white hover:scale-110 active:scale-95 text-xs z-20 border border-pink-100"><i class="fa-solid fa-chevron-right"></i></button>
+          <button type="button" onclick="const img=document.getElementById('showcase-img-${template.id}');const bg=document.getElementById('showcase-bg-${template.id}');const urls=${JSON.stringify(gallery).replace(/"/g,'&quot;')};let idx=parseInt(img.dataset.idx||0);idx=(idx-1+urls.length)%urls.length;img.src=urls[idx];if(bg)bg.src=urls[idx];img.dataset.idx=idx;" class="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/90 text-[#2A2A2A] flex items-center justify-center shadow-lg cursor-pointer hover:bg-white hover:scale-110 active:scale-95 text-xs z-20 border border-pink-100"><i class="fa-solid fa-chevron-left"></i></button>
+          <button type="button" onclick="const img=document.getElementById('showcase-img-${template.id}');const bg=document.getElementById('showcase-bg-${template.id}');const urls=${JSON.stringify(gallery).replace(/"/g,'&quot;')};let idx=parseInt(img.dataset.idx||0);idx=(idx+1)%urls.length;img.src=urls[idx];if(bg)bg.src=urls[idx];img.dataset.idx=idx;" class="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/90 text-[#2A2A2A] flex items-center justify-center shadow-lg cursor-pointer hover:bg-white hover:scale-110 active:scale-95 text-xs z-20 border border-pink-100"><i class="fa-solid fa-chevron-right"></i></button>
         ` : ''}
       </div>
-
-      <!-- Right Column: Product Info & Purchase Options -->
       <div class="bg-[#FDF0F4] lg:col-span-6 p-6 sm:p-8 flex flex-col justify-between space-y-4 overflow-y-auto max-h-[540px]">
         <div>
           <h3 class="font-heading text-2xl md:text-3xl text-[#2A2A2A] font-normal mb-3 leading-snug">
@@ -40,19 +34,15 @@ function renderShowcaseCard(template = {}) {
             ${discount ? `<span class="text-[#00664E] font-semibold text-base">${discount}% Off</span>` : ''}
           </div>
           <p class="text-xs text-text-soft mb-6">Incl. of all taxes</p>
-
           <div class="grid grid-cols-2 gap-4 mb-6">
-            <button onclick="addTemplateToCart(${JSON.stringify(template).replace(/"/g, '&quot;')})" type="button" class="py-3 px-4 rounded-xl border-2 border-primary bg-white/80 hover:bg-white text-primary font-bold text-sm transition-all cursor-pointer text-center active:scale-95 shadow-sm">Add To Cart</button>
-            <button onclick="addTemplateToCart(${JSON.stringify(template).replace(/"/g, '&quot;')}); window.location.href='/pages/cart'" type="button" class="py-3 px-4 rounded-xl bg-[#DC3C71] hover:bg-[#c23260] text-white font-bold text-sm shadow-md transition-all cursor-pointer text-center active:scale-95">Buy Now</button>
+            <button onclick="addTemplateToCart(${JSON.stringify(template).replace(/"/g,'&quot;')})" type="button" class="py-3 px-4 rounded-xl border-2 border-primary bg-white/80 hover:bg-white text-primary font-bold text-sm transition-all cursor-pointer text-center active:scale-95 shadow-sm">Add To Cart</button>
+            <button onclick="addTemplateToCart(${JSON.stringify(template).replace(/"/g,'&quot;')}); window.location.href='/pages/cart'" type="button" class="py-3 px-4 rounded-xl bg-[#DC3C71] hover:bg-[#c23260] text-white font-bold text-sm shadow-md transition-all cursor-pointer text-center active:scale-95">Buy Now</button>
           </div>
-
           <div class="space-y-2.5 text-xs text-[#2A2A2A] pt-4 border-t border-pink-200/60">
             <div class="flex items-center gap-2.5"><i class="fa-solid fa-truck text-primary text-sm"></i> <span>Delivered in 3-15 Days</span></div>
             <div class="flex items-center gap-2.5"><i class="fa-solid fa-box text-primary text-sm"></i> <span>Free Delivery on all purchases above ৳999</span></div>
-            <p class="text-[11px] text-text-soft pt-1">after placing order click on WhatsApp icon to share details (92503 03360)</p>
           </div>
         </div>
-
         <div class="flex justify-between items-center text-xs font-semibold text-[#2A2A2A] border-t border-pink-200/60 pt-4">
           <span>Personalized Gift Template</span>
           <a href="${detailsUrl}" class="text-primary hover:underline font-bold text-sm">View More</a>
@@ -61,6 +51,24 @@ function renderShowcaseCard(template = {}) {
     </div>
   `;
 }
+
+// ─── Filter products by keyword in title/type/category ─────────────────────
+function filterByKeyword(list, keywords) {
+  return list.filter((t) => {
+    const hay = `${t.title || ''} ${t.name || ''} ${t.product_type || ''} ${t.category || ''} ${t.collection || ''}`.toLowerCase();
+    return keywords.some((k) => hay.includes(k.toLowerCase()));
+  });
+}
+
+// ─── Category metadata ──────────────────────────────────────────────────────
+const CAT_META = {
+  'FOR HIM':          { icon: 'fa-person',       color: '#DC3C71', bg: 'linear-gradient(135deg,#1a4a8a,#3b82f6)' },
+  'FOR HER':          { icon: 'fa-person-dress',  color: '#DC3C71', bg: 'linear-gradient(135deg,#6b1a3a,#DC3C71)' },
+  'Birthday Special': { icon: 'fa-cake-candles',  color: '#DC3C71', bg: 'linear-gradient(135deg,#7a2e00,#f97316)' },
+  'Anniversary':      { icon: 'fa-heart',         color: '#DC3C71', bg: 'linear-gradient(135deg,#5a0a0a,#ef4444)' },
+  'Best Selling':     { icon: 'fa-fire',           color: '#DC3C71', bg: 'linear-gradient(135deg,#1a1a0a,#c47c0a)' },
+  'Self Love':        { icon: 'fa-spa',            color: '#DC3C71', bg: 'linear-gradient(135deg,#2a0a5a,#8b5cf6)' },
+};
 
 export async function renderHomePage(db) {
   let homeTemplates = [];
@@ -71,7 +79,7 @@ export async function renderHomePage(db) {
   const renderHomeSections = (templatesList = [], collectionsList = []) => {
     const list = (templatesList && templatesList.length > 0) ? templatesList : DEFAULT_FEATURED_TEMPLATES;
 
-    // Determine dynamic collections
+    // ── Collections grid ──────────────────────────────────────────────────
     let collectionsToRender = [];
     if (collectionsList && collectionsList.length > 0) {
       collectionsToRender = collectionsList.map((c) => ({
@@ -84,15 +92,10 @@ export async function renderHomePage(db) {
       list.forEach((t) => {
         const colName = (t.collection || t.category || '').trim();
         if (colName && !colMap.has(colName.toLowerCase())) {
-          colMap.set(colName.toLowerCase(), {
-            name: colName,
-            slug: colName,
-            cover_image_url: t.imageUrl || ''
-          });
+          colMap.set(colName.toLowerCase(), { name: colName, slug: colName, cover_image_url: t.imageUrl || '' });
         }
       });
       collectionsToRender = Array.from(colMap.values());
-
       if (collectionsToRender.length === 0) {
         collectionsToRender = [
           { name: 'FOR HER', slug: 'FOR HER' },
@@ -102,27 +105,85 @@ export async function renderHomePage(db) {
         ];
       }
     }
+    if (collectionsToRender.length > 8) collectionsToRender = collectionsToRender.slice(0, 8);
 
-    // Limit to 4-8 collections for layout harmony
-    if (collectionsToRender.length > 8) {
-      collectionsToRender = collectionsToRender.slice(0, 8);
-    }
-
-    // 1. Featured Products Slider
+    // 1. Featured Carousel
     const featuredCarousel = qs('#featured-carousel');
     if (featuredCarousel) {
-      const featuredList = list.slice(0, 5);
-      featuredCarousel.innerHTML = featuredList.map(renderProductCard).join('');
+      featuredCarousel.innerHTML = list.slice(0, 8).map(renderProductCard).join('');
     }
 
-    // 2. Shop by Collection (Dynamic Cards)
+    // 2. Hero preview (top 3 cards, small)
+    const heroPreview = qs('#hero-preview');
+    if (heroPreview) {
+      const top3 = list.slice(0, 3);
+      heroPreview.innerHTML = `
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;opacity:0.9;">
+          ${top3.slice(0, 2).map((t) => {
+            const img = buildCloudinaryDeliveryUrl(t.imageUrl || '/assets/product_placeholder.png', { width: 300 });
+            const url = t.id ? `/pages/product-details/?id=${encodeURIComponent(t.id)}` : '#';
+            return `
+              <a href="${url}" style="border-radius:16px;overflow:hidden;display:block;box-shadow:0 12px 40px rgba(0,0,0,0.35);border:2px solid rgba(255,255,255,0.12);text-decoration:none;">
+                <img src="${img}" alt="${escapeHtml(t.title||'')}" style="width:100%;aspect-ratio:3/4;object-fit:cover;display:block;">
+              </a>
+            `;
+          }).join('')}
+          ${top3[2] ? (() => {
+            const t = top3[2];
+            const img = buildCloudinaryDeliveryUrl(t.imageUrl || '/assets/product_placeholder.png', { width: 300 });
+            const url = t.id ? `/pages/product-details/?id=${encodeURIComponent(t.id)}` : '#';
+            return `
+              <a href="${url}" style="grid-column:1/-1;border-radius:16px;overflow:hidden;display:block;box-shadow:0 12px 40px rgba(0,0,0,0.35);border:2px solid rgba(255,255,255,0.12);text-decoration:none;">
+                <img src="${img}" alt="${escapeHtml(t.title||'')}" style="width:100%;height:140px;object-fit:cover;display:block;">
+              </a>
+            `;
+          })() : ''}
+        </div>
+      `;
+    }
+
+    // 3. Magazine row
+    const magazineRow = qs('#magazine-row');
+    if (magazineRow) {
+      const magazineItems = filterByKeyword(list, ['magazine', 'vogue', 'soulmate', 'couple edition', 'newspaper']);
+      const toShow = magazineItems.length > 0 ? magazineItems : list.slice(0, 6);
+      magazineRow.innerHTML = toShow.slice(0, 8).map(renderProductCard).join('');
+    }
+
+    // 4. Best Selling Showcase
+    const bestSellingEl = qs('#best-selling-highlight');
+    if (bestSellingEl) {
+      const bestItem = list.find((t) => (t.badge || '').toString().toLowerCase().includes('bestseller'))
+        || list.find((t) => (t.title || '').toLowerCase().includes('best'))
+        || list[0]
+        || DEFAULT_FEATURED_TEMPLATES[0];
+      bestSellingEl.innerHTML = renderShowcaseCard(bestItem);
+    }
+
+    // 5. Frame row
+    const frameRow = qs('#frame-row');
+    if (frameRow) {
+      const frameItems = filterByKeyword(list, ['frame', 'wall frame', 'photo frame']);
+      const toShow = frameItems.length > 0 ? frameItems : list.slice(1, 7);
+      frameRow.innerHTML = toShow.slice(0, 8).map(renderProductCard).join('');
+    }
+
+    // 6. Vogue Showcase
+    const vogueEl = qs('#vogue-highlight');
+    if (vogueEl) {
+      const vogueItem = list.find((t) => (t.title || '').toLowerCase().includes('vogue'))
+        || list[1]
+        || DEFAULT_FEATURED_TEMPLATES[1];
+      vogueEl.innerHTML = renderShowcaseCard(vogueItem);
+    }
+
+    // 7. Collections grid
     const collectionsGrid = qs('#collections-grid');
     if (collectionsGrid) {
       collectionsGrid.innerHTML = collectionsToRender.map((col) => {
         const name = col.name;
         const coverImg = col.cover_image_url;
         const linkUrl = `/collections/paid-products?title=${encodeURIComponent(name)}`;
-
         return `
           <a href="${linkUrl}" class="megamenu-card flex flex-col gap-3 no-underline group">
             <div class="megamenu-card-bg relative bg-[#360505] rounded-xl aspect-[3/4] overflow-hidden flex items-center justify-center p-4 text-center border-2 border-transparent transition-all duration-300 group-hover:scale-105 group-hover:-translate-y-1 group-hover:border-primary group-hover:shadow-2xl">
@@ -138,45 +199,50 @@ export async function renderHomePage(db) {
       }).join('');
     }
 
-    // 3. Best Selling Showcase
-    const bestSellingEl = qs('#best-selling-highlight');
-    if (bestSellingEl) {
-      const bestItem = list[0] || DEFAULT_FEATURED_TEMPLATES[0];
-      bestSellingEl.innerHTML = renderShowcaseCard(bestItem);
-    }
-
-    // 4. Premium Magazine Vogue Showcase
-    const vogueEl = qs('#vogue-highlight');
-    if (vogueEl) {
-      const vogueItem = list.find((t) => (t.title || '').toLowerCase().includes('vogue')) || list[1] || DEFAULT_FEATURED_TEMPLATES[1];
-      vogueEl.innerHTML = renderShowcaseCard(vogueItem);
-    }
-
-    // 5. Premium Magazine Soulmate Showcase
+    // 8. Soulmate Showcase
     const soulmateEl = qs('#soulmate-highlight');
     if (soulmateEl) {
-      const soulmateItem = list.find((t) => (t.title || '').toLowerCase().includes('soulmate')) || list[2] || DEFAULT_FEATURED_TEMPLATES[2];
+      const soulmateItem = list.find((t) => (t.title || '').toLowerCase().includes('soulmate'))
+        || list[2]
+        || DEFAULT_FEATURED_TEMPLATES[2];
       soulmateEl.innerHTML = renderShowcaseCard(soulmateItem);
     }
 
-    // 6. Premium Magazine Couple Showcase
+    // 9. Couple Showcase
     const coupleEl = qs('#couple-highlight');
     if (coupleEl) {
-      const coupleItem = list.find((t) => (t.title || '').toLowerCase().includes('couple')) || list[3] || DEFAULT_FEATURED_TEMPLATES[3];
+      const coupleItem = list.find((t) => (t.title || '').toLowerCase().includes('couple'))
+        || list[3]
+        || DEFAULT_FEATURED_TEMPLATES[3];
       coupleEl.innerHTML = renderShowcaseCard(coupleItem);
     }
 
-    // 7. Categories Circles
+    // 10. Categories — BIG visual cards
     const categoriesCircleGrid = qs('#categories-circle-grid');
     if (categoriesCircleGrid) {
-      categoriesCircleGrid.innerHTML = categories.map((cat) => `
-        <a href="/collections/paid-products?title=${encodeURIComponent(cat)}" class="category-circle-card group no-underline text-center flex flex-col items-center gap-3">
-          <div class="w-24 h-24 rounded-full bg-[#fdf6f0] border-2 border-primary flex items-center justify-center text-2xl text-primary shadow-sm group-hover:scale-110 transition-transform">
-            <i class="fa-solid fa-heart"></i>
-          </div>
-          <span class="text-sm font-semibold text-[#2A2A2A] group-hover:text-primary transition-colors">${escapeHtml(cat)}</span>
-        </a>
-      `).join('');
+      categoriesCircleGrid.innerHTML = categories.map((cat) => {
+        const meta = CAT_META[cat] || { icon: 'fa-tag', color: '#DC3C71', bg: 'linear-gradient(135deg,#3b1c1c,#DC3C71)' };
+        // Find a product image for this category to use as background
+        const catProduct = list.find((t) =>
+          (t.title || '').toLowerCase().includes(cat.toLowerCase()) ||
+          (t.category || '').toLowerCase().includes(cat.toLowerCase()) ||
+          (t.collection || '').toLowerCase().includes(cat.toLowerCase())
+        );
+        const bgImg = catProduct?.imageUrl ? buildCloudinaryDeliveryUrl(catProduct.imageUrl, { width: 300 }) : null;
+
+        return `
+          <a href="/collections/paid-products?title=${encodeURIComponent(cat)}" class="cat-big-card">
+            <div class="cat-big-card-bg" style="background:${meta.bg};${bgImg ? `background-image:url('${bgImg}');background-size:cover;background-position:center;` : ''}"></div>
+            <div class="cat-big-card-overlay"></div>
+            <div class="cat-big-card-inner">
+              <div class="cat-big-icon" style="background:rgba(220,60,113,0.85);">
+                <i class="fa-solid ${meta.icon}"></i>
+              </div>
+              <span class="cat-big-name">${escapeHtml(cat)}</span>
+            </div>
+          </a>
+        `;
+      }).join('');
     }
 
     setupLazyCloudinaryImages(document);
@@ -186,14 +252,9 @@ export async function renderHomePage(db) {
     const featCarousel = qs('#featured-carousel');
     const prevFeat = qs('#prev-featured-btn');
     const nextFeat = qs('#next-featured-btn');
-
     if (featCarousel && prevFeat && nextFeat) {
-      prevFeat.addEventListener('click', () => {
-        featCarousel.scrollBy({ left: -300, behavior: 'smooth' });
-      });
-      nextFeat.addEventListener('click', () => {
-        featCarousel.scrollBy({ left: 300, behavior: 'smooth' });
-      });
+      prevFeat.addEventListener('click', () => { featCarousel.scrollBy({ left: -300, behavior: 'smooth' }); });
+      nextFeat.addEventListener('click', () => { featCarousel.scrollBy({ left: 300, behavior: 'smooth' }); });
     }
   };
 
@@ -213,9 +274,7 @@ export async function renderHomePage(db) {
       fetchCollections(db)
     ]);
 
-    if (cols && cols.length > 0) {
-      fetchedCollections = cols;
-    }
+    if (cols && cols.length > 0) fetchedCollections = cols;
 
     if (freshTemplates && freshTemplates.length > 0) {
       homeTemplates = freshTemplates;
