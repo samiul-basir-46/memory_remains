@@ -148,9 +148,17 @@ export async function renderHomePage(db) {
     // 3. Magazine row
     const magazineRow = qs('#magazine-row');
     if (magazineRow && list.length > 0) {
-      const magazineItems = filterByKeyword(list, ['magazine', 'vogue', 'soulmate', 'couple edition', 'newspaper']);
-      const toShow = magazineItems.length > 0 ? magazineItems : list.slice(0, 6);
-      magazineRow.innerHTML = toShow.slice(0, 8).map(renderProductCard).join('');
+      const magazineItems = list.filter((t) => {
+        const pType = String(t.product_type || t.productType || '').toLowerCase();
+        const title = String(t.title || t.name || '').toLowerCase();
+        const cat = String(t.category || t.collection || '').toLowerCase();
+        return (pType === 'magazine' || pType === 'template' || title.includes('magazine') || title.includes('vogue') || cat.includes('magazine')) && pType !== 'poster' && pType !== 'wall_frame' && pType !== 'sticker';
+      });
+      if (magazineItems.length > 0) {
+        magazineRow.innerHTML = magazineItems.slice(0, 8).map(renderProductCard).join('');
+      } else {
+        magazineRow.innerHTML = '';
+      }
     }
 
     // 4. Best Selling Showcase
@@ -165,18 +173,29 @@ export async function renderHomePage(db) {
     // 5. Frame row
     const frameRow = qs('#frame-row');
     if (frameRow && list.length > 0) {
-      const frameItems = filterByKeyword(list, ['frame', 'wall frame', 'photo frame']);
-      const toShow = frameItems.length > 0 ? frameItems : list.slice(1, 7);
-      frameRow.innerHTML = toShow.slice(0, 8).map(renderProductCard).join('');
+      const frameItems = list.filter((t) => {
+        const pType = String(t.product_type || t.productType || '').toLowerCase();
+        const title = String(t.title || t.name || '').toLowerCase();
+        const cat = String(t.category || t.collection || '').toLowerCase();
+        return pType.includes('frame') || title.includes('frame') || cat.includes('frame');
+      });
+      if (frameItems.length > 0) {
+        frameRow.innerHTML = frameItems.slice(0, 8).map(renderProductCard).join('');
+      } else {
+        frameRow.innerHTML = '';
+      }
     }
 
-    // 6. Vogue Showcase
+    // 6. Vogue Showcase (Only display Magazine products or matching vogue title)
     const vogueEl = qs('#vogue-highlight');
     if (vogueEl && list.length > 0) {
       const vogueItem = list.find((t) => (t.title || '').toLowerCase().includes('vogue'))
-        || list[1]
-        || list[0];
-      if (vogueItem) vogueEl.innerHTML = renderShowcaseCard(vogueItem);
+        || list.find((t) => (t.product_type || '').toLowerCase() === 'magazine');
+      if (vogueItem) {
+        vogueEl.innerHTML = renderShowcaseCard(vogueItem);
+      } else if (vogueEl.closest('section')) {
+        vogueEl.closest('section').style.display = 'none';
+      }
     }
 
     // 7. Collections grid
@@ -201,22 +220,28 @@ export async function renderHomePage(db) {
       }).join('');
     }
 
-    // 8. Soulmate Showcase
+    // 8. Soulmate Showcase (Only display Magazine products or matching soulmate title)
     const soulmateEl = qs('#soulmate-highlight');
     if (soulmateEl && list.length > 0) {
       const soulmateItem = list.find((t) => (t.title || '').toLowerCase().includes('soulmate'))
-        || list[2]
-        || list[0];
-      if (soulmateItem) soulmateEl.innerHTML = renderShowcaseCard(soulmateItem);
+        || list.find((t) => (t.product_type || '').toLowerCase() === 'magazine');
+      if (soulmateItem) {
+        soulmateEl.innerHTML = renderShowcaseCard(soulmateItem);
+      } else if (soulmateEl.closest('section')) {
+        soulmateEl.closest('section').style.display = 'none';
+      }
     }
 
     // 9. Couple Showcase
     const coupleEl = qs('#couple-highlight');
     if (coupleEl && list.length > 0) {
       const coupleItem = list.find((t) => (t.title || '').toLowerCase().includes('couple'))
-        || list[3]
-        || list[0];
-      if (coupleItem) coupleEl.innerHTML = renderShowcaseCard(coupleItem);
+        || list.find((t) => (t.product_type || '').toLowerCase() === 'magazine');
+      if (coupleItem) {
+        coupleEl.innerHTML = renderShowcaseCard(coupleItem);
+      } else if (coupleEl.closest('section')) {
+        coupleEl.closest('section').style.display = 'none';
+      }
     }
 
     // 10. Categories — BIG visual cards

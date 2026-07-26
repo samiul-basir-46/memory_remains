@@ -1,6 +1,9 @@
 {
+  "firestore": {
+    "rules": "firestore.rules"
+  },
   "hosting": {
-    "site": "pettybloom",
+    "site": "petty-bloom",
     "public": ".",
     "ignore": [
       "firebase.json",

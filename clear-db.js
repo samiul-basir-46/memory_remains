@@ -2,12 +2,12 @@ import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, getDocs, deleteDoc, doc } from 'firebase/firestore';
 
 const firebaseConfig = {
-  apiKey: 'AIzaSyC3itdNEl2ygjnv0wWDgwkx5DFd0awfzMs',
-  authDomain: 'memory-remains-b5d38.firebaseapp.com',
-  projectId: 'memory-remains-b5d38',
-  storageBucket: 'memory-remains-b5d38.firebasestorage.app',
-  messagingSenderId: '769735601721',
-  appId: '1:769735601721:web:130b0e6511b9aa3bd667e8'
+  apiKey: 'AIzaSyDsa-BtG68kkEVASVq_v8gtjURwzzRnSdA',
+  authDomain: 'petty-bloom.firebaseapp.com',
+  projectId: 'petty-bloom',
+  storageBucket: 'petty-bloom.firebasestorage.app',
+  messagingSenderId: '616648686687',
+  appId: '1:616648686687:web:6a3b7f3d507839308fafea'
 };
 
 const app = initializeApp(firebaseConfig);

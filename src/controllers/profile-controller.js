@@ -71,7 +71,6 @@ function populateProfileData(user) {
   const displayNameHeader = qs('#profile-display-name-header');
   const emailHeader = qs('#profile-display-email-header');
   const nameInput = qs('#profile-name');
-  const photoUrlInput = qs('#profile-photo-url');
   const emailInput = qs('#profile-email');
   const phoneInput = qs('#profile-phone');
   const avatarImg = qs('#profile-avatar-img');
@@ -81,49 +80,111 @@ function populateProfileData(user) {
   if (displayNameHeader) displayNameHeader.textContent = name;
   if (emailHeader) emailHeader.textContent = user.email || '';
   if (nameInput) nameInput.value = user.displayName || '';
-  if (photoUrlInput) photoUrlInput.value = user.photoURL || '';
   if (emailInput) emailInput.value = user.email || '';
   if (phoneInput) phoneInput.value = user.phoneNumber || '';
+
+  if (avatarInitials) {
+    avatarInitials.textContent = name.charAt(0).toUpperCase();
+  }
 
   if (user.photoURL) {
     if (avatarImg) {
       avatarImg.src = user.photoURL;
+      avatarImg.onerror = () => {
+        avatarImg.classList.add('hidden');
+        if (avatarInitials) avatarInitials.classList.remove('hidden');
+      };
+      avatarImg.onload = () => {
+        avatarImg.classList.remove('hidden');
+        if (avatarInitials) avatarInitials.classList.add('hidden');
+      };
       avatarImg.classList.remove('hidden');
     }
     if (avatarInitials) avatarInitials.classList.add('hidden');
   } else {
     if (avatarImg) avatarImg.classList.add('hidden');
-    if (avatarInitials) {
-      avatarInitials.textContent = name.charAt(0).toUpperCase();
-      avatarInitials.classList.remove('hidden');
-    }
+    if (avatarInitials) avatarInitials.classList.remove('hidden');
   }
 }
 
 function bindProfileForm(user) {
   const form = qs('#profile-form');
-  if (!form) return;
+  const avatarClickable = qs('#profile-avatar-clickable');
+  const changeAvatarBtn = qs('#change-avatar-btn');
+  const fileInput = qs('#profile-avatar-file-input');
+  const uploadSpinner = qs('#avatar-upload-spinner');
 
-  form.onsubmit = async (e) => {
-    e.preventDefault();
-    const displayName = qs('#profile-name')?.value.trim();
-    const photoURL = qs('#profile-photo-url')?.value.trim();
-    const phoneNumber = qs('#profile-phone')?.value.trim();
+  if (avatarClickable && fileInput) {
+    const triggerFilePicker = (e) => {
+      e.stopPropagation();
+      fileInput.click();
+    };
+    avatarClickable.onclick = triggerFilePicker;
+    if (changeAvatarBtn) changeAvatarBtn.onclick = triggerFilePicker;
 
-    const submitBtn = form.querySelector('button[type="submit"]');
-    if (submitBtn) submitBtn.disabled = true;
+    fileInput.onchange = async () => {
+      const file = fileInput.files?.[0];
+      if (!file) return;
 
-    try {
-      await updateUserProfileInfo({ displayName, photoURL });
-      createToast('Profile updated successfully.');
-      populateProfileData({ ...user, displayName, photoURL, phoneNumber });
-    } catch (err) {
-      console.error('Failed to update profile:', err);
-      createToast(err.message || 'Failed to update profile.', 'error');
-    } finally {
-      if (submitBtn) submitBtn.disabled = false;
-    }
-  };
+      if (!file.type.startsWith('image/')) {
+        createToast('Please select a valid image file.', 'error');
+        return;
+      }
+
+      if (uploadSpinner) uploadSpinner.classList.remove('hidden');
+
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('upload_preset', 'memory-remains');
+
+        const cldRes = await fetch('https://api.cloudinary.com/v1_1/cmpl84gp/image/upload', {
+          method: 'POST',
+          body: formData
+        });
+
+        if (!cldRes.ok) {
+          const errData = await cldRes.json().catch(() => ({}));
+          throw new Error(errData.error?.message || 'Upload failed');
+        }
+
+        const data = await cldRes.json();
+        const photoURL = data.secure_url;
+
+        await updateUserProfileInfo({ photoURL });
+        createToast('Profile picture updated!');
+        populateProfileData({ ...user, photoURL });
+      } catch (err) {
+        console.error('Failed to upload profile picture:', err);
+        createToast(err.message || 'Failed to upload image', 'error');
+      } finally {
+        if (uploadSpinner) uploadSpinner.classList.add('hidden');
+        fileInput.value = '';
+      }
+    };
+  }
+
+  if (form) {
+    form.onsubmit = async (e) => {
+      e.preventDefault();
+      const displayName = qs('#profile-name')?.value.trim();
+      const phoneNumber = qs('#profile-phone')?.value.trim();
+
+      const submitBtn = form.querySelector('button[type="submit"]');
+      if (submitBtn) submitBtn.disabled = true;
+
+      try {
+        await updateUserProfileInfo({ displayName });
+        createToast('Profile updated successfully.');
+        populateProfileData({ ...user, displayName, phoneNumber });
+      } catch (err) {
+        console.error('Failed to update profile:', err);
+        createToast(err.message || 'Failed to update profile.', 'error');
+      } finally {
+        if (submitBtn) submitBtn.disabled = false;
+      }
+    };
+  }
 }
 
 async function loadUserOrders(user) {
