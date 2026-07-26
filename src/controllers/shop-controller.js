@@ -1,10 +1,21 @@
 import { fetchTemplates, fetchCategories, fetchCollections, getCachedTemplates, setCachedTemplates, DEFAULT_FEATURED_TEMPLATES, discountPercent } from '../services/templates-service.js';
-import { renderProductCardV2 } from '../components/product-card.js';
+import { renderProductCardV2, normalizeBadges } from '../components/product-card.js';
 import { renderProductGridSkeleton, renderEmptyState, renderErrorState } from '../components/skeleton.js';
 import { setupLazyCloudinaryImages } from '../utils/cloudinary.js';
 import { openSurface, closeSurface } from '../components/site-shell.js';
 import { addTemplateToCart } from '../services/cart-service.js';
 import { escapeHtml, qs, qsa } from '../utils/ui.js';
+
+const ALL_BADGES = [
+  { key: 'new',          label: 'New',           bg: '#185FA5' },
+  { key: 'bestseller',   label: 'Best Seller',   bg: '#BA7517' },
+  { key: 'recommended',  label: 'Recommended',   bg: '#0F6E56' },
+  { key: 'limited',      label: 'Limited',       bg: '#A32D2D' },
+  { key: 'sale',         label: 'Sale',          bg: '#993556' },
+  { key: 'editors_pick', label: "Editor's Pick", bg: '#534AB7' },
+  { key: 'trending',     label: 'Trending',      bg: '#1D9E75' },
+  { key: 'top_rated',    label: 'Top Rated',     bg: '#BA7517' }
+];
 
 export async function renderShopPage(db) {
   const grid = qs('#templates-grid');
@@ -20,6 +31,7 @@ export async function renderShopPage(db) {
     categoryId: null,
     collectionSlug: null,
     productType: null,
+    badges: [],           // badge filter — array of badge keys
     discountRanges: [],
     minPrice: null,
     maxPrice: null
@@ -29,6 +41,59 @@ export async function renderShopPage(db) {
 
   const urlParams = new URLSearchParams(window.location.search);
   const initialParam = urlParams.get('title') || urlParams.get('category') || urlParams.get('collection');
+
+  // Badge filter chips render — products এ যে badges আছে শুধু সেগুলোই দেখাবে
+  const renderBadgeFilterChips = () => {
+    const container = qs('#badge-filter-chips');
+    if (!container) return;
+
+    // সব products এ কোন কোন badge আছে সেটা collect করো
+    const usedBadgeKeys = new Set();
+    allTemplates.forEach((t) => {
+      normalizeBadges(t.badge).forEach((b) => usedBadgeKeys.add(b));
+    });
+
+    const availableBadges = ALL_BADGES.filter((b) => usedBadgeKeys.has(b.key));
+
+    if (availableBadges.length === 0) {
+      container.hidden = true;
+      const wrapper = qs('#badge-filter-wrapper');
+      if (wrapper) wrapper.hidden = true;
+      return;
+    }
+
+    container.hidden = false;
+    const wrapper = qs('#badge-filter-wrapper');
+    if (wrapper) wrapper.hidden = false;
+
+    container.innerHTML = availableBadges.map((b) => {
+      const isSelected = activeFilters.badges.includes(b.key);
+      return `
+        <button type="button"
+          data-badge-key="${b.key}"
+          class="badge-filter-chip px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer border whitespace-nowrap"
+          style="${isSelected
+            ? `background:${b.bg};color:#fff;border-color:${b.bg}`
+            : `background:#fff;color:#444;border-color:#e5e7eb`
+          }">
+          ${escapeHtml(b.label)}
+        </button>
+      `;
+    }).join('');
+
+    qsa('.badge-filter-chip', container).forEach((chip) => {
+      chip.onclick = (e) => {
+        const key = e.currentTarget.dataset.badgeKey;
+        const idx = activeFilters.badges.indexOf(key);
+        if (idx === -1) {
+          activeFilters.badges.push(key);
+        } else {
+          activeFilters.badges.splice(idx, 1);
+        }
+        filterAndRender();
+      };
+    });
+  };
 
   const renderSidebarAndMobileChips = () => {
     const desktopCatGroup = qs('#sidebar-categories-group');
@@ -154,10 +219,10 @@ export async function renderShopPage(db) {
   };
 
   const TYPE_META = {
-    magazine: { emoji: '📖', label: 'Magazines' },
-    poster: { emoji: '📜', label: 'Posters' },
+    magazine:   { emoji: '📖', label: 'Magazines' },
+    poster:     { emoji: '📜', label: 'Posters' },
     wall_frame: { emoji: '🖼️', label: 'Wall Frames' },
-    sticker: { emoji: '🏷️', label: 'Stickers' }
+    sticker:    { emoji: '🏷️', label: 'Stickers' }
   };
 
   const renderProductTypeChips = () => {
@@ -229,6 +294,14 @@ export async function renderShopPage(db) {
       activeList.push({ key: 'productType', label: displayType });
     }
 
+    // Active badge গুলো chip হিসেবে দেখাবে
+    activeFilters.badges.forEach((bKey) => {
+      const bMeta = ALL_BADGES.find((b) => b.key === bKey);
+      if (bMeta) {
+        activeList.push({ key: `badge:${bKey}`, label: bMeta.label, isBadge: true, badgeBg: bMeta.bg });
+      }
+    });
+
     if (activeList.length === 0) {
       bar.classList.add('opacity-0', 'hidden');
       bar.classList.remove('opacity-100');
@@ -242,7 +315,7 @@ export async function renderShopPage(db) {
     }, 10);
 
     chipsList.innerHTML = activeList.map((item) => `
-      <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-white border border-pink-200 text-primary text-xs font-bold rounded-full shadow-sm">
+      <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-white border text-xs font-bold rounded-full shadow-sm" style="${item.isBadge ? `border-color:${item.badgeBg};color:${item.badgeBg}` : 'border-color:#f9a8d4;color:var(--color-primary)'}">
         ${escapeHtml(item.label)}
         <button type="button" data-remove-key="${item.key}" class="remove-filter-x hover:text-red-600 cursor-pointer ml-0.5 font-bold">&times;</button>
       </span>
@@ -251,7 +324,12 @@ export async function renderShopPage(db) {
     qsa('.remove-filter-x', chipsList).forEach((btn) => {
       btn.onclick = (e) => {
         const key = e.currentTarget.dataset.removeKey;
-        activeFilters[key] = null;
+        if (key.startsWith('badge:')) {
+          const bKey = key.replace('badge:', '');
+          activeFilters.badges = activeFilters.badges.filter((b) => b !== bKey);
+        } else {
+          activeFilters[key] = null;
+        }
         filterAndRender();
       };
     });
@@ -320,14 +398,22 @@ export async function renderShopPage(db) {
       result = result.filter((t) => (t.product_type || t.productType || 'magazine').toLowerCase() === activeFilters.productType.toLowerCase());
     }
 
+    // Badge filter — product এ selected badge গুলোর যেকোনো একটা থাকলেই দেখাবে (OR logic)
+    if (activeFilters.badges.length > 0) {
+      result = result.filter((t) => {
+        const productBadges = normalizeBadges(t.badge);
+        return activeFilters.badges.some((b) => productBadges.includes(b));
+      });
+    }
+
     if (activeFilters.discountRanges && activeFilters.discountRanges.length > 0) {
       result = result.filter((t) => {
         const disc = discountPercent(t);
         return activeFilters.discountRanges.some((range) => {
-          if (range === '0-20') return disc >= 0 && disc <= 20;
-          if (range === '21-40') return disc >= 21 && disc <= 40;
-          if (range === '41-60') return disc >= 41 && disc <= 60;
-          if (range === '61-80') return disc >= 61 && disc <= 80;
+          if (range === '0-20')   return disc >= 0  && disc <= 20;
+          if (range === '21-40')  return disc >= 21 && disc <= 40;
+          if (range === '41-60')  return disc >= 41 && disc <= 60;
+          if (range === '61-80')  return disc >= 61 && disc <= 80;
           if (range === '81-100') return disc >= 81 && disc <= 100;
           return true;
         });
@@ -362,6 +448,7 @@ export async function renderShopPage(db) {
     activeFilters.categoryId = null;
     activeFilters.collectionSlug = null;
     activeFilters.productType = null;
+    activeFilters.badges = [];
     activeFilters.discountRanges = [];
     activeFilters.minPrice = null;
     activeFilters.maxPrice = null;
@@ -370,6 +457,7 @@ export async function renderShopPage(db) {
   const filterAndRender = () => {
     renderSidebarAndMobileChips();
     renderProductTypeChips();
+    renderBadgeFilterChips();
     renderCollectionBanner();
 
     const filtered = applyFiltering();
@@ -378,7 +466,7 @@ export async function renderShopPage(db) {
     if (filtered.length === 0) {
       grid.innerHTML = renderEmptyState({
         title: 'No products found',
-        message: 'No products match your selected category or product type filter.',
+        message: 'No products match your selected filters.',
         actionText: 'Show All Products',
         actionUrl: 'javascript:void(0)'
       });

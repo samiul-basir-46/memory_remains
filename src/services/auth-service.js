@@ -34,14 +34,11 @@ export async function signInWithGoogle() {
     createToast('Signed in with Google successfully.');
     closeAuthModal();
   } catch (err) {
-    console.warn('Google popup auth failed, attempting redirect:', err);
-    if (err.code === 'auth/popup-blocked' || err.code === 'auth/popup-closed-by-user' || err.code === 'auth/cancelled-popup-request') {
-      try {
-        const provider = new firebase.auth.GoogleAuthProvider();
-        await auth.signInWithRedirect(provider);
-      } catch (redirectErr) {
-        createToast(redirectErr.message || 'Google sign in failed.', 'error');
-      }
+    console.error('Google sign in error:', err);
+    if (err.code === 'auth/popup-blocked') {
+      createToast('Popup was blocked by your browser. Please allow popups and try again.', 'error');
+    } else if (err.code === 'auth/popup-closed-by-user') {
+      createToast('Sign in popup was closed before completing.', 'error');
     } else {
       createToast(err.message || 'Google sign in failed.', 'error');
     }
@@ -49,7 +46,7 @@ export async function signInWithGoogle() {
 }
 
 export async function signInWithFacebook() {
-  const { auth } = getFirebaseServices();
+  const { auth, db } = getFirebaseServices();
   if (!auth) {
     createToast('Firebase service is not initialized.', 'error');
     return;
@@ -57,22 +54,60 @@ export async function signInWithFacebook() {
 
   try {
     const provider = new firebase.auth.FacebookAuthProvider();
-    await auth.signInWithPopup(provider);
+    provider.addScope('email');
+    provider.addScope('public_profile');
+    const result = await auth.signInWithPopup(provider);
+    console.log('Facebook sign in result:', result);
+
+    const user = result.user;
+    if (user) {
+      // Extract exact OAuth photo URL from additionalUserInfo or providerData
+      const fbPhoto = result.additionalUserInfo?.profile?.picture?.data?.url ||
+                      user.providerData?.[0]?.photoURL ||
+                      user.photoURL;
+
+      if (fbPhoto) {
+        console.log('Detected Facebook profile photo URL:', fbPhoto);
+        await user.updateProfile({ photoURL: fbPhoto });
+        if (db) {
+          await db.collection('users').doc(user.uid).set({
+            photoURL: fbPhoto,
+            name: user.displayName || '',
+            email: user.email || '',
+            updatedAt: new Date().toISOString()
+          }, { merge: true });
+        }
+      }
+    }
+
     createToast('Signed in with Facebook successfully.');
     closeAuthModal();
   } catch (err) {
-    console.warn('Facebook popup auth failed, attempting redirect:', err);
-    if (err.code === 'auth/popup-blocked' || err.code === 'auth/popup-closed-by-user' || err.code === 'auth/cancelled-popup-request') {
-      try {
-        const provider = new firebase.auth.FacebookAuthProvider();
-        await auth.signInWithRedirect(provider);
-      } catch (redirectErr) {
-        createToast(redirectErr.message || 'Facebook sign in failed.', 'error');
-      }
+    console.error('Facebook sign in detailed error:', err);
+    if (err.code === 'auth/popup-blocked') {
+      createToast('Popup was blocked by your browser. Please allow popups and try again.', 'error');
+    } else if (err.code === 'auth/popup-closed-by-user') {
+      createToast('Sign in popup was closed before completing.', 'error');
+    } else if (err.code === 'auth/unauthorized-domain') {
+      createToast('Domain not authorized in Firebase Console.', 'error');
+    } else if (err.code === 'auth/account-exists-with-different-credential') {
+      createToast('An account already exists with the same email address using Google or Email/Password.', 'error');
+    } else if (err.code === 'auth/auth-domain-config-required') {
+      createToast('Firebase authDomain configuration issue.', 'error');
     } else {
-      createToast(err.message || 'Facebook sign in failed.', 'error');
+      createToast(`Facebook sign in failed: ${err.message || err.code}`, 'error');
     }
   }
+}
+
+export function getHighResPhotoUrl(photoURL) {
+  if (!photoURL) return '';
+  if (photoURL.includes('facebook.com') || photoURL.includes('graph.facebook.com')) {
+    if (!photoURL.includes('type=')) {
+      return photoURL.includes('?') ? `${photoURL}&type=large` : `${photoURL}?type=large`;
+    }
+  }
+  return photoURL;
 }
 
 export function watchAuthState(onAuthStateChangedCallback) {
@@ -113,15 +148,17 @@ export function watchAuthState(onAuthStateChangedCallback) {
 
     if (user) {
       const displayName = user.displayName || user.email?.split('@')[0] || 'Account';
+      const userPhoto = getHighResPhotoUrl(user.photoURL);
+
       if (userBtnText) userBtnText.textContent = displayName;
       if (dropdownName) dropdownName.textContent = displayName;
       if (dropdownEmail) dropdownEmail.textContent = user.email || '';
 
       if (avatarBox) avatarBox.classList.remove('hidden');
 
-      if (user.photoURL) {
+      if (userPhoto) {
         if (avatarImg) {
-          avatarImg.src = user.photoURL;
+          avatarImg.src = userPhoto;
           avatarImg.classList.remove('hidden');
         }
         if (avatarInitials) avatarInitials.classList.add('hidden');
@@ -139,9 +176,9 @@ export function watchAuthState(onAuthStateChangedCallback) {
       if (mobileUserName) mobileUserName.textContent = displayName;
       if (mobileUserEmail) mobileUserEmail.textContent = user.email || '';
 
-      if (user.photoURL) {
+      if (userPhoto) {
         if (mobileAvatarImg) {
-          mobileAvatarImg.src = user.photoURL;
+          mobileAvatarImg.src = userPhoto;
           mobileAvatarImg.classList.remove('hidden');
         }
         if (mobileAvatarInitials) mobileAvatarInitials.classList.add('hidden');
@@ -153,16 +190,22 @@ export function watchAuthState(onAuthStateChangedCallback) {
         }
       }
 
+      // Only write to Firestore once per session to save writes
       if (db) {
-        try {
-          await db.collection('users').doc(user.uid).set({
-            uid: user.uid,
-            name: displayName,
-            email: user.email || '',
-            photoURL: user.photoURL || '',
-            updatedAt: new Date().toISOString()
-          }, { merge: true });
-        } catch (_) {}
+        const sessionKey = `user_synced_${user.uid}`;
+        const alreadySynced = sessionStorage.getItem(sessionKey);
+        if (!alreadySynced) {
+          try {
+            await db.collection('users').doc(user.uid).set({
+              uid: user.uid,
+              name: displayName,
+              email: user.email || '',
+              photoURL: userPhoto || '',
+              updatedAt: new Date().toISOString()
+            }, { merge: true });
+            sessionStorage.setItem(sessionKey, '1');
+          } catch (_) {}
+        }
       }
     } else {
       if (userBtnText) userBtnText.textContent = 'Sign In';
@@ -231,13 +274,14 @@ export async function updateUserProfileInfo({ displayName, photoURL }) {
   if (photoURL !== undefined) updateData.photoURL = photoURL;
 
   await user.updateProfile(updateData);
+  const userPhoto = getHighResPhotoUrl(user.photoURL);
 
   if (db) {
     await db.collection('users').doc(user.uid).set({
       uid: user.uid,
       name: user.displayName || '',
       email: user.email || '',
-      photoURL: user.photoURL || '',
+      photoURL: userPhoto || '',
       updatedAt: new Date().toISOString()
     }, { merge: true });
   }
@@ -247,8 +291,8 @@ export async function updateUserProfileInfo({ displayName, photoURL }) {
   const avatarInitials = qs('#header-user-avatar-initials');
 
   if (displayName && userBtnText) userBtnText.textContent = displayName;
-  if (photoURL && avatarImg) {
-    avatarImg.src = photoURL;
+  if (userPhoto && avatarImg) {
+    avatarImg.src = userPhoto;
     avatarImg.classList.remove('hidden');
     if (avatarInitials) avatarInitials.classList.add('hidden');
   }

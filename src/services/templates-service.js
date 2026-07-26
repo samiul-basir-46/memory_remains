@@ -1,16 +1,17 @@
 import { safeJsonParse } from '../utils/ui.js';
 
 export const API_BASE = "https://bkash-sms-gateway.onrender.com";
-const TEMPLATES_CACHE_KEY = 'memory_remains_templates_cache_v1';
+const TEMPLATES_CACHE_KEY = 'memory_remains_templates_cache_v2';
+const TEMPLATES_CACHE_TTL_MS = 5 * 1000; // 5 seconds
 const FALLBACK_IMAGE = '/assets/product_placeholder.png';
 
 export const DEFAULT_FEATURED_TEMPLATES = [
-  { id: 'f1', title: 'SOULMATE - Premium Magazine', price: 399, compareAtPrice: 1599, badge: 'Bestseller', category: 'For Her', category_name: 'For Her', collection: 'Best Selling', requiredPhotos: 15, imageUrl: '/assets/aesthetic_planner_pack.png', description: 'Customizable A4 & A3 size posters available Premium Glossy Finish Premium Features 270 GSM Glossy Photo Paper Posters Borderless Prints Customizable available at any size and any pic', product_type: 'magazine', magazine_price: 399, template_price: 199, delivery_charge: 60, is_template_for_sale: true, is_active: true, sort_order: 1 },
-  { id: 'f2', title: 'Things I Adore About him/Her', price: 699, compareAtPrice: 1299, badge: 'Bestseller', category: 'For Him', category_name: 'For Him', collection: 'Birthday Special', requiredPhotos: 10, imageUrl: '/assets/creator_profile.png', description: 'Customizable A4 & A3 size posters available Premium Glossy Finish Premium Features 270 GSM Glossy Photo Paper Posters Borderless Prints Customizable available at any size and any pic', product_type: 'magazine', magazine_price: 699, template_price: 299, delivery_charge: 60, is_template_for_sale: true, is_active: true, sort_order: 2 },
-  { id: 'f3', title: 'Tu Chahiye Magazine', price: 299, compareAtPrice: 1299, badge: 'Bestseller', category: 'For Her', category_name: 'For Her', collection: 'Best Selling', requiredPhotos: 12, imageUrl: '/assets/instagram_stories_cozy.png', description: 'Customizable A4 & A3 size posters available Premium Glossy Finish Premium Features 270 GSM Glossy Photo Paper Posters Borderless Prints Customizable available at any size and any pic', product_type: 'poster', magazine_price: 299, template_price: 149, delivery_charge: 50, is_template_for_sale: true, is_active: true, sort_order: 3 },
-  { id: 'f4', title: 'Vogue - Couple Edition', price: 299, compareAtPrice: 1599, badge: 'Bestseller', category: 'For Him', category_name: 'For Him', collection: 'Categories', requiredPhotos: 8, imageUrl: '/assets/instagram_carousel_summer.png', description: 'Customizable A4 & A3 size posters available Premium Glossy Finish Premium Features 270 GSM Glossy Photo Paper Posters Borderless Prints Customizable available at any size and any pic', product_type: 'wall_frame', magazine_price: 299, template_price: 199, delivery_charge: 80, is_template_for_sale: true, is_active: true, sort_order: 4 },
-  { id: 'f5', title: '12 pages Viral Birthday Magazine', price: 499, compareAtPrice: 1599, badge: 'Bestseller', category: 'Birthday Special', category_name: 'Birthday Special', collection: 'Collections', requiredPhotos: 12, imageUrl: '/assets/scrapbook_collage_bundle.png', description: 'Customizable A4 & A3 size posters available Premium Glossy Finish Premium Features 270 GSM Glossy Photo Paper Posters Borderless Prints Customizable available at any size and any pic', product_type: 'magazine', magazine_price: 499, template_price: 199, delivery_charge: 60, is_template_for_sale: true, is_active: true, sort_order: 5 },
-  { id: 'f6', title: 'Friend Core Memories Magazine', price: 299, compareAtPrice: 899, badge: 'Bestseller', category: 'Best Selling', category_name: 'Best Selling', collection: 'Featured', requiredPhotos: 14, imageUrl: '/assets/aesthetic_planner_pack.png', description: 'Customizable A4 & A3 size posters available Premium Glossy Finish Premium Features 270 GSM Glossy Photo Paper Posters Borderless Prints Customizable available at any size and any pic', product_type: 'sticker', magazine_price: 299, template_price: 99, delivery_charge: 40, is_template_for_sale: true, is_active: true, sort_order: 6 }
+  { id: 'f1', title: 'SOULMATE - Premium Magazine', price: 399, compareAtPrice: 1599, badge: 'Bestseller', category: 'For Her', category_name: 'For Her', collection: 'Best Selling', requiredPhotos: 15, imageUrl: '', description: 'Customizable A4 & A3 size magazines available', product_type: 'magazine', magazine_price: 399, template_price: 199, delivery_charge: 60, is_template_for_sale: true, is_active: true, sort_order: 1 },
+  { id: 'f2', title: 'Things I Adore About Him/Her', price: 699, compareAtPrice: 1299, badge: 'Bestseller', category: 'For Him', category_name: 'For Him', collection: 'Birthday Special', requiredPhotos: 10, imageUrl: '', description: 'Customizable A4 & A3 size magazines available', product_type: 'magazine', magazine_price: 699, template_price: 299, delivery_charge: 60, is_template_for_sale: true, is_active: true, sort_order: 2 },
+  { id: 'f3', title: 'Tu Chahiye Magazine', price: 299, compareAtPrice: 1299, badge: 'Bestseller', category: 'For Her', category_name: 'For Her', collection: 'Best Selling', requiredPhotos: 12, imageUrl: '', description: 'Customizable A4 & A3 size posters available', product_type: 'poster', magazine_price: 299, template_price: 149, delivery_charge: 50, is_template_for_sale: true, is_active: true, sort_order: 3 },
+  { id: 'f4', title: 'Vogue - Couple Edition', price: 299, compareAtPrice: 1599, badge: 'Bestseller', category: 'For Him', category_name: 'For Him', collection: 'Categories', requiredPhotos: 8, imageUrl: '', description: 'Customizable photo frames available', product_type: 'wall_frame', magazine_price: 299, template_price: 199, delivery_charge: 80, is_template_for_sale: true, is_active: true, sort_order: 4 },
+  { id: 'f5', title: '12 pages Viral Birthday Magazine', price: 499, compareAtPrice: 1599, badge: 'Bestseller', category: 'Birthday Special', category_name: 'Birthday Special', collection: 'Collections', requiredPhotos: 12, imageUrl: '', description: 'Customizable birthday magazine available', product_type: 'magazine', magazine_price: 499, template_price: 199, delivery_charge: 60, is_template_for_sale: true, is_active: true, sort_order: 5 },
+  { id: 'f6', title: 'Friend Core Memories Magazine', price: 299, compareAtPrice: 899, badge: 'Bestseller', category: 'Best Selling', category_name: 'Best Selling', collection: 'Featured', requiredPhotos: 14, imageUrl: '', description: 'Customizable stickers available', product_type: 'sticker', magazine_price: 299, template_price: 99, delivery_charge: 40, is_template_for_sale: true, is_active: true, sort_order: 6 }
 ];
 
 export function normalizeText(value = '') {
@@ -112,12 +113,26 @@ export function effectivePrice(template = {}) {
 }
 
 export function getCachedTemplates() {
-  return safeJsonParse(localStorage.getItem(TEMPLATES_CACHE_KEY), []);
+  try {
+    const raw = localStorage.getItem(TEMPLATES_CACHE_KEY);
+    if (!raw) return [];
+    const { data, cachedAt } = JSON.parse(raw);
+    if (!cachedAt || Date.now() - cachedAt > TEMPLATES_CACHE_TTL_MS) {
+      localStorage.removeItem(TEMPLATES_CACHE_KEY);
+      return [];
+    }
+    return Array.isArray(data) ? data : [];
+  } catch (_) {
+    return [];
+  }
 }
 
 export function setCachedTemplates(templates) {
   if (Array.isArray(templates) && templates.length > 0) {
-    localStorage.setItem(TEMPLATES_CACHE_KEY, JSON.stringify(templates));
+    localStorage.setItem(TEMPLATES_CACHE_KEY, JSON.stringify({
+      data: templates,
+      cachedAt: Date.now()
+    }));
   }
 }
 
@@ -291,12 +306,28 @@ export async function fetchTemplates(db, { limit, categoryId, productType } = {}
   if (db) {
     try {
       let combinedDocs = [];
-      const templatesSnap = await db.collection('templates').get();
-      if (templatesSnap && templatesSnap.docs) {
-        combinedDocs.push(...templatesSnap.docs.map((doc) => normalizeTemplateData(doc.id, doc.data())));
+
+      // 1. Fetch main templates collection
+      try {
+        const templatesSnap = await db.collection('templates').get();
+        if (templatesSnap && templatesSnap.docs) {
+          combinedDocs.push(...templatesSnap.docs.map((doc) => normalizeTemplateData(doc.id, doc.data())));
+        }
+      } catch (err) {
+        console.warn('templates collection fetch warning:', err);
       }
 
-      // Also fetch catalog_posters
+      // 2. Fetch catalog_frames collection
+      try {
+        const framesSnap = await db.collection('catalog_frames').get();
+        if (framesSnap && framesSnap.docs) {
+          combinedDocs.push(...framesSnap.docs.map((doc) => normalizeTemplateData(doc.id, { productType: 'wall_frame', product_type: 'wall_frame', ...doc.data() })));
+        }
+      } catch (err) {
+        console.warn('catalog_frames fetch warning:', err);
+      }
+
+      // 3. Fetch catalog_posters collection
       try {
         const postersSnap = await db.collection('catalog_posters').get();
         if (postersSnap && postersSnap.docs) {
@@ -306,15 +337,42 @@ export async function fetchTemplates(db, { limit, categoryId, productType } = {}
         console.warn('catalog_posters fetch warning:', err);
       }
 
-      if (combinedDocs.length > 0) {
-        let list = combinedDocs;
+      // 4. Fetch catalog_stickers collection
+      try {
+        const stickersSnap = await db.collection('catalog_stickers').get();
+        if (stickersSnap && stickersSnap.docs) {
+          combinedDocs.push(...stickersSnap.docs.map((doc) => normalizeTemplateData(doc.id, { productType: 'sticker', product_type: 'sticker', ...doc.data() })));
+        }
+      } catch (err) {
+        console.warn('catalog_stickers fetch warning:', err);
+      }
+
+      // Deduplicate by ID
+      const seenIds = new Set();
+      const uniqueDocs = [];
+      for (const d of combinedDocs) {
+        if (d.id && !seenIds.has(d.id)) {
+          seenIds.add(d.id);
+          uniqueDocs.push(d);
+        }
+      }
+
+      if (uniqueDocs.length > 0) {
+        let list = uniqueDocs;
         list.sort((a, b) => (a.sort_order || 99) - (b.sort_order || 99));
 
         if (categoryId) {
           list = list.filter((t) => String(t.category_id) === String(categoryId) || normalizeText(t.category_name) === normalizeText(categoryId));
         }
         if (productType) {
-          list = list.filter((t) => String(t.product_type).toLowerCase() === String(productType).toLowerCase());
+          const normType = String(productType).toLowerCase().replace(/\s+/g, '_');
+          list = list.filter((t) => {
+            const pType = String(t.product_type || t.productType || '').toLowerCase().replace(/\s+/g, '_');
+            if (normType === 'frame' || normType === 'wall_frame') {
+              return pType === 'frame' || pType === 'wall_frame';
+            }
+            return pType === normType;
+          });
         }
         if (limit && limit > 0) {
           list = list.slice(0, limit);
@@ -341,22 +399,18 @@ export async function fetchTemplateById(db, targetId) {
   const normId = normalizeText(cleanId);
 
   if (db) {
-    try {
-      const doc = await db.collection('templates').doc(cleanId).get();
-      if (doc.exists) {
-        return normalizeTemplateData(doc.id, doc.data());
+    // Check templates, catalog_frames, catalog_posters, catalog_stickers collections
+    const collectionsToTry = ['templates', 'catalog_frames', 'catalog_posters', 'catalog_stickers'];
+    for (const colName of collectionsToTry) {
+      try {
+        const doc = await db.collection(colName).doc(cleanId).get();
+        if (doc.exists) {
+          const pType = colName === 'catalog_frames' ? 'wall_frame' : (colName === 'catalog_posters' ? 'poster' : (colName === 'catalog_stickers' ? 'sticker' : 'magazine'));
+          return normalizeTemplateData(doc.id, { productType: pType, product_type: pType, ...doc.data() });
+        }
+      } catch (err) {
+        console.warn(`fetchTemplateById doc fetch '${colName}' failed:`, err);
       }
-    } catch (err) {
-      console.warn('fetchTemplateById direct doc fetch failed:', err);
-    }
-
-    try {
-      const posterDoc = await db.collection('catalog_posters').doc(cleanId).get();
-      if (posterDoc.exists) {
-        return normalizeTemplateData(posterDoc.id, { productType: 'poster', product_type: 'poster', ...posterDoc.data() });
-      }
-    } catch (err) {
-      console.warn('fetchTemplateById posterDoc fetch failed:', err);
     }
 
     try {

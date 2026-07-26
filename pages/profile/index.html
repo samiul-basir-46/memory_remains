@@ -52,11 +52,22 @@
           <div id="tab-content-profile" class="profile-tab-content">
             <div class="bg-white rounded-2xl border border-pink-100 p-6 md:p-8 shadow-sm">
               <div class="flex flex-col sm:flex-row items-center gap-6 mb-8 pb-6 border-b border-gray-100">
-                <div class="relative group">
-                  <div id="profile-avatar-wrapper" class="w-24 h-24 rounded-full bg-pink-100 text-primary flex items-center justify-center font-bold text-3xl overflow-hidden border-2 border-primary/20 shadow-md">
+                <div class="relative group cursor-pointer text-center" id="profile-avatar-clickable" title="Click to change profile picture">
+                  <div id="profile-avatar-wrapper" class="w-24 h-24 rounded-full bg-pink-100 text-primary flex items-center justify-center font-bold text-3xl overflow-hidden border-2 border-primary/20 shadow-md relative mx-auto">
                     <img id="profile-avatar-img" src="" alt="Profile Avatar" class="w-full h-full object-cover hidden">
                     <span id="profile-avatar-initials">U</span>
+                    <div id="avatar-upload-spinner" class="absolute inset-0 bg-black/60 text-white flex items-center justify-center hidden">
+                      <i class="fa-solid fa-circle-notch fa-spin text-2xl"></i>
+                    </div>
+                    <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-lg">
+                      <i class="fa-solid fa-camera"></i>
+                    </div>
                   </div>
+                  <button type="button" id="change-avatar-btn" class="mt-2.5 text-xs font-bold text-primary hover:underline inline-flex items-center gap-1.5 px-3 py-1 bg-pink-50 rounded-full border border-pink-200">
+                    <i class="fa-solid fa-camera text-primary"></i>
+                    <span>Upload Photo</span>
+                  </button>
+                  <input type="file" id="profile-avatar-file-input" accept="image/*" class="hidden">
                 </div>
                 <div class="text-center sm:text-left">
                   <h3 id="profile-display-name-header" class="font-heading text-xl text-primary font-bold">User Name</h3>
@@ -74,20 +85,14 @@
                     <input id="profile-name" type="text" placeholder="Enter your full name" required class="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm outline-none focus:border-primary transition-colors">
                   </div>
                   <div>
-                    <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Profile Image URL</label>
-                    <input id="profile-photo-url" type="url" placeholder="https://example.com/avatar.jpg" class="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm outline-none focus:border-primary transition-colors">
-                  </div>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  <div>
-                    <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Email Address</label>
-                    <input id="profile-email" type="email" disabled class="w-full px-4 py-3 border border-gray-200 bg-gray-50 text-gray-500 rounded-xl text-sm cursor-not-allowed">
-                  </div>
-                  <div>
                     <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Phone Number</label>
                     <input id="profile-phone" type="tel" placeholder="e.g. 017XXXXXXXX" class="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm outline-none focus:border-primary transition-colors">
                   </div>
+                </div>
+
+                <div>
+                  <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Email Address</label>
+                  <input id="profile-email" type="email" disabled class="w-full px-4 py-3 border border-gray-200 bg-gray-50 text-gray-500 rounded-xl text-sm cursor-not-allowed">
                 </div>
 
                 <div class="pt-4">

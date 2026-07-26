@@ -1,8 +1,8 @@
 export const SITE_CONFIG = {
   brandName: 'Petty Bloom',
   announcement: 'An additional ৳110 charge applies to the Cash on Delivery (COD) method, which must be paid in advance.',
-  supportPhoneLabel: '+91 9250303360',
-  supportPhoneHref: 'tel:9250303360',
+  supportPhoneLabel: '+880 1622-000471',
+  supportPhoneHref: 'tel:+8801622000471',
   primaryCtaLabel: 'Shop Now',
   navLinks: [
     { href: '/pages/featured', label: 'Featured Products', page: 'featured' },
@@ -16,15 +16,18 @@ export const SITE_CONFIG = {
       links: [
         { href: '/pages/policy', label: 'Store Policies' },
         { href: '/pages/profile#orders', label: 'Track your Order' },
-        { href: '/pages/contact', label: 'Request Return' },
-        { href: '/pages/policy', label: 'Return Policy' },
-        { href: '/pages/policy', label: 'Privacy Policy' }
+        { href: '/pages/return', label: 'Request Return' },
+        { href: '/pages/policy#return', label: 'Return Policy' },
+        { href: '/pages/policy#privacy', label: 'Privacy Policy' }
       ]
     },
     {
       title: 'Shop',
       links: [
-        { href: '/collections/paid-products?title=Magazine+%26+Newspaper', label: 'Magazine & Newspaper' }
+        { href: '/collections/paid-products?title=Magazine+%26+Newspaper', label: 'Magazine & Newspaper' },
+        { href: '/collections/paid-products?title=Frame', label: 'Frame' },
+        { href: '/collections/paid-products?title=Birthday', label: 'Birthday' },
+        { href: '/collections/paid-products', label: 'All Products' }
       ]
     },
     {
@@ -39,6 +42,7 @@ export const SITE_CONFIG = {
     }
   ],
   socialLinks: [
-    { href: 'https://www.instagram.com/heartsabeanss', label: 'Instagram', icon: 'fa-instagram' }
+    { href: 'https://www.instagram.com/petty_bloom?igsh=aDUwazByOXcwejgz', label: 'Instagram', icon: 'fa-instagram' }
   ]
 };
+

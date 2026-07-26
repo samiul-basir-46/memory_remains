@@ -11,6 +11,9 @@ let uploadState = {
   currentTargetCount: 0
 };
 
+// In-memory signature → URL cache to avoid Firestore reads for the same image
+const _signatureCache = new Map();
+
 export function openUploadModal(purchaseId, targetCount = 40) {
   const modal = qs('#photo-upload-modal');
   const overlay = qs('#upload-modal-overlay');
@@ -102,54 +105,74 @@ export function initUploadModalEvents() {
     const user = auth?.currentUser;
 
     submitBtn.disabled = true;
-    if (progressText) progressText.textContent = 'Uploading photos...';
+    if (progressText) progressText.textContent = 'Preparing photos...';
 
     try {
-      const uploadedUrls = [];
+      const allFiles = uploadState.selectedFiles;
+      const uploadedUrls = new Array(allFiles.length);
+      const CHUNK_SIZE = 3; // Upload 3 at a time to avoid memory spikes
 
-      for (let i = 0; i < uploadState.selectedFiles.length; i++) {
-        const file = uploadState.selectedFiles[i];
-        if (progressText) progressText.textContent = `Uploading photo ${i + 1} of ${uploadState.selectedFiles.length}...`;
-
-        const compressed = await compressImageFile(file);
-        const signature = await computeFileSignature(compressed);
-
-        let imageUrl = '';
-
-        if (db) {
-          const snapshot = await db.collection('cloudinary_assets').where('signature', '==', signature).limit(1).get();
-          if (!snapshot.empty) {
-            imageUrl = snapshot.docs[0].data().secureUrl;
-          }
+      for (let chunkStart = 0; chunkStart < allFiles.length; chunkStart += CHUNK_SIZE) {
+        const chunk = allFiles.slice(chunkStart, chunkStart + CHUNK_SIZE);
+        if (progressText) {
+          progressText.textContent = `Uploading ${Math.min(chunkStart + CHUNK_SIZE, allFiles.length)} of ${allFiles.length} photos...`;
         }
 
-        if (!imageUrl) {
-          const formData = new FormData();
-          formData.append('file', compressed);
-          formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+        await Promise.all(chunk.map(async (file, localIdx) => {
+          const globalIdx = chunkStart + localIdx;
+          const compressed = await compressImageFile(file);
+          const signature = await computeFileSignature(compressed.file ?? compressed);
 
-          const res = await fetch(CLOUDINARY_UPLOAD_URL, { method: 'POST', body: formData });
-          if (!res.ok) throw new Error('Cloudinary upload failed');
-          const data = await res.json();
-          imageUrl = data.secure_url;
-
-          if (db && data.public_id) {
-            await db.collection('cloudinary_assets').doc(data.public_id).set({
-              publicId: data.public_id,
-              secureUrl: data.secure_url,
-              signature: signature,
-              uploadedBy: user?.uid || 'guest',
-              uploadedAt: new Date()
-            }, { merge: true });
+          // 1. Check in-memory cache first (zero Firestore reads for duplicates)
+          if (_signatureCache.has(signature)) {
+            uploadedUrls[globalIdx] = _signatureCache.get(signature);
+            return;
           }
-        }
 
-        uploadedUrls.push(imageUrl);
+          // 2. Check Firestore only if not in memory cache
+          let imageUrl = '';
+          if (db) {
+            try {
+              const snap = await db.collection('cloudinary_assets')
+                .where('signature', '==', signature).limit(1).get();
+              if (!snap.empty) {
+                imageUrl = snap.docs[0].data().secureUrl;
+                _signatureCache.set(signature, imageUrl);
+              }
+            } catch (_) {}
+          }
+
+          // 3. Upload to Cloudinary if not found anywhere
+          if (!imageUrl) {
+            const formData = new FormData();
+            formData.append('file', compressed.file ?? compressed);
+            formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+
+            const res = await fetch(CLOUDINARY_UPLOAD_URL, { method: 'POST', body: formData });
+            if (!res.ok) throw new Error('Cloudinary upload failed');
+            const data = await res.json();
+            imageUrl = data.secure_url;
+
+            // Save to Firestore + memory cache for future sessions
+            _signatureCache.set(signature, imageUrl);
+            if (db && data.public_id) {
+              db.collection('cloudinary_assets').doc(data.public_id).set({
+                publicId: data.public_id,
+                secureUrl: data.secure_url,
+                signature,
+                uploadedBy: user?.uid || 'guest',
+                uploadedAt: new Date()
+              }, { merge: true }).catch(() => {});
+            }
+          }
+
+          uploadedUrls[globalIdx] = imageUrl;
+        }));
       }
 
       if (db && uploadState.currentPurchaseId) {
         await db.collection('purchases').doc(uploadState.currentPurchaseId).update({
-          imageUrls: uploadedUrls,
+          imageUrls: uploadedUrls.filter(Boolean),
           status: 'Photos Received',
           updatedAt: new Date()
         });

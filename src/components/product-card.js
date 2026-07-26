@@ -5,11 +5,44 @@ import { comparePrice, discountPercent } from '../services/templates-service.js'
 const FALLBACK_IMAGE = '/assets/product_placeholder.png';
 
 const PRODUCT_TYPE_META = {
-  magazine: { label: 'Magazine', emoji: '📖', badgeBg: 'bg-rose-500', cardBg: '#F9E7EF', cardBorder: '#f5cfe0' },
-  poster:   { label: 'Poster',   emoji: '📜', badgeBg: 'bg-violet-500', cardBg: '#F0EEF9', cardBorder: '#dbd8f5' },
-  wall_frame: { label: 'Wall Frame', emoji: '🖼️', badgeBg: 'bg-sky-500', cardBg: '#EDF4FC', cardBorder: '#c7ddf5' },
-  sticker:  { label: 'Sticker',  emoji: '🏷️', badgeBg: 'bg-emerald-500', cardBg: '#EFFAF4', cardBorder: '#b6eaca' }
+  magazine:   { label: 'Magazine',   emoji: '📖', badgeBg: 'bg-rose-500',    cardBg: '#F9E7EF', cardBorder: '#f5cfe0' },
+  poster:     { label: 'Poster',     emoji: '📜', badgeBg: 'bg-violet-500',  cardBg: '#F0EEF9', cardBorder: '#dbd8f5' },
+  wall_frame: { label: 'Wall Frame', emoji: '🖼️', badgeBg: 'bg-sky-500',     cardBg: '#EDF4FC', cardBorder: '#c7ddf5' },
+  sticker:    { label: 'Sticker',    emoji: '🏷️', badgeBg: 'bg-emerald-500', cardBg: '#EFFAF4', cardBorder: '#b6eaca' }
 };
+
+// Badge config — admin panel থেকে যে string আসবে সেটা এখানে match করবে
+const BADGE_META = {
+  new:          { label: 'New',           bg: '#185FA5', color: '#fff' },
+  bestseller:   { label: 'Best Seller',   bg: '#BA7517', color: '#fff' },
+  recommended:  { label: 'Recommended',   bg: '#0F6E56', color: '#fff' },
+  limited:      { label: 'Limited',       bg: '#A32D2D', color: '#fff' },
+  sale:         { label: 'Sale',          bg: '#993556', color: '#fff' },
+  editors_pick: { label: "Editor's Pick", bg: '#534AB7', color: '#fff' },
+  trending:     { label: 'Trending',      bg: '#1D9E75', color: '#fff' },
+  top_rated:    { label: 'Top Rated',     bg: '#BA7517', color: '#fff' }
+};
+
+// badge field normalize করে — string বা array দুটোই handle করে
+function normalizeBadges(badge) {
+  if (!badge) return [];
+  if (Array.isArray(badge)) return badge.map((b) => String(b).toLowerCase().trim().replace(/\s+/g, '_'));
+  return [String(badge).toLowerCase().trim().replace(/\s+/g, '_')];
+}
+
+// badge HTML render করে — card এর top-right corner এ stack হয়ে দেখাবে
+function renderBadgePills(badge) {
+  const badges = normalizeBadges(badge);
+  if (badges.length === 0) return '';
+
+  return `<div class="product-badge-stack absolute top-2.5 right-2.5 z-20 flex flex-col items-end gap-1">
+    ${badges.map((b) => {
+      const meta = BADGE_META[b];
+      if (!meta) return '';
+      return `<span class="product-status-badge px-2 py-0.5 text-[10px] font-bold rounded-full shadow-sm leading-tight" style="background:${meta.bg};color:${meta.color}">${meta.label}</span>`;
+    }).filter(Boolean).join('')}
+  </div>`;
+}
 
 function getTypeMeta(productType) {
   const key = String(productType || 'magazine').toLowerCase().replace(/\s+/g, '_');
@@ -25,7 +58,6 @@ export function imageMarkup(url, alt, className = '', widthHint = 720) {
 
 export function renderProductCard(template = {}) {
   const meta = getTypeMeta(template.product_type);
-  const badge = template.badge || 'Bestseller';
   const price = Number(template.price || 0);
   const compare = comparePrice(template);
   const discount = discountPercent(template);
@@ -44,14 +76,15 @@ export function renderProductCard(template = {}) {
   }
 
   return `
-    <article class="product-card flex-shrink-0 w-[270px] rounded-xl overflow-hidden border shadow-sm hover:shadow-md transition-all duration-300" style="background:${meta.cardBg};border-color:${meta.cardBorder}" data-product-card>
+    <article class="product-card group flex-shrink-0 w-[270px] rounded-xl overflow-hidden border shadow-sm hover:shadow-md transition-all duration-300" style="background:${meta.cardBg};border-color:${meta.cardBorder}" data-product-card>
       <a href="${detailsUrl}" class="product-card__media relative block aspect-square bg-[#1a1a1a] overflow-hidden ${secondaryImg ? 'has-hover-image' : ''}">
-        <span class="product-badge absolute top-2.5 left-2.5 z-10 px-3 py-1 ${meta.badgeBg} text-white text-xs font-semibold rounded-md shadow-sm">${escapeHtml(badge)}</span>
-        <span class="absolute top-2.5 right-2.5 z-10 px-2 py-0.5 bg-black/60 backdrop-blur-md text-white text-[11px] font-medium rounded-md flex items-center gap-1">
+        <span class="product-type-badge absolute top-2.5 left-2.5 z-10 px-3 py-1 ${meta.badgeBg} text-white text-xs font-semibold rounded-md shadow-sm">${meta.emoji} ${meta.label}</span>
+        <span class="absolute bottom-2.5 left-2.5 z-10 px-2 py-0.5 bg-black/60 backdrop-blur-md text-white text-[11px] font-medium rounded-md flex items-center gap-1">
           ${isPoster ? '<i class="fa-solid fa-layer-group text-[10px]"></i> 5-20 Pcs Combo' : `<i class="fa-solid fa-camera text-[10px]"></i> ${requiredPhotos} Photos`}
         </span>
-        ${imageMarkup(primaryImg, template.title, 'product-card__image primary-image absolute inset-0 w-full h-full object-cover transition-transform duration-300 hover:scale-105')}
-        ${secondaryImg ? imageMarkup(secondaryImg, template.title, 'product-card__image secondary-image absolute inset-0 w-full h-full object-cover transition-transform duration-300 hover:scale-105') : ''}
+        ${renderBadgePills(template.badge)}
+        ${imageMarkup(primaryImg, template.title, 'product-card__image primary-image absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105')}
+        ${secondaryImg ? imageMarkup(secondaryImg, template.title, 'product-card__image secondary-image absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105') : ''}
       </a>
       <div class="product-card__body p-4" style="background:${meta.cardBg}">
         <h3 class="product-card__title font-body text-base font-normal text-[#2A2A2A] mb-2 truncate">
@@ -73,7 +106,6 @@ export function renderProductCardV2(template = {}) {
   const isMagazine = productType === 'magazine';
   const isPoster = productType === 'poster';
 
-  const badge = template.badge || meta.label;
   const price = Number(template.price || template.magazine_price || 0);
   const compare = comparePrice(template);
   const discount = discountPercent(template);
@@ -135,14 +167,14 @@ export function renderProductCardV2(template = {}) {
   }
 
   return `
-    <article class="product-card-v2 rounded-xl overflow-hidden border shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300" style="background:${meta.cardBg};border-color:${meta.cardBorder}" data-product-card>
+    <article class="product-card-v2 group rounded-xl overflow-hidden border shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300" style="background:${meta.cardBg};border-color:${meta.cardBorder}" data-product-card>
       <a href="${detailsUrl}" class="product-card-v2__media relative block aspect-square bg-[#1a1a1a] overflow-hidden ${secondaryImg ? 'has-hover-image' : ''}">
-        <span class="product-card-v2__badge absolute top-2.5 left-2.5 z-10 px-3 py-1 ${meta.badgeBg} text-white text-xs font-semibold rounded-md shadow-sm">${escapeHtml(badge)}</span>
-        <span class="absolute top-2.5 right-2.5 z-10 px-2 py-0.5 bg-black/60 backdrop-blur-md text-white text-[11px] font-medium rounded-md flex items-center gap-1">
+        ${renderBadgePills(template.badge)}
+        <span class="absolute top-2.5 left-2.5 z-10 px-2 py-0.5 bg-black/60 backdrop-blur-md text-white text-[11px] font-medium rounded-md flex items-center gap-1">
           ${isPoster ? '<i class="fa-solid fa-layer-group text-[10px]"></i> 5-20 Pcs' : `<i class="fa-solid fa-camera text-[10px]"></i> ${requiredPhotos}`}
         </span>
-        ${imageMarkup(primaryImg, template.title, 'product-card-v2__image primary-image absolute inset-0 w-full h-full object-cover transition-transform duration-300 hover:scale-105')}
-        ${secondaryImg ? imageMarkup(secondaryImg, template.title, 'product-card-v2__image secondary-image absolute inset-0 w-full h-full object-cover transition-transform duration-300 hover:scale-105') : ''}
+        ${imageMarkup(primaryImg, template.title, 'product-card-v2__image primary-image absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105')}
+        ${secondaryImg ? imageMarkup(secondaryImg, template.title, 'product-card-v2__image secondary-image absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105') : ''}
         ${typeLabel}
       </a>
       <div class="product-card-v2__body p-3" style="background:${meta.cardBg}">
@@ -159,3 +191,6 @@ export function renderProductCardV2(template = {}) {
     </article>
   `;
 }
+
+// badge filter এর জন্য utility — shop-controller এ use হবে
+export { normalizeBadges };

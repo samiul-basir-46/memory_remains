@@ -84,8 +84,10 @@ export async function renderProductDetailsPage(db) {
 
     const badgeElem = qs('#details-badge');
     if (badgeElem) {
-      if (template.badge) {
-        badgeElem.textContent = template.badge;
+      const rawBadge = String(template.badge || template.offer_badge || '').trim();
+      const isOfferTag = rawBadge.toLowerCase().includes('%') || rawBadge.toLowerCase().includes('off');
+      if (rawBadge && !isOfferTag) {
+        badgeElem.textContent = rawBadge;
         badgeElem.hidden = false;
       } else {
         badgeElem.hidden = true;
@@ -96,20 +98,27 @@ export async function renderProductDetailsPage(db) {
     const initialTab = params.get('tab');
     const productType = String(template.product_type || template.productType || 'magazine').toLowerCase().replace(/\s+/g, '_');
     const isMagazine = productType === 'magazine';
+    const isBoth = productType === 'both';
+    const isTemplateOnly = productType === 'template';
 
-    const saleTypes = template.saleTypes || {
-      magazine: true,
-      template: isMagazine && Boolean(template.is_template_for_sale) && Number(template.template_price || template.templatePrice || 0) > 0
+    const isTemplateForSaleExplicit = Boolean(
+      template.is_template_for_sale ??
+      template.isTemplateForSale ??
+      template.allow_template_sale ??
+      false
+    );
+    const templatePrice = Number(template.template_price || template.templatePrice || template.digital_price || template.digitalPrice || 0);
+
+    const canSellDigitalTemplate = (isBoth || (isMagazine && isTemplateForSaleExplicit)) && templatePrice > 0;
+
+    const saleTypes = {
+      magazine: !isTemplateOnly,
+      template: canSellDigitalTemplate
     };
-    const magazinePrice = template.magazinePrice || template.price || 499;
-    const templatePrice = template.templatePrice || template.digitalPrice || 199;
+    const magazinePrice = Number(template.magazinePrice || template.magazine_price || template.price || 499);
 
     let activeMode = 'magazine';
     if (initialTab === 'digital' && saleTypes.template) {
-      activeMode = 'template';
-    } else if (saleTypes.magazine && saleTypes.template && isMagazine) {
-      activeMode = 'magazine';
-    } else if (saleTypes.template && !saleTypes.magazine) {
       activeMode = 'template';
     } else {
       activeMode = 'magazine';
@@ -426,7 +435,7 @@ export async function renderProductDetailsPage(db) {
       const discountElem = qs('#details-discount-badge');
       if (discountElem) {
         if (discount && discount > 0) {
-          discountElem.textContent = `${discount}% OFF`;
+          discountElem.innerHTML = `<i class="fa-solid fa-fire-flame-curved text-[10px]"></i> ${discount}% OFF`;
           discountElem.hidden = false;
         } else {
           discountElem.hidden = true;
