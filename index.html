@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,367 +8,24 @@
   <link rel="icon" type="image/png" href="/assets/favicon-circle.png">
   <link rel="shortcut icon" type="image/png" href="/assets/favicon-circle.png">
   <link rel="apple-touch-icon" href="/assets/favicon-circle.png">
-  <meta name="description" content="Shop personalized gifts at Petty Bloom — Premium Magazines, Photo Frames, Custom Posters & Stickers. Perfect for birthdays, anniversaries & special moments.">
+  <meta name="description"
+    content="Shop personalized gifts at Petty Bloom — Premium Magazines, Photo Frames, Custom Posters & Stickers. Perfect for birthdays, anniversaries & special moments.">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="/src/styles/main.css">
-  <style>
-
-    /* ── Scroll Reveal ── */
-    .reveal-on-scroll {
-      opacity: 0;
-      transform: translateY(28px);
-      transition: opacity 0.6s ease, transform 0.6s ease;
-    }
-    .reveal-on-scroll.is-visible { opacity: 1; transform: translateY(0); }
-
-    /* ════════════════════════════════════════
-       HERO
-    ════════════════════════════════════════ */
-    .hero-wrap {
-      background: linear-gradient(135deg, #1a0810 0%, #3b0c26 45%, #DC3C71 100%);
-      min-height: 90vh;
-      display: flex;
-      align-items: center;
-      position: relative;
-      overflow: hidden;
-    }
-    .hero-wrap::after {
-      content: '';
-      position: absolute;
-      bottom: 0; left: 0; right: 0;
-      height: 120px;
-      background: linear-gradient(to bottom, transparent, #fff);
-      pointer-events: none;
-    }
-    .hero-blob {
-      position: absolute;
-      border-radius: 50%;
-      pointer-events: none;
-      filter: blur(80px);
-      opacity: 0.18;
-    }
-    .hero-blob-1 { width:500px;height:500px; background:#fff; top:-100px; right:-80px; }
-    .hero-blob-2 { width:300px;height:300px; background:#ffadc8; bottom:-60px; left:10%; }
-
-    .hero-eyebrow {
-      display: inline-flex; align-items: center; gap: 8px;
-      background: rgba(255,255,255,0.1);
-      border: 1px solid rgba(255,255,255,0.2);
-      backdrop-filter: blur(10px);
-      padding: 6px 18px; border-radius: 999px;
-      font-size: 0.75rem; font-weight: 700;
-      letter-spacing: 0.1em; text-transform: uppercase;
-      color: #FFADC8; margin-bottom: 1.5rem;
-    }
-    .hero-h1 {
-      font-family: 'Yeseva One', serif;
-      font-size: clamp(2.8rem, 6vw, 5rem);
-      line-height: 1.05; color: #fff;
-      margin: 0 0 1.25rem;
-    }
-    .hero-h1 em { color: #FFADC8; font-style: normal; }
-    .hero-sub {
-      color: rgba(255,255,255,0.7);
-      font-size: 1.05rem; line-height: 1.75;
-      margin: 0 0 2.5rem; max-width: 420px;
-    }
-    .hero-btns { display:flex; gap:1rem; flex-wrap:wrap; }
-    .btn-primary {
-      display:inline-flex;align-items:center;gap:8px;
-      background:#DC3C71;color:#fff;font-weight:700;font-size:0.97rem;
-      padding:0.9rem 2rem;border-radius:14px;text-decoration:none;
-      box-shadow:0 8px 28px rgba(220,60,113,0.45);
-      transition:transform 0.2s,background 0.2s,box-shadow 0.2s;
-    }
-    .btn-primary:hover{background:#c23260;transform:translateY(-2px);box-shadow:0 14px 36px rgba(220,60,113,0.55);}
-    .btn-ghost {
-      display:inline-flex;align-items:center;gap:8px;
-      background:rgba(255,255,255,0.08);color:#fff;font-weight:600;font-size:0.97rem;
-      padding:0.9rem 1.8rem;border-radius:14px;text-decoration:none;
-      border:1.5px solid rgba(255,255,255,0.25);
-      transition:background 0.2s,transform 0.2s;
-    }
-    .btn-ghost:hover{background:rgba(255,255,255,0.16);transform:translateY(-2px);}
-
-    /* Hero product type chips */
-    .hero-chips {
-      display: flex; flex-wrap: wrap; gap: 0.6rem; margin-top: 2rem;
-    }
-    .hero-chip {
-      display: inline-flex; align-items: center; gap: 6px;
-      background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
-      color: rgba(255,255,255,0.85); padding: 5px 14px;
-      border-radius: 999px; font-size: 0.78rem; font-weight: 600;
-      text-decoration: none; transition: background 0.2s;
-    }
-    .hero-chip:hover { background: rgba(255,255,255,0.2); }
-
-    /* ════════════════════════════════════════
-       PRODUCT TYPE BANNER STRIP
-    ════════════════════════════════════════ */
-    .type-strip {
-      display: grid;
-      grid-template-columns: repeat(2,1fr);
-      gap: 1px;
-      background: #e8d5de;
-    }
-    @media(min-width:768px){ .type-strip { grid-template-columns: repeat(4,1fr); } }
-    .type-strip-item {
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      gap: 0.5rem; padding: 1.6rem 1rem;
-      background: #fff; text-decoration: none;
-      transition: background 0.2s, transform 0.2s;
-      position: relative; overflow: hidden;
-    }
-    .type-strip-item::before {
-      content: ''; position: absolute; bottom: 0; left: 0; right: 0;
-      height: 3px; background: var(--c, #DC3C71);
-      transform: scaleX(0); transform-origin: left;
-      transition: transform 0.25s;
-    }
-    .type-strip-item:hover::before { transform: scaleX(1); }
-    .type-strip-item:hover { background: #fdf6f8; transform: translateY(-2px); }
-    .type-strip-icon {
-      width: 52px; height: 52px; border-radius: 14px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 1.4rem; background: var(--bg, #fdf6f8);
-      color: var(--c, #DC3C71);
-    }
-    .type-strip-label { font-size: 0.82rem; font-weight: 700; color: #2A2A2A; }
-    .type-strip-sub { font-size: 0.7rem; color: #aaa; font-weight: 500; }
-
-    /* ════════════════════════════════════════
-       SECTION HEADERS
-    ════════════════════════════════════════ */
-    .sec-eyebrow {
-      font-size: 0.72rem; font-weight: 700; letter-spacing: 0.12em;
-      text-transform: uppercase; color: #DC3C71; display:block; margin-bottom:0.5rem;
-    }
-    .sec-h2 {
-      font-family: 'Yeseva One', serif;
-      font-size: clamp(1.7rem, 3.5vw, 2.4rem);
-      line-height: 1.15; margin: 0; color: #2A2A2A;
-    }
-    .sec-sub { color: #999; font-size: 0.9rem; margin-top: 0.4rem; }
-    .prod-row-wrap {
-      position: relative;
-    }
-    .prod-row {
-      display: flex; gap: 1rem;
-      overflow-x: auto; scroll-behavior: smooth;
-      padding: 0.5rem 0 1rem;
-      scrollbar-width: none;
-      scroll-snap-type: x mandatory;
-    }
-    .prod-row::-webkit-scrollbar { display: none; }
-    .prod-row > * { scroll-snap-align: start; flex-shrink: 0; }
-    .row-btn {
-      position: absolute; top: 50%; transform: translateY(-50%);
-      width: 40px; height: 40px; border-radius: 50%;
-      background: #fff; border: 1.5px solid #f0e0e8;
-      box-shadow: 0 4px 18px rgba(0,0,0,0.12);
-      display: flex; align-items: center; justify-content: center;
-      cursor: pointer; color: #DC3C71; font-size: 0.85rem;
-      transition: background 0.2s, box-shadow 0.2s; z-index: 10;
-    }
-    .row-btn:hover { background: #DC3C71; color: #fff; box-shadow: 0 6px 24px rgba(220,60,113,0.3); }
-    .row-btn-prev { left: -18px; }
-    .row-btn-next { right: -18px; }
-
-    /* ════════════════════════════════════════
-       PRODUCT TYPE SECTION LAYOUT
-    ════════════════════════════════════════ */
-    .type-section { padding: 4rem 0; }
-    .type-section-header {
-      display: flex; align-items: flex-end;
-      justify-content: space-between; flex-wrap: wrap;
-      gap: 1rem; margin-bottom: 2rem;
-    }
-    .view-all-link {
-      display: inline-flex; align-items: center; gap: 6px;
-      font-size: 0.85rem; font-weight: 700; color: #DC3C71;
-      text-decoration: none;
-      border: 1.5px solid rgba(220,60,113,0.3);
-      padding: 0.55rem 1.2rem; border-radius: 10px;
-      transition: background 0.2s, color 0.2s;
-      white-space: nowrap;
-    }
-    .view-all-link:hover { background: #DC3C71; color: #fff; }
-
-    /* Dark type section */
-    .type-section-dark { background: #1a0810; }
-    .type-section-dark .sec-h2 { color: #fff; }
-    .type-section-dark .sec-eyebrow { color: #FFADC8; }
-    .type-section-dark .sec-sub { color: rgba(255,255,255,0.5); }
-    .type-section-dark .view-all-link {
-      color: #FFADC8; border-color: rgba(255,173,200,0.3);
-    }
-    .type-section-dark .view-all-link:hover { background: #DC3C71; color: #fff; border-color: #DC3C71; }
-    .type-section-teal { background: #071824; }
-    .type-section-teal .sec-h2 { color: #fff; }
-    .type-section-teal .sec-eyebrow { color: #7dd3fc; }
-    .type-section-teal .sec-sub { color: rgba(255,255,255,0.5); }
-    .type-section-teal .view-all-link {
-      color: #7dd3fc; border-color: rgba(125,211,252,0.3);
-    }
-    .type-section-teal .view-all-link:hover { background: #0a6586; color: #fff; border-color: #0a6586; }
-
-    /* ════════════════════════════════════════
-       FEATURED SLIDER SECTION
-    ════════════════════════════════════════ */
-    .featured-sec {
-      background: linear-gradient(135deg, #DC3C71 0%, #a0184e 100%);
-      padding: 4rem 0; position: relative; overflow: hidden;
-    }
-    .featured-sec::before {
-      content: ''; position: absolute;
-      width: 400px; height: 400px; border-radius: 50%;
-      background: rgba(255,255,255,0.04);
-      top: -120px; right: -80px; pointer-events: none;
-    }
-
-    /* ════════════════════════════════════════
-       COLLECTION BANNER CARDS
-    ════════════════════════════════════════ */
-    .collections-sec { background: #f9f0f4; padding: 4rem 0; }
-    #collections-grid {
-      display: grid;
-      grid-template-columns: repeat(2,1fr);
-      gap: 1rem; margin-top: 2rem;
-    }
-    @media(min-width:640px){ #collections-grid { grid-template-columns: repeat(3,1fr); } }
-    @media(min-width:1024px){ #collections-grid { grid-template-columns: repeat(4,1fr); } }
-
-    /* ════════════════════════════════════════
-       CATEGORY SECTION — BIG VISUAL CARDS
-    ════════════════════════════════════════ */
-    /* ── Category Cards (Rich Visual Banners) ── */
-    .categories-sec { background: #fff; padding: 4rem 0; }
-    #categories-circle-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 1.25rem; margin-top: 2rem;
-    }
-    @media(min-width: 640px) { #categories-circle-grid { grid-template-columns: repeat(3, 1fr); } }
-    @media(min-width: 1024px) { #categories-circle-grid { grid-template-columns: repeat(6, 1fr); } }
-
-    .cat-big-card {
-      text-decoration: none;
-      border-radius: 22px;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-      justify-content: flex-end;
-      position: relative;
-      min-height: 250px;
-      border: 1.5px solid rgba(220,60,113,0.15);
-      box-shadow: 0 8px 30px rgba(0,0,0,0.12);
-      transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.35s ease, border-color 0.35s ease;
-    }
-    .cat-big-card:hover {
-      transform: translateY(-8px) scale(1.02);
-      box-shadow: 0 20px 40px rgba(220,60,113,0.25);
-      border-color: #DC3C71;
-    }
-    .cat-big-card-img {
-      position: absolute; inset: 0;
-      width: 100%; height: 100%;
-      object-fit: cover;
-      transition: transform 0.5s ease;
-    }
-    .cat-big-card:hover .cat-big-card-img {
-      transform: scale(1.12);
-    }
-    .cat-big-card-overlay {
-      position: absolute; inset: 0;
-      background: linear-gradient(to top, rgba(15, 6, 10, 0.95) 0%, rgba(20, 8, 14, 0.65) 50%, rgba(0,0,0,0.25) 100%);
-      transition: opacity 0.3s;
-    }
-    .cat-big-card-content {
-      position: relative; z-index: 10;
-      padding: 1.25rem 1rem;
-      display: flex; flex-direction: column;
-      align-items: center; text-align: center;
-    }
-    .cat-big-icon {
-      width: 44px; height: 44px; border-radius: 14px;
-      background: rgba(220,60,113,0.9);
-      border: 1px solid rgba(255,255,255,0.3);
-      backdrop-filter: blur(10px);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 1.1rem; color: #fff; margin-bottom: 0.6rem;
-      box-shadow: 0 6px 20px rgba(220,60,113,0.5);
-      transition: transform 0.3s;
-    }
-    .cat-big-card:hover .cat-big-icon {
-      transform: scale(1.15) rotate(6deg);
-      background: #DC3C71;
-    }
-    .cat-big-name {
-      font-size: 0.88rem; font-weight: 800; color: #fff;
-      text-transform: uppercase; letter-spacing: 0.05em;
-      margin: 0 0 0.2rem; line-height: 1.2;
-    }
-    .cat-big-sub {
-      font-size: 0.72rem; color: rgba(255,255,255,0.75);
-      font-weight: 500; margin-bottom: 0.75rem;
-    }
-    .cat-big-btn {
-      display: inline-flex; align-items: center; justify-content: center;
-      background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3);
-      color: #fff; font-size: 0.68rem; font-weight: 700;
-      padding: 0.35rem 0.85rem; border-radius: 999px;
-      backdrop-filter: blur(8px); text-transform: uppercase; letter-spacing: 0.08em;
-      transition: background 0.2s, color 0.2s;
-    }
-    .cat-big-card:hover .cat-big-btn {
-      background: #DC3C71; border-color: #DC3C71; color: #fff;
-    }
-
-    /* ════════════════════════════════════════
-       PERKS STRIP
-    ════════════════════════════════════════ */
-    .perks-strip {
-      background: #2A2A2A; padding: 2rem 0;
-    }
-    .perks-inner {
-      display: flex; flex-wrap: wrap;
-      justify-content: space-around; gap: 1.5rem;
-    }
-    .perk {
-      display: flex; align-items: center; gap: 0.85rem;
-    }
-    .perk-ic {
-      width: 42px; height: 42px; border-radius: 11px;
-      background: rgba(220,60,113,0.15);
-      border: 1px solid rgba(220,60,113,0.25);
-      display: flex; align-items: center; justify-content: center;
-      color: #DC3C71; font-size: 1rem; flex-shrink: 0;
-    }
-    .perk-t { font-size: 0.85rem; font-weight: 700; color: #fff; }
-    .perk-s { font-size: 0.72rem; color: rgba(255,255,255,0.5); }
-
-    /* ════════════════════════════════════════
-       SHOWCASE CARD (Best Seller highlight)
-    ════════════════════════════════════════ */
-    .showcase-wrap { max-width: 900px; margin: 0 auto; }
-  </style>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
 </head>
+
 <body data-page="home" class="font-body bg-white text-[#2A2A2A] antialiased">
   <div id="site-shell"></div>
 
   <main>
-
-    <!-- ══════════════════════════════════
-         HERO
-    ══════════════════════════════════ -->
     <section class="hero-wrap">
       <div class="hero-blob hero-blob-1"></div>
       <div class="hero-blob hero-blob-2"></div>
-      <div class="max-w-container mx-auto px-4 w-full relative z-10 py-20 lg:py-0" style="min-height:90vh;display:flex;align-items:center;">
+      <div class="max-w-container mx-auto px-4 w-full relative z-10 py-20 lg:py-0"
+        style="min-height:90vh;display:flex;align-items:center;">
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center w-full">
           <div>
             <span class="hero-eyebrow">
@@ -378,7 +36,8 @@
               Gifts That Tell<br><em>Your Story</em>
             </h1>
             <p class="hero-sub">
-              Custom magazines, photo frames, posters & stickers — made just for your special people. Every gift, a memory forever.
+              Custom magazines, photo frames, posters & stickers — made just for your special people. Every gift, a
+              memory forever.
             </p>
             <div class="hero-btns">
               <a href="/collections/paid-products" class="btn-primary">
@@ -389,10 +48,14 @@
               </a>
             </div>
             <div class="hero-chips">
-              <a href="/collections/paid-products?title=Magazine+%26+Newspaper" class="hero-chip"><i class="fa-solid fa-book-open"></i> Magazine</a>
-              <a href="/collections/paid-products?title=Frame" class="hero-chip"><i class="fa-solid fa-image"></i> Frame</a>
-              <a href="/collections/paid-products?title=Poster" class="hero-chip"><i class="fa-solid fa-scroll"></i> Poster</a>
-              <a href="/collections/paid-products?title=Sticker" class="hero-chip"><i class="fa-solid fa-star"></i> Sticker</a>
+              <a href="/collections/paid-products?title=Magazine+%26+Newspaper" class="hero-chip"><i
+                  class="fa-solid fa-book-open"></i> Magazine</a>
+              <a href="/collections/paid-products?title=Frame" class="hero-chip"><i class="fa-solid fa-image"></i>
+                Frame</a>
+              <a href="/collections/paid-products?title=Poster" class="hero-chip"><i class="fa-solid fa-scroll"></i>
+                Poster</a>
+              <a href="/collections/paid-products?title=Sticker" class="hero-chip"><i class="fa-solid fa-star"></i>
+                Sticker</a>
             </div>
           </div>
           <!-- Right: Featured products preview rendered dynamically -->
@@ -401,11 +64,9 @@
       </div>
     </section>
 
-    <!-- ══════════════════════════════════
-         PRODUCT TYPE STRIP
-    ══════════════════════════════════ -->
     <div class="type-strip">
-      <a href="/collections/paid-products?title=Magazine+%26+Newspaper" class="type-strip-item" style="--c:#DC3C71;--bg:#fdf0f4;">
+      <a href="/collections/paid-products?title=Magazine+%26+Newspaper" class="type-strip-item"
+        style="--c:#DC3C71;--bg:#fdf0f4;">
         <div class="type-strip-icon"><i class="fa-solid fa-book-open"></i></div>
         <span class="type-strip-label">Magazine</span>
         <span class="type-strip-sub">Vogue · Couple · Soulmate</span>
@@ -427,9 +88,6 @@
       </a>
     </div>
 
-    <!-- ══════════════════════════════════
-         FEATURED PRODUCTS
-    ══════════════════════════════════ -->
     <section id="featured-products-section" class="featured-sec reveal-on-scroll">
       <div class="max-w-container mx-auto px-4 relative z-10">
         <div class="type-section-header">
@@ -443,18 +101,16 @@
           </a>
         </div>
         <div class="prod-row-wrap">
-          <button id="prev-featured-btn" class="row-btn row-btn-prev" type="button"><i class="fa-solid fa-chevron-left"></i></button>
+          <button id="prev-featured-btn" class="row-btn row-btn-prev" type="button"><i
+              class="fa-solid fa-chevron-left"></i></button>
           <div id="featured-carousel" class="prod-row">
-            <!-- Rendered dynamically -->
           </div>
-          <button id="next-featured-btn" class="row-btn row-btn-next" type="button"><i class="fa-solid fa-chevron-right"></i></button>
+          <button id="next-featured-btn" class="row-btn row-btn-next" type="button"><i
+              class="fa-solid fa-chevron-right"></i></button>
         </div>
       </div>
     </section>
 
-    <!-- ══════════════════════════════════
-         MAGAZINE ROW
-    ══════════════════════════════════ -->
     <section id="magazine-section" class="type-section type-section-dark reveal-on-scroll">
       <div class="max-w-container mx-auto px-4">
         <div class="type-section-header">
@@ -468,16 +124,14 @@
           </a>
         </div>
         <div class="prod-row-wrap">
-          <button class="row-btn row-btn-prev" data-target="magazine-row" type="button"><i class="fa-solid fa-chevron-left"></i></button>
+          <button class="row-btn row-btn-prev" data-target="magazine-row" type="button"><i
+              class="fa-solid fa-chevron-left"></i></button>
           <div id="magazine-row" class="prod-row"></div>
-          <button class="row-btn row-btn-next" data-target="magazine-row" type="button"><i class="fa-solid fa-chevron-right"></i></button>
+          <button class="row-btn row-btn-next" data-target="magazine-row" type="button"><i
+              class="fa-solid fa-chevron-right"></i></button>
         </div>
       </div>
     </section>
-
-    <!-- ══════════════════════════════════
-         BEST SELLING SHOWCASE
-    ══════════════════════════════════ -->
     <section id="best-selling-section" class="type-section collections-sec reveal-on-scroll">
       <div class="max-w-container mx-auto px-4">
         <div class="type-section-header">
@@ -494,9 +148,6 @@
       </div>
     </section>
 
-    <!-- ══════════════════════════════════
-         FRAME ROW
-    ══════════════════════════════════ -->
     <section id="frame-section" class="type-section type-section-teal reveal-on-scroll">
       <div class="max-w-container mx-auto px-4">
         <div class="type-section-header">
@@ -510,16 +161,14 @@
           </a>
         </div>
         <div class="prod-row-wrap">
-          <button class="row-btn row-btn-prev" data-target="frame-row" type="button"><i class="fa-solid fa-chevron-left"></i></button>
+          <button class="row-btn row-btn-prev" data-target="frame-row" type="button"><i
+              class="fa-solid fa-chevron-left"></i></button>
           <div id="frame-row" class="prod-row"></div>
-          <button class="row-btn row-btn-next" data-target="frame-row" type="button"><i class="fa-solid fa-chevron-right"></i></button>
+          <button class="row-btn row-btn-next" data-target="frame-row" type="button"><i
+              class="fa-solid fa-chevron-right"></i></button>
         </div>
       </div>
     </section>
-
-    <!-- ══════════════════════════════════
-         VOGUE HIGHLIGHT
-    ══════════════════════════════════ -->
     <section id="vogue-section" class="type-section bg-white reveal-on-scroll">
       <div class="max-w-container mx-auto px-4">
         <div class="type-section-header">
@@ -533,10 +182,6 @@
         <div id="vogue-highlight" class="showcase-wrap"></div>
       </div>
     </section>
-
-    <!-- ══════════════════════════════════
-         SHOP BY COLLECTION
-    ══════════════════════════════════ -->
     <section id="shop-by-collection-section" class="collections-sec reveal-on-scroll">
       <div class="max-w-container mx-auto px-4">
         <div class="type-section-header">
@@ -552,10 +197,6 @@
         </div>
       </div>
     </section>
-
-    <!-- ══════════════════════════════════
-         SOULMATE HIGHLIGHT
-    ══════════════════════════════════ -->
     <section id="soulmate-section" class="type-section type-section-teal reveal-on-scroll">
       <div class="max-w-container mx-auto px-4 relative z-10">
         <div class="type-section-header">
@@ -569,10 +210,6 @@
         <div id="soulmate-highlight" class="showcase-wrap"></div>
       </div>
     </section>
-
-    <!-- ══════════════════════════════════
-         COUPLE HIGHLIGHT
-    ══════════════════════════════════ -->
     <section id="couple-section" class="type-section featured-sec reveal-on-scroll">
       <div class="max-w-container mx-auto px-4 relative z-10">
         <div class="type-section-header">
@@ -581,15 +218,12 @@
             <h2 class="sec-h2" style="color:#fff;">Couple Collection</h2>
             <p class="sec-sub" style="color:rgba(255,255,255,0.6);">Gifts that celebrate your bond every day</p>
           </div>
-          <a href="/collections/paid-products?title=Magazine+%26+Newspaper" class="view-all-link" style="color:#FFADC8;border-color:rgba(255,173,200,0.35);">See All</a>
+          <a href="/collections/paid-products?title=Magazine+%26+Newspaper" class="view-all-link"
+            style="color:#FFADC8;border-color:rgba(255,173,200,0.35);">See All</a>
         </div>
         <div id="couple-highlight" class="showcase-wrap"></div>
       </div>
     </section>
-
-    <!-- ══════════════════════════════════
-         OUR CATEGORIES — BIG VISUAL CARDS
-    ══════════════════════════════════ -->
     <section id="categories-section" class="categories-sec reveal-on-scroll">
       <div class="max-w-container mx-auto px-4">
         <div class="text-center mb-8">
@@ -598,21 +232,40 @@
           <p class="sec-sub" style="text-align:center;">Find the perfect gift for every person & moment</p>
         </div>
         <div id="categories-circle-grid">
-          <!-- Rendered dynamically as big visual cards -->
         </div>
       </div>
     </section>
-
-    <!-- ══════════════════════════════════
-         PERKS STRIP
-    ══════════════════════════════════ -->
     <div class="perks-strip">
       <div class="max-w-container mx-auto px-4">
         <div class="perks-inner">
-          <div class="perk"><div class="perk-ic"><i class="fa-solid fa-truck-fast"></i></div><div><div class="perk-t">Fast Delivery</div><div class="perk-s">3–15 days across Bangladesh</div></div></div>
-          <div class="perk"><div class="perk-ic"><i class="fa-solid fa-palette"></i></div><div><div class="perk-t">100% Personalized</div><div class="perk-s">Every item made just for you</div></div></div>
-          <div class="perk"><div class="perk-ic"><i class="fa-solid fa-shield-halved"></i></div><div><div class="perk-t">Secure Payment</div><div class="perk-s">bKash, Nagad & COD</div></div></div>
-          <div class="perk"><div class="perk-ic"><i class="fa-brands fa-whatsapp"></i></div><div><div class="perk-t">WhatsApp Support</div><div class="perk-s">Chat with us anytime</div></div></div>
+          <div class="perk">
+            <div class="perk-ic"><i class="fa-solid fa-truck-fast"></i></div>
+            <div>
+              <div class="perk-t">Fast Delivery</div>
+              <div class="perk-s">3–15 days across Bangladesh</div>
+            </div>
+          </div>
+          <div class="perk">
+            <div class="perk-ic"><i class="fa-solid fa-palette"></i></div>
+            <div>
+              <div class="perk-t">100% Personalized</div>
+              <div class="perk-s">Every item made just for you</div>
+            </div>
+          </div>
+          <div class="perk">
+            <div class="perk-ic"><i class="fa-solid fa-shield-halved"></i></div>
+            <div>
+              <div class="perk-t">Secure Payment</div>
+              <div class="perk-s">bKash, Nagad & COD</div>
+            </div>
+          </div>
+          <div class="perk">
+            <div class="perk-ic"><i class="fa-brands fa-whatsapp"></i></div>
+            <div>
+              <div class="perk-t">WhatsApp Support</div>
+              <div class="perk-s">Chat with us anytime</div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -622,7 +275,6 @@
   <div id="site-overlays"></div>
   <script type="module" src="/src/app/main.js"></script>
   <script>
-    // Row scroll buttons (generic)
     document.addEventListener('click', (e) => {
       const btn = e.target.closest('[data-target]');
       if (!btn) return;
@@ -632,7 +284,6 @@
       row.scrollBy({ left: dir * 320, behavior: 'smooth' });
     });
 
-    // Reveal on scroll
     document.addEventListener('DOMContentLoaded', () => {
       const els = document.querySelectorAll('.reveal-on-scroll');
       if (!els.length) return;
@@ -644,4 +295,5 @@
     });
   </script>
 </body>
+
 </html>

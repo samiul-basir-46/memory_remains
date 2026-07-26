@@ -29,52 +29,53 @@ export function buildCloudinaryDeliveryUrl(url, options = {}) {
 
 export async function compressImageFile(file, options = {}) {
   const {
-    maxDimension = 1600,
-    quality = 0.72,
-    preferredTypes = ['image/avif', 'image/webp']
+    preserveOriginal = true,
+    maxDimension = 4096,
+    quality = 0.95
   } = options;
 
-  const bitmap = await createImageBitmap(file);
-  const scale = Math.min(1, maxDimension / Math.max(bitmap.width, bitmap.height));
-  const width = Math.max(1, Math.round(bitmap.width * scale));
-  const height = Math.max(1, Math.round(bitmap.height * scale));
-
-  const canvas = document.createElement('canvas');
-  canvas.width = width;
-  canvas.height = height;
-
-  const context = canvas.getContext('2d', { alpha: false });
-  context.drawImage(bitmap, 0, 0, width, height);
-  bitmap.close();
-
-  let mimeType = 'image/jpeg';
-  for (const candidate of preferredTypes) {
-    if (canvas.toDataURL(candidate).startsWith(`data:${candidate}`)) {
-      mimeType = candidate;
-      break;
-    }
+  // Preserve 100% Full HD original quality & size for print accuracy
+  if (preserveOriginal) {
+    return {
+      file: file,
+      originalBytes: file.size,
+      optimizedBytes: file.size,
+      ratioSaved: 0
+    };
   }
 
-  const blob = await new Promise((resolve, reject) => {
-    canvas.toBlob((result) => {
-      if (result) {
-        resolve(result);
-      } else {
-        reject(new Error('Image compression failed.'));
-      }
-    }, mimeType, quality);
-  });
+  try {
+    const bitmap = await createImageBitmap(file);
+    const scale = Math.min(1, maxDimension / Math.max(bitmap.width, bitmap.height));
+    const width = Math.max(1, Math.round(bitmap.width * scale));
+    const height = Math.max(1, Math.round(bitmap.height * scale));
 
-  const extension = mimeType === 'image/avif' ? 'avif' : mimeType === 'image/webp' ? 'webp' : 'jpg';
-  const fileName = file.name.replace(/\.[^.]+$/, '') || 'upload';
-  const optimizedFile = new File([blob], `${fileName}.${extension}`, { type: mimeType });
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
 
-  return {
-    file: optimizedFile,
-    originalBytes: file.size,
-    optimizedBytes: optimizedFile.size,
-    ratioSaved: file.size ? 1 - optimizedFile.size / file.size : 0
-  };
+    const context = canvas.getContext('2d', { alpha: false });
+    context.drawImage(bitmap, 0, 0, width, height);
+    bitmap.close();
+
+    const mimeType = file.type || 'image/jpeg';
+    const blob = await new Promise((resolve, reject) => {
+      canvas.toBlob((result) => {
+        if (result) resolve(result);
+        else reject(new Error('Image processing failed.'));
+      }, mimeType, quality);
+    });
+
+    const optimizedFile = new File([blob], file.name, { type: mimeType });
+    return {
+      file: optimizedFile,
+      originalBytes: file.size,
+      optimizedBytes: optimizedFile.size,
+      ratioSaved: file.size ? 1 - optimizedFile.size / file.size : 0
+    };
+  } catch (_) {
+    return { file: file, originalBytes: file.size, optimizedBytes: file.size, ratioSaved: 0 };
+  }
 }
 
 export async function computeFileSignature(file) {

@@ -208,17 +208,15 @@ async function loadUserOrders(user) {
       window.__userOrdersUnsub = null;
     }
 
-    window.__userOrdersUnsub = db.collection('purchases').onSnapshot((snapshot) => {
+    const queryRef = user.uid 
+      ? db.collection('purchases').where('userId', '==', user.uid)
+      : db.collection('purchases').where('email', '==', user.email);
+
+    window.__userOrdersUnsub = queryRef.onSnapshot((snapshot) => {
       let orders = [];
       snapshot.forEach(doc => {
         const d = doc.data();
-        const matchesUser = (user.uid && (d.user_id === user.uid || d.userId === user.uid)) ||
-                            (user.email && (d.email === user.email || d.customer_email === user.email)) ||
-                            (user.phoneNumber && (d.customer_phone === user.phoneNumber || d.customerPhone === user.phoneNumber));
-
-        if (matchesUser) {
-          orders.push({ id: doc.id, order_id: doc.id, ...d });
-        }
+        orders.push({ id: doc.id, order_id: doc.id, ...d });
       });
 
       orders.sort((a, b) => {
