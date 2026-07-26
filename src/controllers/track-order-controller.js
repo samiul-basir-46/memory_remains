@@ -336,7 +336,7 @@ function renderTrackingResult(orders) {
           </div>
           <div>
             <span class="text-gray-500 font-medium block">Expected Advance</span>
-            <span class="font-bold text-primary">৳${order.expected_amount || order.amount || 30}</span>
+            <span class="font-bold text-primary">৳${order.expected_amount || order.amount || 60}</span>
           </div>
         </div>
 

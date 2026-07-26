@@ -31,7 +31,8 @@ export async function renderShopPage(db) {
     categoryId: null,
     collectionSlug: null,
     productType: null,
-    badges: [],           // badge filter — array of badge keys
+    badges: [],
+    inStock: false,
     discountRanges: [],
     minPrice: null,
     maxPrice: null
@@ -302,6 +303,29 @@ export async function renderShopPage(db) {
       }
     });
 
+    if (activeFilters.inStock) {
+      activeList.push({ key: 'inStock', label: 'In Stock' });
+    }
+
+    if (activeFilters.discountRanges && activeFilters.discountRanges.length > 0) {
+      activeList.push({ key: 'discountRanges', label: `Discount (${activeFilters.discountRanges.join('%, ')}%)` });
+    }
+
+    if (activeFilters.minPrice !== null || activeFilters.maxPrice !== null) {
+      const minP = activeFilters.minPrice !== null ? activeFilters.minPrice : 0;
+      const maxP = activeFilters.maxPrice !== null ? activeFilters.maxPrice : 3000;
+      activeList.push({ key: 'priceRange', label: `Price: ৳${minP} - ৳${maxP}` });
+    }
+
+    const clearFiltersBtn = qs('#clear-all-filters-btn');
+    if (clearFiltersBtn) {
+      clearFiltersBtn.hidden = activeList.length === 0;
+      clearFiltersBtn.onclick = () => {
+        clearAllFilters();
+        filterAndRender();
+      };
+    }
+
     if (activeList.length === 0) {
       bar.classList.add('opacity-0', 'hidden');
       bar.classList.remove('opacity-100');
@@ -327,6 +351,23 @@ export async function renderShopPage(db) {
         if (key.startsWith('badge:')) {
           const bKey = key.replace('badge:', '');
           activeFilters.badges = activeFilters.badges.filter((b) => b !== bKey);
+        } else if (key === 'inStock') {
+          activeFilters.inStock = false;
+          const cb = qs('#filter-in-stock');
+          if (cb) cb.checked = false;
+        } else if (key === 'discountRanges') {
+          activeFilters.discountRanges = [];
+          qsa('.discount-filter-cb').forEach((c) => { c.checked = false; });
+        } else if (key === 'priceRange') {
+          activeFilters.minPrice = null;
+          activeFilters.maxPrice = null;
+          const minSlider = qs('#price-slider-min');
+          const maxSlider = qs('#price-slider-max');
+          if (minSlider && maxSlider) {
+            minSlider.value = minSlider.min || 0;
+            maxSlider.value = maxSlider.max || 3000;
+            updatePriceSliderTrack();
+          }
         } else {
           activeFilters[key] = null;
         }
@@ -398,6 +439,10 @@ export async function renderShopPage(db) {
       result = result.filter((t) => (t.product_type || t.productType || 'magazine').toLowerCase() === activeFilters.productType.toLowerCase());
     }
 
+    if (activeFilters.inStock) {
+      result = result.filter((t) => t.in_stock !== false && t.inStock !== false && t.status !== 'out_of_stock');
+    }
+
     // Badge filter — product এ selected badge গুলোর যেকোনো একটা থাকলেই দেখাবে (OR logic)
     if (activeFilters.badges.length > 0) {
       result = result.filter((t) => {
@@ -444,14 +489,79 @@ export async function renderShopPage(db) {
     return result;
   };
 
+  const updatePriceSliderTrack = () => {
+    const minSlider = qs('#price-slider-min');
+    const maxSlider = qs('#price-slider-max');
+    const fill = qs('#slider-track-fill');
+    const minDisplay = qs('#price-min-display');
+    const maxDisplay = qs('#price-max-display');
+
+    if (!minSlider || !maxSlider) return;
+
+    let minVal = Number(minSlider.value);
+    let maxVal = Number(maxSlider.value);
+
+    if (minVal > maxVal) {
+      const temp = minVal;
+      minVal = maxVal;
+      maxVal = temp;
+    }
+
+    const sliderMin = Number(minSlider.min) || 0;
+    const sliderMax = Number(minSlider.max) || 3000;
+    const range = sliderMax - sliderMin || 1;
+
+    const leftPercent = ((minVal - sliderMin) / range) * 100;
+    const rightPercent = ((sliderMax - maxVal) / range) * 100;
+
+    if (fill) {
+      fill.style.left = `${leftPercent}%`;
+      fill.style.width = `${Math.max(0, 100 - leftPercent - rightPercent)}%`;
+    }
+
+    if (minDisplay) minDisplay.textContent = `৳${minVal}`;
+    if (maxDisplay) maxDisplay.textContent = `৳${maxVal}`;
+  };
+
+  const updatePriceSliderBounds = () => {
+    if (!allTemplates || allTemplates.length === 0) return;
+    const computedMax = Math.ceil(Math.max(...allTemplates.map((t) => Number(t.price || 0))) || 3000);
+    const maxPriceVal = Math.max(computedMax, 3000);
+    const minSlider = qs('#price-slider-min');
+    const maxSlider = qs('#price-slider-max');
+
+    if (minSlider && maxSlider) {
+      minSlider.max = String(maxPriceVal);
+      maxSlider.max = String(maxPriceVal);
+      if (activeFilters.maxPrice === null || activeFilters.maxPrice > maxPriceVal) {
+        maxSlider.value = String(maxPriceVal);
+      }
+      updatePriceSliderTrack();
+    }
+  };
+
   const clearAllFilters = () => {
     activeFilters.categoryId = null;
     activeFilters.collectionSlug = null;
     activeFilters.productType = null;
     activeFilters.badges = [];
+    activeFilters.inStock = false;
     activeFilters.discountRanges = [];
     activeFilters.minPrice = null;
     activeFilters.maxPrice = null;
+
+    const inStockCb = qs('#filter-in-stock');
+    if (inStockCb) inStockCb.checked = false;
+
+    qsa('.discount-filter-cb').forEach((cb) => { cb.checked = false; });
+
+    const minSlider = qs('#price-slider-min');
+    const maxSlider = qs('#price-slider-max');
+    if (minSlider && maxSlider) {
+      minSlider.value = minSlider.min || 0;
+      maxSlider.value = maxSlider.max || 3000;
+      updatePriceSliderTrack();
+    }
   };
 
   const filterAndRender = () => {
@@ -575,7 +685,104 @@ export async function renderShopPage(db) {
     });
   };
 
+  const initFilterDrawerEvents = () => {
+    // 1. Accordion Header Toggle
+    qsa('.filter-accordion__header').forEach((header) => {
+      header.onclick = () => {
+        const accordion = header.closest('.filter-accordion');
+        const content = accordion?.querySelector('.filter-accordion__content');
+        const icon = header.querySelector('i');
+
+        if (content) {
+          const isHidden = content.style.display === 'none';
+          content.style.display = isHidden ? 'block' : 'none';
+          if (icon) {
+            icon.className = isHidden ? 'fa-solid fa-chevron-down text-xs text-gray-400' : 'fa-solid fa-chevron-up text-xs text-gray-400';
+          }
+        }
+      };
+    });
+
+    // 2. Inventory (In-Stock Checkbox)
+    const inStockCb = qs('#filter-in-stock');
+    if (inStockCb) {
+      inStockCb.checked = Boolean(activeFilters.inStock);
+      inStockCb.onchange = () => {
+        activeFilters.inStock = inStockCb.checked;
+        filterAndRender();
+      };
+    }
+
+    // 3. Discount Checkboxes
+    qsa('.discount-filter-cb').forEach((cb) => {
+      cb.checked = activeFilters.discountRanges.includes(cb.value);
+      cb.onchange = () => {
+        const checkedValues = [];
+        qsa('.discount-filter-cb:checked').forEach((c) => {
+          if (c.value) checkedValues.push(c.value);
+        });
+        activeFilters.discountRanges = checkedValues;
+        filterAndRender();
+      };
+    });
+
+    // 4. Dual Range Price Sliders
+    const minSlider = qs('#price-slider-min');
+    const maxSlider = qs('#price-slider-max');
+
+    if (minSlider && maxSlider) {
+      let sliderDebounceTimer = null;
+
+      const handleSliderInput = (e) => {
+        let minVal = Number(minSlider.value);
+        let maxVal = Number(maxSlider.value);
+
+        if (minVal > maxVal) {
+          if (e && e.target === minSlider) {
+            minSlider.value = maxVal;
+            minVal = maxVal;
+          } else {
+            maxSlider.value = minVal;
+            maxVal = minVal;
+          }
+        }
+
+        // 60FPS instant UI text & track fill update
+        updatePriceSliderTrack();
+        activeFilters.minPrice = minVal;
+        activeFilters.maxPrice = maxVal;
+
+        // Debounce grid update so dragging is buttery smooth without re-rendering on every pixel
+        if (sliderDebounceTimer) clearTimeout(sliderDebounceTimer);
+        sliderDebounceTimer = setTimeout(() => {
+          filterAndRender();
+        }, 180);
+      };
+
+      const handleSliderChange = () => {
+        if (sliderDebounceTimer) clearTimeout(sliderDebounceTimer);
+        filterAndRender();
+      };
+
+      minSlider.oninput = handleSliderInput;
+      maxSlider.oninput = handleSliderInput;
+      minSlider.onchange = handleSliderChange;
+      maxSlider.onchange = handleSliderChange;
+      updatePriceSliderTrack();
+    }
+
+    // 5. Reset All Button in Filter Drawer
+    const resetBtn = qs('#filter-reset-btn');
+    if (resetBtn) {
+      resetBtn.onclick = () => {
+        clearAllFilters();
+        filterAndRender();
+      };
+    }
+  };
+
   initSortEvents();
+  initFilterDrawerEvents();
 
   try {
     const cached = getCachedTemplates();
@@ -599,6 +806,8 @@ export async function renderShopPage(db) {
     } else if (!allTemplates.length) {
       allTemplates = DEFAULT_FEATURED_TEMPLATES;
     }
+
+    updatePriceSliderBounds();
 
     if (initialParam) {
       const normInit = initialParam.toLowerCase();

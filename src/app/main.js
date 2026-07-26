@@ -1,4 +1,4 @@
-import { renderSiteShell, populateNavCategories, populateNavCollections } from '../components/site-shell.js';
+import { renderSiteShell, populateNavCategories, populateNavCollections, initAnnouncementListener } from '../components/site-shell.js';
 import { getFirebaseServices } from '../services/firebase-service.js';
 import { updateCartCount, renderCartDrawer, addTemplateToCart, removeFromCart } from '../services/cart-service.js';
 import { initAuthModalEvents, watchAuthState, openAuthModal, closeAuthModal } from '../services/auth-service.js';
@@ -19,6 +19,7 @@ const pageId = document.body.dataset.page || 'home';
 renderSiteShell(pageId);
 
 const { db } = getFirebaseServices();
+initAnnouncementListener(db);
 
 updateCartCount();
 renderCartDrawer();

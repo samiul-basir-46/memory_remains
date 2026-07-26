@@ -4,12 +4,12 @@ import { imageMarkup } from '../components/product-card.js';
 import { getFirebaseServices } from '../services/firebase-service.js';
 import { renderPhotoUploadUI } from '../components/photo-upload.js';
 import { openAuthModal } from '../services/auth-service.js';
-import { getCurrentGpsLocation } from '../services/location-service.js';
+import { getCurrentGpsLocation, detectDeliveryZone } from '../services/location-service.js';
 
 const API_BASE = "https://bkash-sms-gateway.onrender.com";
 const DELIVERY_CHARGE = 60;
-const WHATSAPP_NUMBER = "8801XXXXXXXXX";
-const BKASH_NUMBER = "01XXXXXXXXX";
+const WHATSAPP_NUMBER = "8801622000471";
+const BKASH_NUMBER = "01632788802";
 
 let activePollingTimer = null;
 let currentAttemptCount = 0;
@@ -110,13 +110,13 @@ function renderCartState(db) {
                 <span>Subtotal</span>
                 <strong class="font-bold">৳${subtotal}</strong>
               </div>
-              <div class="flex justify-between">
+              <div class="flex justify-between items-center">
                 <span>Delivery Charge</span>
-                <strong class="font-bold">৳${DELIVERY_CHARGE}</strong>
+                <span class="font-bold text-xs bg-pink-100/80 text-primary px-2 py-1 rounded-lg">৳60 (Inside) / ৳110 (Outside)</span>
               </div>
               <div class="border-t border-pink-200/60 pt-3 flex justify-between text-base font-bold">
-                <span>Total Amount</span>
-                <strong class="text-primary text-xl">৳${grandTotal}</strong>
+                <span>Products Subtotal</span>
+                <strong class="text-primary text-xl">৳${subtotal}</strong>
               </div>
             </div>
             <button type="button" id="start-checkout-btn" class="w-full py-3.5 bg-[#DC3C71] hover:bg-[#c23260] text-white font-bold rounded-xl text-sm shadow-md transition-colors cursor-pointer text-center">Proceed to Checkout</button>
@@ -166,10 +166,8 @@ function renderCheckoutForm(db, subtotal) {
   const hasPoster = cart.some(item => item.product_type === 'poster');
   const hasMagazine = cart.some(item => item.product_type === 'magazine' || item.purchaseMode === 'magazine');
 
-  const effectiveDeliveryCharge = hasPhysicalDelivery ? DELIVERY_CHARGE : 0;
-  const totalAmount = subtotal + effectiveDeliveryCharge;
-
-  let amountNote = `You need to pay ৳30 in advance via bKash to confirm this order`;
+  let currentDeliveryCharge = hasPhysicalDelivery ? 60 : 0;
+  let currentZoneInfo = { zone: 'inside_dhaka', charge: 60, label: 'Inside Dhaka', isInside: true };
 
   container.innerHTML = `
     <div class="max-w-xl mx-auto py-8 px-4">
@@ -203,6 +201,23 @@ function renderCheckoutForm(db, subtotal) {
                 <span class="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">🚚 Home Delivery</span>
               </div>
 
+              <!-- DYNAMIC ZONE DETECTION DISPLAY BANNER -->
+              <div id="delivery-zone-box" class="p-3.5 rounded-xl transition-all duration-300 flex items-center justify-between border bg-emerald-50/80 border-emerald-200 text-emerald-950 shadow-sm">
+                <div class="flex items-center gap-2.5">
+                  <i id="delivery-zone-icon" class="fa-solid fa-city text-emerald-600 text-lg"></i>
+                  <div>
+                    <div class="flex items-center gap-2">
+                      <span id="delivery-zone-name" class="font-bold text-xs">Inside Dhaka Delivery Zone</span>
+                      <span id="delivery-zone-tag" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-600 text-white">৳60 Delivery</span>
+                    </div>
+                    <span id="delivery-zone-desc" class="text-[11px] text-emerald-700 block mt-0.5">Inside Dhaka Delivery Charge: <strong>৳60</strong></span>
+                  </div>
+                </div>
+                <div class="text-right">
+                  <span id="delivery-charge-amount" class="text-sm font-extrabold text-emerald-800">৳60</span>
+                </div>
+              </div>
+
               <!-- Option 1: Quick Auto GPS Button -->
               <button type="button" id="checkout-use-gps-btn" class="w-full py-2.5 px-4 bg-pink-50 hover:bg-pink-100 border border-pink-200 text-primary font-bold rounded-xl text-xs shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer">
                 <i class="fa-solid fa-location-crosshairs text-sm text-primary"></i>
@@ -231,24 +246,24 @@ function renderCheckoutForm(db, subtotal) {
                 </div>
                 <div>
                   <label class="block text-xs font-bold text-[#2A2A2A] mb-1">District *</label>
-                  <input type="text" id="cust-district" required placeholder="e.g. Gazipur, Dhaka" class="w-full px-3.5 py-2.5 border border-gray-300 rounded-xl text-sm outline-none focus:border-primary">
+                  <input type="text" id="cust-district" required placeholder="e.g. Dhaka, Gazipur, Chittagong" class="w-full px-3.5 py-2.5 border border-gray-300 rounded-xl text-sm outline-none focus:border-primary">
                 </div>
               </div>
 
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label class="block text-xs font-bold text-[#2A2A2A] mb-1">Upazila / Police Station / Area</label>
-                  <input type="text" id="cust-upazila" placeholder="e.g. Sreepur, Uttara" class="w-full px-3.5 py-2.5 border border-gray-300 rounded-xl text-sm outline-none focus:border-primary">
+                  <label class="block text-xs font-bold text-[#2A2A2A] mb-1">Upazila / Police Station / Area *</label>
+                  <input type="text" id="cust-upazila" required placeholder="e.g. Uttara, Dhanmondi, Savar" class="w-full px-3.5 py-2.5 border border-gray-300 rounded-xl text-sm outline-none focus:border-primary">
                 </div>
                 <div>
                   <label class="block text-xs font-bold text-[#2A2A2A] mb-1">Postal Code (Optional)</label>
-                  <input type="text" id="cust-postal" placeholder="e.g. 1740" class="w-full px-3.5 py-2.5 border border-gray-300 rounded-xl text-sm outline-none focus:border-primary">
+                  <input type="text" id="cust-postal" placeholder="e.g. 1230" class="w-full px-3.5 py-2.5 border border-gray-300 rounded-xl text-sm outline-none focus:border-primary">
                 </div>
               </div>
 
               <div>
                 <label class="block text-xs font-bold text-[#2A2A2A] mb-1">Detailed House & Street Address *</label>
-                <textarea id="cust-address" required rows="2" placeholder="e.g. House 12, Road 5, Block B" class="w-full px-3.5 py-2.5 border border-gray-300 rounded-xl text-sm outline-none focus:border-primary resize-none"></textarea>
+                <textarea id="cust-address" required rows="2" placeholder="e.g. House 12, Road 5, Block B, Uttara" class="w-full px-3.5 py-2.5 border border-gray-300 rounded-xl text-sm outline-none focus:border-primary resize-none"></textarea>
               </div>
 
               <div>
@@ -282,7 +297,7 @@ function renderCheckoutForm(db, subtotal) {
           </div>
 
           <div id="payment-amount-box" class="p-4 rounded-xl bg-[#FDF0F4] border border-pink-200 text-xs text-[#2A2A2A] space-y-1">
-            <p id="amount-note-text" class="font-semibold text-primary text-sm">${amountNote}</p>
+            <p id="amount-note-text" class="font-semibold text-primary text-sm"></p>
           </div>
 
           <div id="checkout-error-msg" class="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-800 hidden"></div>
@@ -294,6 +309,65 @@ function renderCheckoutForm(db, subtotal) {
   `;
 
   qs('#back-to-cart-btn')?.addEventListener('click', () => renderCartState(db));
+
+  // Reactive Zone Detection and Charge Calculation Helper
+  const updateCheckoutZone = () => {
+    if (!hasPhysicalDelivery) {
+      currentDeliveryCharge = 0;
+      return;
+    }
+
+    const division = qs('#cust-division')?.value || 'Dhaka';
+    const district = qs('#cust-district')?.value || '';
+    const upazila = qs('#cust-upazila')?.value || '';
+    const address = qs('#cust-address')?.value || '';
+
+    currentZoneInfo = detectDeliveryZone({ division, district, upazila, address });
+    currentDeliveryCharge = currentZoneInfo.charge;
+
+    const zoneBox = qs('#delivery-zone-box');
+    const zoneIcon = qs('#delivery-zone-icon');
+    const zoneName = qs('#delivery-zone-name');
+    const zoneTag = qs('#delivery-zone-tag');
+    const zoneDesc = qs('#delivery-zone-desc');
+    const chargeAmt = qs('#delivery-charge-amount');
+    const amountNoteEl = qs('#amount-note-text');
+
+    if (zoneBox) {
+      if (currentZoneInfo.isInside) {
+        zoneBox.className = 'p-3.5 rounded-xl transition-all duration-300 flex items-center justify-between border bg-emerald-50/80 border-emerald-200 text-emerald-950 shadow-sm';
+        if (zoneIcon) zoneIcon.className = 'fa-solid fa-city text-emerald-600 text-lg';
+        if (zoneName) zoneName.textContent = 'Inside Dhaka Delivery Zone';
+        if (zoneTag) {
+          zoneTag.textContent = '৳60 Delivery';
+          zoneTag.className = 'text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-600 text-white';
+        }
+        if (zoneDesc) zoneDesc.innerHTML = 'Inside Dhaka Delivery Charge: <strong>৳60</strong>';
+        if (chargeAmt) chargeAmt.textContent = '৳60';
+      } else {
+        zoneBox.className = 'p-3.5 rounded-xl transition-all duration-300 flex items-center justify-between border bg-amber-50/90 border-amber-300 text-amber-950 shadow-sm';
+        if (zoneIcon) zoneIcon.className = 'fa-solid fa-truck-ramp-box text-amber-600 text-lg';
+        if (zoneName) zoneName.textContent = 'Outside Dhaka Delivery Zone';
+        if (zoneTag) {
+          zoneTag.textContent = '৳110 Delivery';
+          zoneTag.className = 'text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-600 text-white';
+        }
+        if (zoneDesc) zoneDesc.innerHTML = 'Outside Dhaka Courier Charge: <strong>৳110</strong>';
+        if (chargeAmt) chargeAmt.textContent = '৳110';
+      }
+    }
+
+    const selectedMethod = document.querySelector('input[name="payment_method"]:checked')?.value || 'cod';
+    const totalAmount = subtotal + currentDeliveryCharge;
+
+    if (amountNoteEl) {
+      if (selectedMethod === 'cod') {
+        amountNoteEl.innerHTML = `You need to pay <strong class="text-primary font-bold">৳${currentDeliveryCharge}</strong> delivery charge in advance via bKash to confirm this order.<br><span class="text-xs font-normal text-gray-700 mt-1 block">Products: ৳${subtotal} (payable on delivery) + Delivery (${currentZoneInfo.label}): ৳${currentDeliveryCharge} (payable now).</span>`;
+      } else {
+        amountNoteEl.innerHTML = `Total to pay: <strong class="text-primary font-bold">৳${totalAmount}</strong> (Products: ৳${subtotal} + Delivery [${currentZoneInfo.label}]: ৳${currentDeliveryCharge})`;
+      }
+    }
+  };
 
   // Pre-fill delivery location if saved in header modal
   if (hasPhysicalDelivery) {
@@ -308,6 +382,18 @@ function renderCheckoutForm(db, subtotal) {
         if (saved.postalCode && qs('#cust-postal')) qs('#cust-postal').value = saved.postalCode;
       }
     } catch (_) {}
+
+    // Attach listeners for real-time address detection
+    ['#cust-division', '#cust-district', '#cust-upazila', '#cust-address'].forEach((selector) => {
+      const el = qs(selector);
+      if (el) {
+        el.addEventListener('input', updateCheckoutZone);
+        el.addEventListener('change', updateCheckoutZone);
+        el.addEventListener('blur', updateCheckoutZone);
+      }
+    });
+
+    updateCheckoutZone();
 
     qs('#checkout-use-gps-btn')?.addEventListener('click', async () => {
       const gpsBtn = qs('#checkout-use-gps-btn');
@@ -324,6 +410,8 @@ function renderCheckoutForm(db, subtotal) {
         if (loc.address && qs('#cust-address')) qs('#cust-address').value = loc.address;
         if (loc.postalCode && qs('#cust-postal')) qs('#cust-postal').value = loc.postalCode;
 
+        updateCheckoutZone();
+
         if (gpsBtnText) gpsBtnText.textContent = '✅ Location Detected!';
         createToast('GPS Location detected & filled automatically!', 'success');
       } catch (err) {
@@ -339,7 +427,6 @@ function renderCheckoutForm(db, subtotal) {
   }
 
   const radios = document.querySelectorAll('input[name="payment_method"]');
-  const amountNoteEl = qs('#amount-note-text');
   const paymentBoxes = document.querySelectorAll('.payment-option-label');
 
   radios.forEach((r) => {
@@ -351,13 +438,11 @@ function renderCheckoutForm(db, subtotal) {
           : 'payment-option-label border-2 border-gray-200 bg-white p-4 rounded-xl cursor-pointer flex flex-col items-center justify-center gap-1.5 transition-all text-center';
       });
 
-      if (r.value === 'cod') {
-        if (amountNoteEl) amountNoteEl.textContent = `You need to pay ৳30 in advance via bKash to confirm this order`;
-      } else {
-        if (amountNoteEl) amountNoteEl.textContent = `Total to pay: ৳${totalAmount} (Products: ৳${subtotal} + Delivery: ৳${effectiveDeliveryCharge})`;
-      }
+      updateCheckoutZone();
     });
   });
+
+  updateCheckoutZone();
 
   qs('#checkout-submit-form')?.addEventListener('submit', (e) => {
     e.preventDefault();
@@ -382,14 +467,18 @@ function renderCheckoutForm(db, subtotal) {
       const postalCode = qs('#cust-postal')?.value.trim() || '';
       const note = qs('#cust-note')?.value.trim() || '';
 
-      if (!district || !address) {
+      if (!district || !upazila || !address || address.length < 5) {
         const errBox = qs('#checkout-error-msg');
         if (errBox) {
-          errBox.textContent = 'Please enter your District and Detailed House Address for physical delivery.';
+          errBox.textContent = 'Please fill out your complete delivery address including District, Upazila/Area, and Detailed House & Street Address (at least 5 characters).';
           errBox.classList.remove('hidden');
+          errBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
         return;
       }
+
+      // Re-run zone detection right before submit for complete safety
+      const zoneInfo = detectDeliveryZone({ division, district, upazila, address });
 
       renderPaymentInstructionsStep(db, {
         customer_name: name,
@@ -397,14 +486,17 @@ function renderCheckoutForm(db, subtotal) {
         purchase_type: purchaseType,
         payment_method: selectedMethod,
         product_amount: subtotal,
-        delivery_charge: effectiveDeliveryCharge,
+        delivery_charge: zoneInfo.charge,
+        delivery_zone: zoneInfo.zone,
         delivery_info: {
           division,
           district,
           upazila,
           address,
           postalCode,
-          note
+          note,
+          delivery_zone: zoneInfo.zone,
+          delivery_charge: zoneInfo.charge
         }
       });
     } else {
@@ -415,6 +507,7 @@ function renderCheckoutForm(db, subtotal) {
         payment_method: selectedMethod,
         product_amount: subtotal,
         delivery_charge: 0,
+        delivery_zone: 'none',
         delivery_info: null
       });
     }
@@ -426,7 +519,11 @@ function renderPaymentInstructionsStep(db, checkoutData) {
   if (!container) return;
 
   const isCod = checkoutData.payment_method === 'cod';
-  const expectedAmount = isCod ? 30 : (Number(checkoutData.product_amount || 0) + Number(checkoutData.delivery_charge || DELIVERY_CHARGE));
+  const productAmount = Number(checkoutData.product_amount || 0);
+  const deliveryCharge = Number(checkoutData.delivery_charge || 0);
+  const totalAmount = productAmount + deliveryCharge;
+  const expectedAmount = isCod ? (deliveryCharge > 0 ? deliveryCharge : 60) : totalAmount;
+  const zoneLabel = checkoutData.delivery_zone === 'outside_dhaka' ? 'Outside Dhaka' : (checkoutData.delivery_zone === 'none' ? 'Digital' : 'Inside Dhaka');
 
   container.innerHTML = `
     <div class="max-w-xl mx-auto py-8 px-4">
@@ -444,10 +541,35 @@ function renderPaymentInstructionsStep(db, checkoutData) {
           </p>
         </div>
 
+        <!-- ORDER SUMMARY BREAKDOWN BOX -->
+        <div class="bg-pink-50/60 p-4 rounded-xl border border-pink-100 text-xs space-y-2 mb-6 text-[#2A2A2A]">
+          <div class="flex justify-between">
+            <span class="text-gray-600">Product Price:</span>
+            <span class="font-bold">৳${productAmount}</span>
+          </div>
+          ${checkoutData.delivery_info ? `
+            <div class="flex justify-between">
+              <span class="text-gray-600">Delivery Charge (${zoneLabel}):</span>
+              <span class="font-bold text-primary">৳${deliveryCharge}</span>
+            </div>
+            <div class="flex justify-between border-t border-pink-200/60 pt-2 font-bold">
+              <span>Total Order Amount:</span>
+              <span class="text-primary text-sm">৳${totalAmount}</span>
+            </div>
+            ${isCod ? `
+              <div class="flex justify-between text-emerald-800 text-[11px] font-semibold bg-emerald-50 p-2 rounded-lg border border-emerald-200 mt-1">
+                <span>COD Advance Delivery Charge Payment Now:</span>
+                <span class="font-bold">৳${deliveryCharge} (Remaining ৳${productAmount} on delivery)</span>
+              </div>
+            ` : ''}
+          ` : ''}
+        </div>
+
         <div class="text-center mb-6 border-b border-pink-100 pb-6">
-          <span class="text-xs text-text-soft block mb-1">Exact Amount to Send</span>
+          <span class="text-xs text-text-soft block mb-1">${isCod ? 'Exact Delivery Charge Advance Amount to Send' : 'Exact Total Amount to Send'}</span>
           <strong class="text-3xl font-bold text-primary">৳${expectedAmount}</strong>
         </div>
+
 
         <div class="space-y-4 mb-6">
           <h4 class="font-heading text-sm font-bold text-[#2A2A2A]">Step-by-step Instructions:</h4>
@@ -546,6 +668,14 @@ function renderPaymentInstructionsStep(db, checkoutData) {
             email: currentUser?.email || ''
           },
           deliveryInfo: deliveryInfo,
+          delivery_address: deliveryInfo ? {
+            address: deliveryInfo.address,
+            district: deliveryInfo.district,
+            division: deliveryInfo.division,
+            upazila: deliveryInfo.upazila || '',
+            postal_code: deliveryInfo.postalCode || '',
+            note: deliveryInfo.note || ''
+          } : null,
           shippingAddress: deliveryInfo ? `${deliveryInfo.address}, ${deliveryInfo.upazila ? deliveryInfo.upazila + ', ' : ''}${deliveryInfo.district}, ${deliveryInfo.division}` : 'N/A (Digital Product Order)',
           paymentInfo: {
             method: 'bKash',
@@ -637,6 +767,15 @@ function renderPaymentInstructionsStep(db, checkoutData) {
           order_id: newOrderId,
           customer_name: checkoutData.customer_name,
           customer_phone: checkoutData.customer_phone,
+          customer_email: currentUser?.email || '',
+          delivery_address: deliveryInfo ? {
+            address: deliveryInfo.address,
+            district: deliveryInfo.district,
+            division: deliveryInfo.division,
+            upazila: deliveryInfo.upazila || '',
+            postal_code: deliveryInfo.postalCode || '',
+            note: deliveryInfo.note || ''
+          } : null,
           product_amount: checkoutData.product_amount,
           delivery_charge: checkoutData.delivery_charge,
           payment_method: checkoutData.payment_method,
@@ -1254,7 +1393,7 @@ async function handlePageRefreshRecovery(db, orderId) {
             status: fsData.status || 'pending',
             trx_id: fsData.transactionId || fsData.txnId || '',
             payment_method: fsData.paymentMethod || 'cod',
-            expected_amount: fsData.amount || fsData.pricePaid || 30,
+            expected_amount: fsData.amount || fsData.pricePaid || 60,
             customer_name: fsData.customerName || 'Customer',
             customer_phone: fsData.customerPhone || '',
             photos_uploaded: fsData.photos_uploaded || fsData.photosUploaded || false,

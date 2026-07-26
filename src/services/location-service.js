@@ -81,3 +81,56 @@ export async function getCurrentGpsLocation() {
     );
   });
 }
+
+/**
+ * Detects whether an address is Inside Dhaka (৳60) or Outside Dhaka (৳110).
+ * Handles division, district, upazila, and full street address checks to prevent user misselection.
+ * 
+ * @param {Object} loc
+ * @param {string} loc.division
+ * @param {string} loc.district
+ * @param {string} loc.upazila
+ * @param {string} loc.address
+ * @returns {{ zone: 'inside_dhaka' | 'outside_dhaka', charge: number, label: string, isInside: boolean }}
+ */
+export function detectDeliveryZone({ division = '', district = '', upazila = '', address = '' } = {}) {
+  const normDiv = (division || '').toString().trim().toLowerCase();
+  const normDist = (district || '').toString().trim().toLowerCase();
+  const normUp = (upazila || '').toString().trim().toLowerCase();
+  const normAddr = (address || '').toString().trim().toLowerCase();
+
+  const fullText = `${normDiv} ${normDist} ${normUp} ${normAddr}`;
+
+  // Explicit non-Dhaka divisions
+  if (normDiv && normDiv !== 'dhaka') {
+    return { zone: 'outside_dhaka', charge: 110, label: 'Outside Dhaka', isInside: false };
+  }
+
+  // Keywords that belong to suburban areas outside Dhaka City / outer districts
+  const outsideKeywords = [
+    // Sub-urban / Outer Dhaka Upazilas
+    'savar', 'dhamrai', 'keraniganj', 'dohar', 'nawabganj', 'nawab ganj',
+    'gazipur', 'narayanganj', 'tongali', 'tongi', 'board bazar', 'chattogram', 'chittagong',
+    'sylhet', 'rajshahi', 'khulna', 'barishal', 'barisal', 'rangpur', 'mymensingh',
+    'comilla', 'cumilla', 'bogura', 'bogra', 'noakhali', 'feni', 'cox', 'jessore',
+    'yessore', 'pabna', 'kushtia', 'tangail', 'faridpur', 'dinajpur', 'jamalpur',
+    'shariatpur', 'madaripur', 'gopalganj', 'manikganj', 'munshiganj', 'narail',
+    'magura', 'jhenaidah', 'satkhira', 'bagerhat', 'chuadanga', 'meherpur', 'natore',
+    'naogaon', 'joypurhat', 'chapainawabganj', 'sirajganj', 'gaibandha', 'kurigram',
+    'lalmonirhat', 'nilphamari', 'panchagarh', 'thakurgaon', 'habiganj', 'moulvibazar',
+    'sunamganj', 'bramhanbaria', 'brahmanbaria', 'chandpur', 'lakshmipur', 'barguna',
+    'bhola', 'jhalokati', 'patuakhali', 'pirojpur', 'bandarban', 'khagrachhari',
+    'rangamati', 'sherpur', 'netrokona', 'kishoreganj'
+  ];
+
+  if (normDist && !['dhaka', 'dhaka city', 'dhakacity', 'dhaka.'].includes(normDist)) {
+    return { zone: 'outside_dhaka', charge: 110, label: 'Outside Dhaka', isInside: false };
+  }
+
+  const hasOutsideKeyword = outsideKeywords.some((kw) => fullText.includes(kw));
+  if (hasOutsideKeyword) {
+    return { zone: 'outside_dhaka', charge: 110, label: 'Outside Dhaka', isInside: false };
+  }
+
+  return { zone: 'inside_dhaka', charge: 60, label: 'Inside Dhaka', isInside: true };
+}

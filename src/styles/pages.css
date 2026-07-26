@@ -945,6 +945,7 @@
 
 .filter-drawer.is-open {
   right: 0;
+  left: auto;
 }
 
 .filter-drawer__header {

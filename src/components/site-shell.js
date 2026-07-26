@@ -34,10 +34,12 @@ export async function populateNavCategories(db) {
       container.innerHTML = cats.map((cat) => {
         const titleUpper = (cat.name || '').toUpperCase();
         const display = titleUpper.replace(/\s+/g, '<br>');
+        const img = cat.image_url || cat.imageUrl || cat.cover_image_url || '';
         return `
-          <a href="/collections/paid-products?title=${encodeURIComponent(cat.name)}" class="megamenu-card flex flex-col gap-2 no-underline group">
-            <div class="megamenu-card-bg bg-[#360505] rounded-xl aspect-[3/4] flex items-center justify-center p-3 text-center border-2 border-transparent transition-all duration-300 group-hover:scale-105 group-hover:-translate-y-1 group-hover:border-primary group-hover:shadow-2xl">
-              <span class="text-white font-heading text-base font-bold leading-tight text-glow">${display}</span>
+          <a href="/collections/paid-products?category=${encodeURIComponent(cat.slug || cat.id || cat.name)}" class="megamenu-card flex flex-col gap-2 no-underline group">
+            <div class="megamenu-card-bg relative overflow-hidden bg-[#360505] rounded-xl aspect-[3/4] flex items-center justify-center p-3 text-center border-2 border-transparent transition-all duration-300 group-hover:scale-105 group-hover:-translate-y-1 group-hover:border-primary group-hover:shadow-2xl">
+              ${img ? `<img src="${img}" alt="${cat.name}" class="absolute inset-0 w-full h-full object-cover rounded-xl opacity-80 group-hover:opacity-100 transition-opacity" />` : ''}
+              <span class="relative z-10 text-white font-heading text-base font-bold leading-tight text-glow">${display}</span>
             </div>
             <span class="megamenu-card-title text-text-dark text-xs font-semibold text-center group-hover:text-primary transition-colors">${cat.name}</span>
           </a>
@@ -47,9 +49,15 @@ export async function populateNavCategories(db) {
 
     const mobileCatContent = document.querySelector('.mobile-drawer-categories-content');
     if (mobileCatContent && cats && cats.length > 0) {
-      mobileCatContent.innerHTML = cats.map((cat) => `
-        <a href="/collections/paid-products?title=${encodeURIComponent(cat.name)}" class="mobile-drawer__sublink font-heading text-sm font-semibold text-[#2b1717] no-underline py-3 px-4 border-b border-gray-50 hover:text-primary transition-colors">${cat.name}</a>
-      `).join('');
+      mobileCatContent.innerHTML = cats.map((cat) => {
+        const img = cat.image_url || cat.imageUrl || '';
+        return `
+          <a href="/collections/paid-products?category=${encodeURIComponent(cat.slug || cat.id || cat.name)}" class="mobile-drawer__sublink font-heading text-sm font-semibold text-[#2b1717] no-underline py-3 px-4 border-b border-gray-50 flex items-center gap-3 hover:text-primary transition-colors">
+            ${img ? `<img src="${img}" alt="${cat.name}" class="w-6 h-6 rounded-md object-cover" />` : ''}
+            <span>${cat.name}</span>
+          </a>
+        `;
+      }).join('');
     }
   } catch (err) {
     console.warn('Failed to populate nav categories:', err);
@@ -72,10 +80,12 @@ export async function populateNavCollections(db) {
           const name = col.name || col.title || '';
           const titleUpper = name.toUpperCase();
           const display = titleUpper.replace(/\s+/g, '<br>');
+          const img = col.cover_image_url || col.coverImageUrl || col.image_url || '';
           return `
-            <a href="/collections/paid-products?title=${encodeURIComponent(name)}" class="megamenu-card flex flex-col gap-3 no-underline group">
-              <div class="megamenu-card-bg bg-[#360505] rounded-xl aspect-[3/4] flex items-center justify-center p-4 text-center border-2 border-transparent transition-all duration-300 group-hover:scale-105 group-hover:-translate-y-1 group-hover:border-primary group-hover:shadow-2xl">
-                <span class="text-white font-heading text-2xl font-bold leading-tight text-glow">${display}</span>
+            <a href="/collections/paid-products?collection=${encodeURIComponent(col.slug || col.id || name)}" class="megamenu-card flex flex-col gap-3 no-underline group">
+              <div class="megamenu-card-bg relative overflow-hidden bg-[#360505] rounded-xl aspect-[3/4] flex items-center justify-center p-4 text-center border-2 border-transparent transition-all duration-300 group-hover:scale-105 group-hover:-translate-y-1 group-hover:border-primary group-hover:shadow-2xl">
+                ${img ? `<img src="${img}" alt="${name}" class="absolute inset-0 w-full h-full object-cover rounded-xl opacity-80 group-hover:opacity-100 transition-opacity" />` : ''}
+                <span class="relative z-10 text-white font-heading text-2xl font-bold leading-tight text-glow">${display}</span>
               </div>
               <span class="megamenu-card-title text-text-dark text-sm font-semibold text-center group-hover:text-primary transition-colors">${name}</span>
             </a>
@@ -86,7 +96,7 @@ export async function populateNavCollections(db) {
       if (sidebarList && sideItems.length > 0) {
         sidebarList.innerHTML = sideItems.map((col) => {
           const name = col.name || col.title || '';
-          return `<li><a href="/collections/paid-products?title=${encodeURIComponent(name)}" class="text-text-dark no-underline text-sm hover:text-primary transition-colors">${name}</a></li>`;
+          return `<li><a href="/collections/paid-products?collection=${encodeURIComponent(col.slug || col.id || name)}" class="text-text-dark no-underline text-sm hover:text-primary transition-colors">${name}</a></li>`;
         }).join('');
       }
 
@@ -94,7 +104,13 @@ export async function populateNavCollections(db) {
       if (mobileColContent && cols.length > 0) {
         mobileColContent.innerHTML = cols.map((col) => {
           const name = col.name || col.title || '';
-          return `<a href="/collections/paid-products?title=${encodeURIComponent(name)}" class="mobile-drawer__sublink font-heading text-sm font-semibold text-[#2b1717] no-underline py-3 px-4 border-b border-gray-50 hover:text-primary transition-colors">${name}</a>`;
+          const img = col.cover_image_url || col.coverImageUrl || '';
+          return `
+            <a href="/collections/paid-products?collection=${encodeURIComponent(col.slug || col.id || name)}" class="mobile-drawer__sublink font-heading text-sm font-semibold text-[#2b1717] no-underline py-3 px-4 border-b border-gray-50 flex items-center gap-3 hover:text-primary transition-colors">
+              ${img ? `<img src="${img}" alt="${name}" class="w-6 h-6 rounded-md object-cover" />` : ''}
+              <span>${name}</span>
+            </a>
+          `;
         }).join('');
       }
     }
@@ -248,13 +264,13 @@ export function renderSiteShell(pageId) {
   shell.className = 'sticky top-0 z-[1000] w-full transition-transform duration-350 ease-in-out';
 
   shell.innerHTML = `
-    <div class="announcement-bar py-2.5 text-center text-xs font-medium tracking-wider text-white bg-accent overflow-hidden relative whitespace-nowrap">
+    <div id="announcement-bar-container" class="announcement-bar py-2.5 text-center text-xs font-medium tracking-wider text-white bg-accent overflow-hidden relative whitespace-nowrap">
       <div class="announcement-bar__track animate-marquee inline-flex whitespace-nowrap">
         <div class="announcement-bar__content inline-flex items-center" style="padding-right:100vw;">
-          <span>${SITE_CONFIG.announcement}</span>
+          <span id="announcement-bar-text-1">${SITE_CONFIG.announcement}</span>
         </div>
         <div class="announcement-bar__content inline-flex items-center" style="padding-right:100vw;" aria-hidden="true">
-          <span>${SITE_CONFIG.announcement}</span>
+          <span id="announcement-bar-text-2">${SITE_CONFIG.announcement}</span>
         </div>
       </div>
     </div>
@@ -608,14 +624,14 @@ export function renderSiteShell(pageId) {
               </div>
               <div class="flex justify-between font-semibold text-sm text-[#2b1717] mb-3">
                 <span id="price-min-display">৳0</span>
-                <span id="price-max-display">৳2000</span>
+                <span id="price-max-display">৳3000</span>
               </div>
               
               <div class="dual-range-slider">
                 <div class="slider-track"></div>
                 <div class="slider-track-fill" id="slider-track-fill"></div>
-                <input type="range" id="price-slider-min" min="0" max="2000" value="0" step="1">
-                <input type="range" id="price-slider-max" min="0" max="2000" value="2000" step="1">
+                <input type="range" id="price-slider-min" min="0" max="3000" value="0" step="1">
+                <input type="range" id="price-slider-max" min="0" max="3000" value="3000" step="1">
               </div>
             </div>
           </div>
@@ -934,4 +950,31 @@ function initStickyHeaderScroll() {
       ticking = true;
     }
   }, { passive: true });
+}
+
+export function initAnnouncementListener(db) {
+  if (!db) return;
+  try {
+    db.collection('settings').doc('store').onSnapshot((docSnap) => {
+      if (docSnap.exists) {
+        const data = docSnap.data();
+        const text = data.announcement || SITE_CONFIG.announcement;
+        const enabled = data.announcementEnabled !== false;
+
+        const barContainer = document.getElementById('announcement-bar-container');
+        const span1 = document.getElementById('announcement-bar-text-1');
+        const span2 = document.getElementById('announcement-bar-text-2');
+
+        if (barContainer) {
+          barContainer.style.display = enabled ? 'block' : 'none';
+        }
+        if (span1) span1.textContent = text;
+        if (span2) span2.textContent = text;
+      }
+    }, (err) => {
+      console.warn('Announcement listener notice:', err);
+    });
+  } catch (e) {
+    console.warn('Announcement setup notice:', e);
+  }
 }
