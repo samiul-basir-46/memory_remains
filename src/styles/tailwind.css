@@ -284,15 +284,15 @@
 }
 
 /* Surface Open State Transitions */
-.mobile-drawer.is-open,
 .cart-drawer.is-open,
 .filter-drawer.is-open {
   right: 0 !important;
-  left: 0 !important;
+  left: auto !important;
 }
 
 .mobile-drawer.is-open {
   left: 0 !important;
+  right: auto !important;
 }
 
 .drawer-overlay.is-visible,
@@ -514,15 +514,15 @@
 }
 
 /* Surface Open State Transitions */
-.mobile-drawer.is-open,
 .cart-drawer.is-open,
 .filter-drawer.is-open {
   right: 0 !important;
-  left: 0 !important;
+  left: auto !important;
 }
 
 .mobile-drawer.is-open {
   left: 0 !important;
+  right: auto !important;
 }
 
 .drawer-overlay.is-visible,

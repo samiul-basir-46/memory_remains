@@ -107,10 +107,15 @@ export async function renderHomePage(db) {
     }
     if (collectionsToRender.length > 8) collectionsToRender = collectionsToRender.slice(0, 8);
 
-    // 1. Featured Carousel
+    // 1. Featured Carousel (Only display products marked as isFeatured in Admin)
     const featuredCarousel = qs('#featured-carousel');
-    if (featuredCarousel && list.length > 0) {
-      featuredCarousel.innerHTML = list.slice(0, 8).map(renderProductCard).join('');
+    if (featuredCarousel) {
+      const featuredItems = list.filter((t) => t.isFeatured === true || t.is_featured === true || String(t.isFeatured) === 'true' || String(t.is_featured) === 'true');
+      if (featuredItems.length > 0) {
+        featuredCarousel.innerHTML = featuredItems.slice(0, 8).map(renderProductCard).join('');
+      } else {
+        featuredCarousel.innerHTML = '';
+      }
     }
 
     // 2. Hero preview (top 3 cards, small)

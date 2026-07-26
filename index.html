@@ -149,16 +149,12 @@
       line-height: 1.15; margin: 0; color: #2A2A2A;
     }
     .sec-sub { color: #999; font-size: 0.9rem; margin-top: 0.4rem; }
-
-    /* ════════════════════════════════════════
-       HORIZONTAL PRODUCT ROW (for type sections)
-    ════════════════════════════════════════ */
     .prod-row-wrap {
       position: relative;
     }
     .prod-row {
       display: flex; gap: 1rem;
-      overflow-x: auto; scroll-smooth: true;
+      overflow-x: auto; scroll-behavior: smooth;
       padding: 0.5rem 0 1rem;
       scrollbar-width: none;
       scroll-snap-type: x mandatory;

@@ -236,21 +236,31 @@ export async function fetchCategories(db) {
     try {
       const snap = await db.collection('categories').get();
       if (snap && snap.docs && snap.docs.length > 0) {
-        return snap.docs
-          .map((doc) => {
-            const d = doc.data();
-            return {
-              id: doc.id,
-              name: d.name || '',
-              slug: d.slug || doc.id,
-              icon: d.icon || '🏷️',
-              is_active: d.is_active !== undefined ? Boolean(d.is_active) : (d.isActive !== false),
-              sort_order: Number(d.sort_order || d.sortOrder || d.order || 99),
-              ...d
-            };
-          })
-          .filter((c) => c.is_active !== false)
-          .sort((a, b) => a.sort_order - b.sort_order);
+        const seenSlugs = new Set();
+        const uniqueList = [];
+        for (const doc of snap.docs) {
+          const d = doc.data();
+          const name = d.name || '';
+          const slug = (d.slug || doc.id || name).toLowerCase().trim();
+          if (!name || seenSlugs.has(slug)) continue;
+          seenSlugs.add(slug);
+
+          const img = d.image_url || d.imageUrl || d.cover_image_url || d.coverImageUrl || d.image || '';
+          uniqueList.push({
+            id: doc.id,
+            name: name,
+            slug: d.slug || doc.id,
+            icon: d.icon || '🏷️',
+            image_url: img,
+            imageUrl: img,
+            cover_image_url: img,
+            is_active: d.is_active !== undefined ? Boolean(d.is_active) : (d.isActive !== false),
+            sort_order: Number(d.sort_order || d.sortOrder || d.order || 99),
+            ...d
+          });
+        }
+        uniqueList.sort((a, b) => a.sort_order - b.sort_order);
+        return uniqueList;
       }
     } catch (err) {
       console.warn('Firestore fetchCategories warning:', err);
@@ -262,36 +272,45 @@ export async function fetchCategories(db) {
 export async function fetchCollections(db) {
   if (db) {
     try {
-      const colNames = ['collections', 'site_collections'];
+      const colNames = ['site_collections', 'collections'];
+      const seenSlugs = new Set();
+      const uniqueList = [];
+
       for (const colName of colNames) {
         try {
           const snap = await db.collection(colName).get();
           if (snap && snap.docs && snap.docs.length > 0) {
-            const list = snap.docs
-              .map((doc) => {
-                const d = doc.data();
-                return {
-                  id: doc.id,
-                  name: d.name || d.title || '',
-                  slug: d.slug || doc.id,
-                  description: d.description || '',
-                  cover_image_url: d.cover_image_url || d.coverImageUrl || d.image || '',
-                  template_ids: Array.isArray(d.template_ids) ? d.template_ids.map(String) : (Array.isArray(d.templateIds) ? d.templateIds.map(String) : []),
-                  is_active: d.is_active !== undefined ? Boolean(d.is_active) : (d.isActive !== false),
-                  sort_order: Number(d.sort_order || d.sortOrder || d.order || 99),
-                  ...d
-                };
-              })
-              .filter((c) => c.is_active !== false);
+            for (const doc of snap.docs) {
+              const d = doc.data();
+              const name = d.name || d.title || '';
+              const slug = (d.slug || doc.id || name).toLowerCase().trim();
+              if (!name || seenSlugs.has(slug)) continue;
+              seenSlugs.add(slug);
 
-            if (list.length > 0) {
-              list.sort((a, b) => a.sort_order - b.sort_order);
-              return list;
+              const img = d.cover_image_url || d.coverImageUrl || d.image_url || d.imageUrl || d.image || '';
+              uniqueList.push({
+                id: doc.id,
+                name: name,
+                slug: d.slug || doc.id,
+                description: d.description || '',
+                cover_image_url: img,
+                coverImageUrl: img,
+                image_url: img,
+                template_ids: Array.isArray(d.template_ids) ? d.template_ids.map(String) : (Array.isArray(d.templateIds) ? d.templateIds.map(String) : []),
+                is_active: d.is_active !== undefined ? Boolean(d.is_active) : (d.isActive !== false),
+                sort_order: Number(d.sort_order || d.sortOrder || d.order || 99),
+                ...d
+              });
             }
           }
         } catch (e) {
           console.warn(`Fetch collections from '${colName}' warning:`, e);
         }
+      }
+
+      if (uniqueList.length > 0) {
+        uniqueList.sort((a, b) => a.sort_order - b.sort_order);
+        return uniqueList.filter((c) => c.is_active !== false);
       }
     } catch (err) {
       console.warn('Firestore fetchCollections warning:', err);
