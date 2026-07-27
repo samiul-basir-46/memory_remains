@@ -464,8 +464,8 @@ export function renderSiteShell(pageId) {
           </div>
         </div>
         
-        <div class="flex items-center gap-3 text-sm font-bold">
-          Connect with us 
+        <div class="flex flex-wrap items-center gap-3 text-sm font-bold">
+          <span class="mr-1">Connect with us:</span>
           ${renderSocialLinks()}
         </div>
       </div>

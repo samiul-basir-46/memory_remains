@@ -536,8 +536,8 @@ function renderPaymentInstructionsStep(db, checkoutData) {
             <strong class="font-bold text-xl text-[#2A2A2A] tracking-wider">${BKASH_NUMBER}</strong>
             <button type="button" id="copy-bkash-num-btn" class="px-3 py-1.5 bg-[#DC3C71] hover:bg-[#c23260] text-white text-xs font-bold rounded-lg shadow-sm transition-colors cursor-pointer">Copy</button>
           </div>
-          <p class="text-[11px] text-text-soft leading-relaxed border-t border-pink-200/60 pt-2.5 max-w-md mx-auto">
-            <strong class="text-primary">Note:</strong> Please use the Copy button to copy the payment number. Only the payment number will be copied for your safety and to avoid mistakes during payment.
+          <p class="text-xs sm:text-sm font-semibold text-gray-800 leading-relaxed border-t border-pink-200/60 pt-2.5 max-w-md mx-auto">
+            <strong class="text-primary font-extrabold text-sm sm:text-base">Note:</strong> Please use the Copy button to copy the payment number. Only the payment number will be copied for your safety and to avoid mistakes during payment.
           </p>
         </div>
 
@@ -760,29 +760,34 @@ function renderPaymentInstructionsStep(db, checkoutData) {
         await db.collection('purchases').doc(newOrderId).set(firestoreData);
       }
 
-      await fetch(`${API_BASE}/submit-order`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          order_id: newOrderId,
-          customer_name: checkoutData.customer_name,
-          customer_phone: checkoutData.customer_phone,
-          customer_email: currentUser?.email || '',
-          delivery_address: deliveryInfo ? {
-            address: deliveryInfo.address,
-            district: deliveryInfo.district,
-            division: deliveryInfo.division,
-            upazila: deliveryInfo.upazila || '',
-            postal_code: deliveryInfo.postalCode || '',
-            note: deliveryInfo.note || ''
-          } : null,
-          product_amount: checkoutData.product_amount,
-          delivery_charge: checkoutData.delivery_charge,
-          payment_method: checkoutData.payment_method,
-          expected_amount: expectedAmount,
-          expected_advance: expectedAmount
-        })
-      });
+      // Safely notify backend gateway (non-blocking if Render server is cold-starting)
+      try {
+        await fetch(`${API_BASE}/submit-order`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            order_id: newOrderId,
+            customer_name: checkoutData.customer_name,
+            customer_phone: checkoutData.customer_phone,
+            customer_email: currentUser?.email || '',
+            delivery_address: deliveryInfo ? {
+              address: deliveryInfo.address,
+              district: deliveryInfo.district,
+              division: deliveryInfo.division,
+              upazila: deliveryInfo.upazila || '',
+              postal_code: deliveryInfo.postalCode || '',
+              note: deliveryInfo.note || ''
+            } : null,
+            product_amount: checkoutData.product_amount,
+            delivery_charge: checkoutData.delivery_charge,
+            payment_method: checkoutData.payment_method,
+            expected_amount: expectedAmount,
+            expected_advance: expectedAmount
+          })
+        });
+      } catch (backendErr) {
+        console.warn('Backend API notification warning (Order saved safely in Firestore):', backendErr);
+      }
 
       const newUrl = `${window.location.pathname}?order_id=${encodeURIComponent(newOrderId)}`;
       window.history.pushState({}, '', newUrl);
@@ -790,8 +795,9 @@ function renderPaymentInstructionsStep(db, checkoutData) {
       currentAttemptCount = 0;
       startVerificationPolling(db, newOrderId, trxId, checkoutData);
     } catch (err) {
+      console.error('Order submission error:', err);
       if (errorBox) {
-        errorBox.textContent = 'Connection issue — please check your internet and try again';
+        errorBox.textContent = 'Could not save order. Please check your network connection and try again.';
         errorBox.classList.remove('hidden');
       }
       if (confirmBtn) {
@@ -841,17 +847,19 @@ async function startVerificationPolling(db, orderId, trxId, checkoutData) {
       body: JSON.stringify({ order_id: orderId, trx_id: trxId })
     });
 
-    if (!res.ok) {
-      throw new Error('Connection issue');
+    if (res.ok) {
+      const data = await res.json();
+      handleVerificationResponse(db, data, orderId, trxId, checkoutData);
+    } else {
+      throw new Error(`Server status: ${res.status}`);
     }
-
-    const data = await res.json();
-    handleVerificationResponse(db, data, orderId, trxId, checkoutData);
   } catch (err) {
+    console.warn('Payment verification polling warning (Listening for Firestore Admin update):', err);
+    
+    // Hide scary error message since order is already saved in Firestore and onSnapshot is listening!
     const errorBox = qs('#verify-status-error');
     if (errorBox) {
-      errorBox.textContent = 'Connection issue — please check your internet and try again';
-      errorBox.classList.remove('hidden');
+      errorBox.classList.add('hidden');
     }
 
     if (currentAttemptCount < MAX_ATTEMPTS) {
@@ -910,26 +918,53 @@ function renderPendingPollingState(orderId, trxId, attempt) {
   const container = qs('#cart-page-app');
   if (!container) return;
 
+  const orderIdEsc = escapeHtml(orderId || '');
+  const trackUrl = `/pages/track-order?order_id=${encodeURIComponent(orderId || '')}`;
+  const myOrdersUrl = `/pages/profile#orders`;
+  const waText = encodeURIComponent(`Hi Petty Bloom! I have a question/issue regarding payment verification for Order ID: ${orderId || ''}`);
+  const waUrl = `https://wa.me/8801632788802?text=${waText}`;
+
   container.innerHTML = `
     <div class="max-w-xl mx-auto py-8 px-4">
       <div class="bg-white p-6 md:p-8 rounded-2xl border border-pink-100 shadow-xl text-center space-y-6">
-        <div class="w-16 h-16 border-4 border-pink-200 border-t-primary rounded-full animate-spin mx-auto"></div>
+        <!-- Icon -->
+        <div class="w-18 h-18 bg-pink-50 border-2 border-pink-200 text-[#DC3C71] text-3xl rounded-full flex items-center justify-center mx-auto shadow-sm p-4">
+          <i class="fa-solid fa-box-archive text-3xl text-primary"></i>
+        </div>
 
         <div>
-          <h3 class="font-heading text-2xl text-[#2A2A2A] font-bold mb-2">Verifying your payment...</h3>
-          <p class="text-sm text-text-soft">this usually takes 1-2 minutes</p>
+          <h3 class="font-heading text-2xl md:text-3xl text-[#2A2A2A] font-bold mb-2">We Have Received Your Order!</h3>
+          <p class="text-xs sm:text-sm text-gray-600 max-w-md mx-auto leading-relaxed">
+            Your payment verification is currently pending. To track live status updates or view your order details, you can visit <strong class="text-[#2A2A2A]">My Orders</strong> page anytime.
+          </p>
         </div>
 
-        <div class="inline-block px-4 py-2 bg-pink-50 border border-pink-100 rounded-full text-xs font-semibold text-primary">
-          Checking... (attempt ${attempt} of ${MAX_ATTEMPTS})
+        <!-- Pending Verification Badge & Order ID -->
+        <div class="p-4 rounded-xl bg-[#FDF0F4] border border-pink-200 text-xs text-[#2A2A2A] space-y-2 max-w-md mx-auto">
+          <div class="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-100 text-amber-900 border border-amber-300 font-bold rounded-full text-xs">
+            <i class="fa-solid fa-clock text-amber-700 animate-pulse"></i> Payment Verification Pending
+          </div>
+          <p class="text-gray-600 text-xs m-0">Order Reference ID: <strong class="text-[#2A2A2A] font-mono text-sm font-extrabold">${orderIdEsc}</strong></p>
         </div>
 
-        <div class="p-4 rounded-xl bg-[#FDF0F4] border border-pink-200 text-xs text-[#2A2A2A] space-y-1">
-          <p class="font-semibold">You can safely close this page — your order is saved.</p>
-          <p class="text-text-soft">Order ID: <strong class="text-[#2A2A2A] font-bold">${escapeHtml(orderId)}</strong></p>
+        <!-- WhatsApp Support Box -->
+        <div class="p-4 rounded-2xl bg-emerald-50/80 border border-emerald-200 text-center space-y-2.5 max-w-md mx-auto">
+          <div class="flex items-center justify-center gap-2 text-emerald-900 font-bold text-xs">
+            <i class="fa-brands fa-whatsapp text-lg text-emerald-600"></i>
+            <span>Having any issues with your payment?</span>
+          </div>
+          <p class="text-[11px] text-emerald-800 m-0">If you face any issues or need help with bKash payment verification, message us directly on WhatsApp.</p>
+          <a href="${waUrl}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-[#25D366] hover:bg-[#20ba5a] text-white font-bold text-xs rounded-xl shadow-sm transition-all no-underline active:scale-95">
+            <i class="fa-brands fa-whatsapp text-base"></i> Message us on WhatsApp
+          </a>
         </div>
 
-        <div id="verify-status-error" class="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-800 hidden"></div>
+        <!-- Primary Action Button -->
+        <div class="pt-2">
+          <a href="${myOrdersUrl}" class="inline-flex items-center justify-center gap-2 px-8 py-3.5 bg-[#DC3C71] hover:bg-[#c23260] text-white font-bold rounded-xl text-sm shadow-md transition-all no-underline active:scale-95">
+            <i class="fa-solid fa-list-check text-base"></i> View My Orders
+          </a>
+        </div>
       </div>
     </div>
   `;

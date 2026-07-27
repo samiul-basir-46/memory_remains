@@ -792,9 +792,9 @@ export async function renderShopPage(db) {
     }
 
     const [cats, cols, templates] = await Promise.all([
-      fetchCategories(db),
-      fetchCollections(db),
-      fetchTemplates(db)
+      fetchCategories(db, { forceRefresh: true }),
+      fetchCollections(db, { forceRefresh: true }),
+      fetchTemplates(db, { forceRefresh: true })
     ]);
 
     categoriesList = cats || [];

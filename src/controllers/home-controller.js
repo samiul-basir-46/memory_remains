@@ -107,10 +107,12 @@ export async function renderHomePage(db) {
     }
     if (collectionsToRender.length > 8) collectionsToRender = collectionsToRender.slice(0, 8);
 
-    // 1. Featured Carousel (Only display products marked as isFeatured in Admin)
     const featuredCarousel = qs('#featured-carousel');
     if (featuredCarousel) {
-      const featuredItems = list.filter((t) => t.isFeatured === true || t.is_featured === true || String(t.isFeatured) === 'true' || String(t.is_featured) === 'true');
+      let featuredItems = list.filter((t) => t.isFeatured === true || t.is_featured === true || String(t.isFeatured) === 'true' || String(t.is_featured) === 'true');
+      if (featuredItems.length === 0 && list.length > 0) {
+        featuredItems = list;
+      }
       if (featuredItems.length > 0) {
         featuredCarousel.innerHTML = featuredItems.slice(0, 8).map(renderProductCard).join('');
       } else {
@@ -118,7 +120,6 @@ export async function renderHomePage(db) {
       }
     }
 
-    // 2. Hero preview (top 3 cards, small)
     const heroPreview = qs('#hero-preview');
     if (heroPreview) {
       const productsWithImages = list.filter((t) => t.imageUrl && typeof t.imageUrl === 'string' && t.imageUrl.trim().length > 0);
@@ -165,8 +166,6 @@ export async function renderHomePage(db) {
         magazineRow.innerHTML = '';
       }
     }
-
-    // 4. Best Selling Showcase
     const bestSellingEl = qs('#best-selling-highlight');
     if (bestSellingEl && list.length > 0) {
       const bestItem = list.find((t) => (t.badge || '').toString().toLowerCase().includes('bestseller'))
@@ -174,8 +173,6 @@ export async function renderHomePage(db) {
         || list[0];
       if (bestItem) bestSellingEl.innerHTML = renderShowcaseCard(bestItem);
     }
-
-    // 5. Frame row
     const frameRow = qs('#frame-row');
     if (frameRow && list.length > 0) {
       const frameItems = list.filter((t) => {
@@ -190,8 +187,6 @@ export async function renderHomePage(db) {
         frameRow.innerHTML = '';
       }
     }
-
-    // 6. Vogue Showcase (Only display Magazine products or matching vogue title)
     const vogueEl = qs('#vogue-highlight');
     if (vogueEl && list.length > 0) {
       const vogueItem = list.find((t) => (t.title || '').toLowerCase().includes('vogue'))
@@ -202,8 +197,6 @@ export async function renderHomePage(db) {
         vogueEl.closest('section').style.display = 'none';
       }
     }
-
-    // 7. Collections grid
     const collectionsGrid = qs('#collections-grid');
     if (collectionsGrid) {
       collectionsGrid.innerHTML = collectionsToRender.map((col) => {
@@ -224,8 +217,6 @@ export async function renderHomePage(db) {
         `;
       }).join('');
     }
-
-    // 8. Soulmate Showcase (Only display Magazine products or matching soulmate title)
     const soulmateEl = qs('#soulmate-highlight');
     if (soulmateEl && list.length > 0) {
       const soulmateItem = list.find((t) => (t.title || '').toLowerCase().includes('soulmate'))
@@ -307,8 +298,8 @@ export async function renderHomePage(db) {
     }
 
     const [freshTemplates, cols] = await Promise.all([
-      fetchTemplates(db, { orderByCreated: false }),
-      fetchCollections(db)
+      fetchTemplates(db, { forceRefresh: true }),
+      fetchCollections(db, { forceRefresh: true })
     ]);
 
     if (cols && cols.length > 0) fetchedCollections = cols;
