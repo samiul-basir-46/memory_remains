@@ -4,6 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>My Account & Orders - Petty Bloom</title>
+  <link rel="icon" type="image/png" href="/assets/favicon-circle.png">
+  <link rel="shortcut icon" type="image/png" href="/assets/favicon-circle.png">
+  <link rel="apple-touch-icon" href="/assets/favicon-circle.png">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="/src/styles/main.css">
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
@@ -120,6 +123,33 @@
                 <i class="fa-solid fa-bag-shopping"></i>
                 <span>Start Shopping</span>
               </a>
+            </div>
+
+            <!-- Orders Category Filter Tabs -->
+            <div id="orders-filter-tabs" class="flex items-center gap-2 overflow-x-auto pb-2 mb-6 border-b border-pink-100 hidden">
+              <button type="button" data-order-filter="all" class="order-filter-btn px-4 py-2 text-xs font-bold rounded-xl transition-all border border-pink-200 bg-primary text-white shadow-xs flex items-center gap-1.5 whitespace-nowrap cursor-pointer">
+                <i class="fa-solid fa-layer-group"></i>
+                <span>All Orders</span>
+                <span id="cnt-filter-all" class="px-1.5 py-0.5 rounded-full bg-white/25 text-[10px] font-extrabold">0</span>
+              </button>
+
+              <button type="button" data-order-filter="pending" class="order-filter-btn px-4 py-2 text-xs font-bold rounded-xl transition-all border border-amber-200 bg-amber-50 text-amber-900 hover:bg-amber-100 flex items-center gap-1.5 whitespace-nowrap cursor-pointer">
+                <i class="fa-solid fa-clock-rotate-left text-amber-600"></i>
+                <span>Processing & Review</span>
+                <span id="cnt-filter-pending" class="px-1.5 py-0.5 rounded-full bg-amber-200 text-amber-950 text-[10px] font-extrabold">0</span>
+              </button>
+
+              <button type="button" data-order-filter="verified" class="order-filter-btn px-4 py-2 text-xs font-bold rounded-xl transition-all border border-emerald-200 bg-emerald-50 text-emerald-900 hover:bg-emerald-100 flex items-center gap-1.5 whitespace-nowrap cursor-pointer">
+                <i class="fa-solid fa-circle-check text-emerald-600"></i>
+                <span>Verified & Active</span>
+                <span id="cnt-filter-verified" class="px-1.5 py-0.5 rounded-full bg-emerald-200 text-emerald-950 text-[10px] font-extrabold">0</span>
+              </button>
+
+              <button type="button" data-order-filter="cancelled" class="order-filter-btn px-4 py-2 text-xs font-bold rounded-xl transition-all border border-rose-200 bg-rose-50 text-rose-900 hover:bg-rose-100 flex items-center gap-1.5 whitespace-nowrap cursor-pointer">
+                <i class="fa-solid fa-ban text-rose-600"></i>
+                <span>Cancelled</span>
+                <span id="cnt-filter-cancelled" class="px-1.5 py-0.5 rounded-full bg-rose-200 text-rose-950 text-[10px] font-extrabold">0</span>
+              </button>
             </div>
 
             <!-- Orders Container -->

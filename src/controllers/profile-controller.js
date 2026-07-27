@@ -187,17 +187,114 @@ function bindProfileForm(user) {
   }
 }
 
+function getOrderCategoryGroup(order) {
+  const s = String(order.status || '').toLowerCase().trim();
+  if (s === 'cancelled' || s === 'canceled') {
+    return 'cancelled';
+  }
+  if (['verified', 'paid', 'confirmed', 'preparing', 'prepared', 'shipped', 'delivered', 'completed'].includes(s)) {
+    return 'verified';
+  }
+  return 'pending';
+}
+
 async function loadUserOrders(user) {
   const loadingState = qs('#orders-loading-state');
   const emptyState = qs('#orders-empty-state');
   const listContainer = qs('#orders-list-container');
   const ordersBadge = qs('#my-orders-badge');
+  const filterTabsContainer = qs('#orders-filter-tabs');
 
   if (!loadingState || !emptyState || !listContainer) return;
 
   loadingState.classList.remove('hidden');
   emptyState.classList.add('hidden');
   listContainer.classList.add('hidden');
+  if (filterTabsContainer) filterTabsContainer.classList.add('hidden');
+
+  let activeOrderFilter = 'all';
+  let allUserOrders = [];
+
+  const updateOrderFilterUI = () => {
+    if (allUserOrders.length === 0) {
+      emptyState.classList.remove('hidden');
+      listContainer.classList.add('hidden');
+      if (filterTabsContainer) filterTabsContainer.classList.add('hidden');
+      return;
+    }
+
+    emptyState.classList.add('hidden');
+    if (filterTabsContainer) filterTabsContainer.classList.remove('hidden');
+
+    // Calculate category counts
+    const cntAll = allUserOrders.length;
+    const cntPending = allUserOrders.filter(o => getOrderCategoryGroup(o) === 'pending').length;
+    const cntVerified = allUserOrders.filter(o => getOrderCategoryGroup(o) === 'verified').length;
+    const cntCancelled = allUserOrders.filter(o => getOrderCategoryGroup(o) === 'cancelled').length;
+
+    const elAll = qs('#cnt-filter-all');
+    const elPending = qs('#cnt-filter-pending');
+    const elVerified = qs('#cnt-filter-verified');
+    const elCancelled = qs('#cnt-filter-cancelled');
+
+    if (elAll) elAll.textContent = cntAll;
+    if (elPending) elPending.textContent = cntPending;
+    if (elVerified) elVerified.textContent = cntVerified;
+    if (elCancelled) elCancelled.textContent = cntCancelled;
+
+    // Filter orders
+    const filteredOrders = allUserOrders.filter(order => {
+      if (activeOrderFilter === 'all') return true;
+      return getOrderCategoryGroup(order) === activeOrderFilter;
+    });
+
+    listContainer.innerHTML = '';
+    listContainer.classList.remove('hidden');
+
+    if (filteredOrders.length === 0) {
+      const emptyMsgMap = {
+        all: 'No orders found.',
+        pending: 'No orders are currently under processing or review.',
+        verified: 'No verified or active orders yet.',
+        cancelled: 'No cancelled orders.'
+      };
+      listContainer.innerHTML = `
+        <div class="bg-white rounded-2xl border border-pink-100 p-8 text-center text-sm text-gray-500 font-semibold space-y-2">
+          <i class="fa-solid fa-filter text-2xl text-pink-300"></i>
+          <p class="m-0">${emptyMsgMap[activeOrderFilter] || 'No orders in this category.'}</p>
+        </div>
+      `;
+      return;
+    }
+
+    filteredOrders.forEach(order => {
+      const orderCard = renderOrderCard(order);
+      listContainer.appendChild(orderCard);
+    });
+  };
+
+  // Bind filter button clicks
+  if (filterTabsContainer) {
+    const filterBtns = filterTabsContainer.querySelectorAll('.order-filter-btn');
+    filterBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const filterVal = btn.dataset.orderFilter || 'all';
+        activeOrderFilter = filterVal;
+
+        // Update button styles
+        filterBtns.forEach(b => {
+          const isSelected = b.dataset.orderFilter === activeOrderFilter;
+          if (isSelected) {
+            b.className = 'order-filter-btn px-4 py-2 text-xs font-bold rounded-xl transition-all border border-pink-200 bg-primary text-white shadow-xs flex items-center gap-1.5 whitespace-nowrap cursor-pointer scale-105';
+          } else {
+            b.className = 'order-filter-btn px-4 py-2 text-xs font-bold rounded-xl transition-all border border-pink-100 bg-white text-gray-700 hover:bg-pink-50 hover:text-primary flex items-center gap-1.5 whitespace-nowrap cursor-pointer';
+          }
+        });
+
+        updateOrderFilterUI();
+      });
+    });
+  }
 
   try {
     const { db } = getFirebaseServices();
@@ -232,20 +329,8 @@ async function loadUserOrders(user) {
         ordersBadge.classList.remove('hidden');
       }
 
-      if (orders.length === 0) {
-        emptyState.classList.remove('hidden');
-        listContainer.classList.add('hidden');
-        return;
-      }
-
-      emptyState.classList.add('hidden');
-      listContainer.innerHTML = '';
-      listContainer.classList.remove('hidden');
-
-      orders.forEach(order => {
-        const orderCard = renderOrderCard(order);
-        listContainer.appendChild(orderCard);
-      });
+      allUserOrders = orders;
+      updateOrderFilterUI();
     });
 
   } catch (err) {
