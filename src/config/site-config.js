@@ -12,37 +12,29 @@ export const SITE_CONFIG = {
   ],
   footerGroups: [
     {
-      title: 'Help',
+      title: 'Help & Support',
       links: [
         { href: '/pages/policy', label: 'Store Policies' },
-        { href: '/pages/profile#orders', label: 'Track your Order' },
+        { href: '/pages/profile#orders', label: 'Track Your Order' },
         { href: '/pages/return', label: 'Request Return' },
         { href: '/pages/policy#return', label: 'Return Policy' },
         { href: '/pages/policy#privacy', label: 'Privacy Policy' }
       ]
     },
     {
-      title: 'Shop',
+      title: 'Shop Collections',
       links: [
         { href: '/collections/paid-products?title=Magazine+%26+Newspaper', label: 'Magazine & Newspaper' },
-        { href: '/collections/paid-products?title=Frame', label: 'Frame' },
-        { href: '/collections/paid-products?title=Birthday', label: 'Birthday' },
+        { href: '/collections/paid-products?title=Frame', label: 'Photo Frames' },
+        { href: '/collections/paid-products?title=Posters', label: 'Custom Posters' },
         { href: '/collections/paid-products', label: 'All Products' }
-      ]
-    },
-    {
-      title: 'Explore',
-      links: [
-        { href: '/collections/paid-products?title=Birthday+Special', label: 'Birthday Special' },
-        { href: '/collections/paid-products?title=FOR+HIM', label: 'FOR HIM' },
-        { href: '/collections/paid-products?title=FOR+HER', label: 'FOR HER' },
-        { href: '/collections/paid-products?title=Best+Selling', label: 'Best Selling' },
-        { href: '/collections/paid-products?title=I+Love+My+Self', label: 'I Love My Self' }
       ]
     }
   ],
   socialLinks: [
-    { href: 'https://www.instagram.com/petty_bloom?igsh=aDUwazByOXcwejgz', label: 'Instagram', icon: 'fa-instagram' }
+    { href: 'https://www.facebook.com/share/1CuTb22n1S/', label: 'Facebook', icon: 'fa-facebook' },
+    { href: 'https://www.instagram.com/petty_bloom?igsh=aDUwazByOXcwejgz', label: 'Instagram', icon: 'fa-instagram' },
+    { href: 'https://wa.me/8801622000471', label: 'WhatsApp', icon: 'fa-whatsapp' }
   ]
 };
 

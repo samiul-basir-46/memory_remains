@@ -291,7 +291,10 @@ export async function renderProductDetailsPage(db) {
         modal.innerHTML = `
           <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4 relative">
             <div class="flex items-center justify-between border-b border-gray-100 pb-3">
-              <h3 class="font-bold text-gray-900 text-base">Customize Poster Spot #${spotIdx + 1}</h3>
+              <div>
+                <h3 class="font-bold text-gray-900 text-base">Customize Poster Spot #${spotIdx + 1}</h3>
+                <p class="text-xs text-gray-500">Pick any design from our store or upload a custom image.</p>
+              </div>
               <button type="button" id="spot-modal-close-btn" class="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 flex items-center justify-center text-sm cursor-pointer">
                 <i class="fa-solid fa-xmark"></i>
               </button>
@@ -303,7 +306,7 @@ export async function renderProductDetailsPage(db) {
               <div class="p-4 rounded-xl border-2 border-dashed border-emerald-300 bg-emerald-50/50 text-center space-y-2">
                 <i class="fa-solid fa-cloud-arrow-up text-2xl text-emerald-600"></i>
                 <h4 class="font-bold text-gray-800 text-sm m-0">Upload Your Own Photo</h4>
-                <p class="text-xs text-gray-500 m-0">Select an image from your device for this spot</p>
+                <p class="text-xs text-gray-500 m-0">Select an image from your device for Spot #${spotIdx + 1}</p>
                 <input type="file" id="spot-file-input" accept="image/*" class="hidden">
                 <button type="button" id="spot-upload-btn" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg shadow-sm transition-all cursor-pointer">
                   <i class="fa-solid fa-camera mr-1"></i> Choose Photo from Device
@@ -313,13 +316,17 @@ export async function renderProductDetailsPage(db) {
               <!-- Option B: Select Preset Design from Gallery -->
               <div>
                 <h4 class="font-bold text-gray-800 text-xs uppercase tracking-wider mb-2">Or Choose from Store Designs (${presetGallery.length})</h4>
-                <div class="grid grid-cols-4 gap-2 max-h-48 overflow-y-auto p-1 border border-gray-200 rounded-xl">
-                  ${presetGallery.map((imgUrl, pIdx) => `
-                    <button type="button" data-preset-select-url="${escapeHtml(imgUrl)}" data-preset-idx="${pIdx}" class="aspect-square rounded-lg overflow-hidden border-2 border-gray-200 hover:border-primary transition-all cursor-pointer relative group">
-                      <img src="${imgUrl}" class="w-full h-full object-cover">
-                      <span class="absolute bottom-0 inset-x-0 bg-black/60 text-white text-[9px] text-center font-bold py-0.5">Design #${pIdx + 1}</span>
-                    </button>
-                  `).join('')}
+                <div class="grid grid-cols-4 sm:grid-cols-4 gap-2.5 max-h-56 overflow-y-auto p-1.5 border border-gray-200 rounded-xl">
+                  ${presetGallery.map((imgUrl, pIdx) => {
+                    const isCurrentlySelected = currentSpot && currentSpot.imageUrl === imgUrl;
+                    return `
+                      <button type="button" data-preset-select-url="${escapeHtml(imgUrl)}" data-preset-idx="${pIdx}" class="aspect-square rounded-lg overflow-hidden border-2 ${isCurrentlySelected ? 'border-primary ring-2 ring-primary/30 shadow-md scale-[1.03]' : 'border-gray-200 hover:border-primary'} transition-all cursor-pointer relative group">
+                        <img src="${imgUrl}" class="w-full h-full object-cover">
+                        ${isCurrentlySelected ? `<span class="absolute top-1 right-1 w-4 h-4 rounded-full bg-primary text-white text-[9px] font-bold flex items-center justify-center shadow">✓</span>` : ''}
+                        <span class="absolute bottom-0 inset-x-0 bg-black/75 text-white text-[9px] text-center font-bold py-0.5">Design #${pIdx + 1}</span>
+                      </button>
+                    `;
+                  }).join('')}
                 </div>
               </div>
             </div>

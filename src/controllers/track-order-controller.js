@@ -178,6 +178,75 @@ async function doTrackOrder(phone, orderId) {
   renderTrackingResult(ordersList);
 }
 
+function renderAdminFlagNoteBanner(order) {
+  const status = (order.status || '').toLowerCase();
+
+  // STRICT RULE: ONLY show Action Required Banner IF status IS 'flagged'!
+  if (status !== 'flagged') return '';
+
+  const orderId = order.id || order.order_id || order.orderId || '';
+  const expected = Number(order.expected_amount || order.expectedAmount || order.amount || 0);
+  const received = order.received_amount !== undefined && order.received_amount !== null
+    ? Number(order.received_amount)
+    : (order.receivedAmount !== undefined && order.receivedAmount !== null ? Number(order.receivedAmount) : null);
+
+  const dueAmount = (received !== null && expected > 0 && received < expected) ? (expected - received) : null;
+
+  let reasonTitle = 'Payment Review & Action Required';
+  if (flagReason === 'amount_mismatch' || (dueAmount !== null && dueAmount > 0)) {
+    reasonTitle = 'Partial Payment Received — Additional Payment Required';
+  } else if (flagReason === 'duplicate_trx_reuse') {
+    reasonTitle = 'Duplicate Transaction ID — Review Required';
+  } else if (flagReason === 'incorrect_trx') {
+    reasonTitle = 'Invalid Transaction ID — Review Required';
+  }
+
+  const waText = encodeURIComponent(`Hi Petty Bloom! My Order ID ${orderId} is on hold. Admin Note: ${adminNote || 'Payment review'}`);
+  const waUrl = `https://wa.me/8801622000471?text=${waText}`;
+
+  return `
+    <div class="my-3 p-4 rounded-2xl bg-rose-50/90 border-2 border-rose-200 text-rose-950 space-y-3 shadow-sm">
+      <div class="flex flex-wrap items-center justify-between gap-2 border-b border-rose-200/80 pb-2.5">
+        <div class="flex items-center gap-2 text-rose-900 font-extrabold text-xs uppercase tracking-wide">
+          <i class="fa-solid fa-triangle-exclamation text-rose-600 text-base animate-bounce"></i>
+          <span>${escapeHtml(reasonTitle)}</span>
+        </div>
+        <span class="text-[10px] font-extrabold bg-rose-200 text-rose-900 px-2.5 py-0.5 rounded-full uppercase tracking-wider">Action Required</span>
+      </div>
+
+      ${dueAmount !== null ? `
+        <div class="flex flex-wrap items-center justify-between gap-2 bg-white/90 p-3 rounded-xl border border-rose-200 text-xs">
+          <span class="text-gray-600 font-medium">Expected Amount: <strong class="text-gray-900">৳${expected}</strong></span>
+          <span class="text-rose-700 font-bold">Received: ৳${received}</span>
+          <span class="text-rose-950 font-extrabold bg-rose-100 border border-rose-200 px-2.5 py-1 rounded-lg">Due Amount: ৳${dueAmount}</span>
+        </div>
+      ` : ''}
+
+      ${adminNote ? `
+        <div class="bg-white p-3.5 rounded-xl border border-rose-200 text-xs space-y-1.5 shadow-2xs">
+          <span class="text-rose-900 font-bold flex items-center gap-1.5 text-xs">
+            <i class="fa-solid fa-clipboard-user text-rose-600"></i> Note / Message from Petty Bloom Admin:
+          </span>
+          <p class="text-gray-900 font-semibold leading-relaxed m-0 text-xs sm:text-sm bg-rose-50/60 p-2.5 rounded-lg border border-rose-100">
+            ${escapeHtml(adminNote)}
+          </p>
+        </div>
+      ` : `
+        <p class="text-xs text-rose-900 font-medium m-0 leading-relaxed">
+          Your order is currently under review by our admin team. If additional payment is required, please check below or contact us directly on WhatsApp.
+        </p>
+      `}
+
+      <!-- Direct Action / WhatsApp Button -->
+      <div class="pt-1 flex flex-wrap items-center gap-2">
+        <a href="${waUrl}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 px-4 py-2.5 bg-[#25D366] hover:bg-[#20ba5a] text-white font-bold text-xs rounded-xl shadow-xs transition-all no-underline active:scale-95">
+          <i class="fa-brands fa-whatsapp text-base"></i> Message us on WhatsApp to Resolve
+        </a>
+      </div>
+    </div>
+  `;
+}
+
 function renderTrackingResult(orders) {
   const resultBox = qs('#track-result-container');
   if (!resultBox) return;
@@ -223,13 +292,13 @@ function renderTrackingResult(orders) {
     let itemsList = Array.isArray(order.items) && order.items.length > 0
       ? order.items
       : [{
-          item_id: actualOrderId,
-          template_name: order.template_name || order.templateName || 'Custom Magazine',
-          product_type: productType,
-          required_photo_count: requiredPhotoCount,
-          photos_uploaded: photosUploaded,
-          canva_link: canvaLink
-        }];
+        item_id: actualOrderId,
+        template_name: order.template_name || order.templateName || 'Custom Magazine',
+        product_type: productType,
+        required_photo_count: requiredPhotoCount,
+        photos_uploaded: photosUploaded,
+        canva_link: canvaLink
+      }];
 
     let itemsSectionHtml = itemsList.map((item, idx) => {
       const itemPType = (item.product_type || 'magazine').toLowerCase();
@@ -258,11 +327,31 @@ function renderTrackingResult(orders) {
           `;
         }
       } else if (isPhysicalNonMag) {
-        itemBannerHtml = `
-          <div class="p-3 bg-blue-50 rounded-xl border border-blue-100 text-xs text-blue-900 font-medium">
-            📦 Physical Order — Our team is printing and packaging your item for courier delivery.
-          </div>
-        `;
+        const posterSpotsList = Array.isArray(item.selected_posters || item.selectedPosters) ? (item.selected_posters || item.selectedPosters) : [];
+        if (itemPType === 'poster' && posterSpotsList.length > 0) {
+          itemBannerHtml = `
+            <div class="p-3 bg-blue-50/70 rounded-xl border border-blue-100 space-y-2">
+              <div class="flex items-center justify-between text-xs text-blue-900 font-bold">
+                <span>📦 ${posterSpotsList.length} Selected Poster Designs</span>
+                <span class="text-[10px] text-blue-600 font-normal">Ready for Print</span>
+              </div>
+              <div class="grid grid-cols-5 gap-1.5 pt-1">
+                ${posterSpotsList.map((spot, sIdx) => `
+                  <div class="relative aspect-square rounded-lg overflow-hidden border border-blue-200 bg-white group shadow-2xs">
+                    <img src="${escapeHtml(spot.imageUrl || '')}" class="w-full h-full object-cover">
+                    <span class="absolute top-0.5 left-0.5 px-1 py-0.2 bg-black/75 text-white text-[8px] font-bold rounded">#${sIdx + 1}</span>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          `;
+        } else {
+          itemBannerHtml = `
+            <div class="p-3 bg-blue-50 rounded-xl border border-blue-100 text-xs text-blue-900 font-medium">
+              📦 Physical Order — Our team is printing and packaging your item for courier delivery.
+            </div>
+          `;
+        }
       } else {
         if (rawStatus === 'completed') {
           itemBannerHtml = `
@@ -321,6 +410,8 @@ function renderTrackingResult(orders) {
           </div>
         </div>
 
+        ${renderAdminFlagNoteBanner(order)}
+
         <div class="grid grid-cols-2 gap-3 text-xs">
           <div>
             <span class="text-gray-500 font-medium block">Customer Name</span>
@@ -347,43 +438,45 @@ function renderTrackingResult(orders) {
           </div>
         ` : ''}
 
-        <div class="p-4 bg-pink-50/40 rounded-xl border border-pink-100 space-y-2.5">
-          <span class="text-[11px] font-bold text-gray-500 uppercase tracking-wider block">Order Progression</span>
-          <div class="relative flex items-center justify-between text-xs">
-            <div class="absolute top-3.5 left-4 right-4 h-0.5 -translate-y-1/2 flex z-0">
-              <div class="h-full flex-1 ${isPreparing ? 'bg-purple-500' : 'bg-gray-200'}"></div>
-              <div class="h-full flex-1 ${isShipped ? 'bg-blue-500' : 'bg-gray-200'}"></div>
-              <div class="h-full flex-1 ${isDelivered ? 'bg-emerald-500' : 'bg-gray-200'}"></div>
-            </div>
-            <div class="relative z-10 flex flex-col items-center text-center">
-              <div class="w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs ${isConfirmed ? 'bg-emerald-500 text-white shadow-sm' : 'bg-gray-200 text-gray-400'}">✓</div>
-              <span class="text-[10px] font-bold mt-1.5 ${isConfirmed ? 'text-emerald-700' : 'text-gray-400'}">Verified</span>
-            </div>
-            <div class="relative z-10 flex flex-col items-center text-center">
-              <div class="w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs ${isPreparing ? 'bg-purple-600 text-white shadow-sm' : 'bg-gray-200 text-gray-400'}">📦</div>
-              <span class="text-[10px] font-bold mt-1.5 ${isPreparing ? 'text-purple-700' : 'text-gray-400'}">Preparing</span>
-            </div>
-            <div class="relative z-10 flex flex-col items-center text-center">
-              <div class="w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs ${isShipped ? 'bg-blue-600 text-white shadow-sm' : 'bg-gray-200 text-gray-400'}">🚚</div>
-              <span class="text-[10px] font-bold mt-1.5 ${isShipped ? 'text-blue-700' : 'text-gray-400'}">Shipped</span>
-            </div>
-            <div class="relative z-10 flex flex-col items-center text-center">
-              <div class="w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs ${isDelivered ? 'bg-emerald-600 text-white shadow-sm' : 'bg-gray-200 text-gray-400'}">🎉</div>
-              <span class="text-[10px] font-bold mt-1.5 ${isDelivered ? 'text-emerald-700' : 'text-gray-400'}">Delivered</span>
-            </div>
-          </div>
-          ${(order.courier_name || order.courierName || order.tracking_number || order.trackingNumber) ? `
-            <div class="mt-2.5 p-3 bg-blue-50/80 rounded-xl border border-blue-200 text-xs text-blue-900 flex items-center justify-between shadow-sm">
-              <div class="flex items-center gap-2.5">
-                <i class="fa-solid fa-truck-fast text-blue-600 text-base"></i>
-                <div>
-                  <span class="font-bold text-blue-900 block">Courier: ${escapeHtml(order.courier_name || order.courierName || 'Courier Delivery')}</span>
-                  ${(order.tracking_number || order.trackingNumber) ? `<span class="text-[11px] text-blue-700 font-medium">Tracking Code: <strong class="font-mono bg-blue-100 px-1.5 py-0.5 rounded text-blue-900">${escapeHtml(order.tracking_number || order.trackingNumber)}</strong></span>` : ''}
-                </div>
+        ${rawStatus !== 'flagged' ? `
+          <div class="p-4 bg-pink-50/40 rounded-xl border border-pink-100 space-y-2.5">
+            <span class="text-[11px] font-bold text-gray-500 uppercase tracking-wider block">Order Progression</span>
+            <div class="relative flex items-center justify-between text-xs">
+              <div class="absolute top-3.5 left-4 right-4 h-0.5 -translate-y-1/2 flex z-0">
+                <div class="h-full flex-1 ${isPreparing ? 'bg-purple-500' : 'bg-gray-200'}"></div>
+                <div class="h-full flex-1 ${isShipped ? 'bg-blue-500' : 'bg-gray-200'}"></div>
+                <div class="h-full flex-1 ${isDelivered ? 'bg-emerald-500' : 'bg-gray-200'}"></div>
+              </div>
+              <div class="relative z-10 flex flex-col items-center text-center">
+                <div class="w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs ${isConfirmed ? 'bg-emerald-500 text-white shadow-sm' : 'bg-gray-200 text-gray-400'}">✓</div>
+                <span class="text-[10px] font-bold mt-1.5 ${isConfirmed ? 'text-emerald-700' : 'text-gray-400'}">Verified</span>
+              </div>
+              <div class="relative z-10 flex flex-col items-center text-center">
+                <div class="w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs ${isPreparing ? 'bg-purple-600 text-white shadow-sm' : 'bg-gray-200 text-gray-400'}">📦</div>
+                <span class="text-[10px] font-bold mt-1.5 ${isPreparing ? 'text-purple-700' : 'text-gray-400'}">Preparing</span>
+              </div>
+              <div class="relative z-10 flex flex-col items-center text-center">
+                <div class="w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs ${isShipped ? 'bg-blue-600 text-white shadow-sm' : 'bg-gray-200 text-gray-400'}">🚚</div>
+                <span class="text-[10px] font-bold mt-1.5 ${isShipped ? 'text-blue-700' : 'text-gray-400'}">Shipped</span>
+              </div>
+              <div class="relative z-10 flex flex-col items-center text-center">
+                <div class="w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs ${isDelivered ? 'bg-emerald-600 text-white shadow-sm' : 'bg-gray-200 text-gray-400'}">🎉</div>
+                <span class="text-[10px] font-bold mt-1.5 ${isDelivered ? 'text-emerald-700' : 'text-gray-400'}">Delivered</span>
               </div>
             </div>
-          ` : ''}
-        </div>
+            ${(order.courier_name || order.courierName || order.tracking_number || order.trackingNumber) ? `
+              <div class="mt-2.5 p-3 bg-blue-50/80 rounded-xl border border-blue-200 text-xs text-blue-900 flex items-center justify-between shadow-sm">
+                <div class="flex items-center gap-2.5">
+                  <i class="fa-solid fa-truck-fast text-blue-600 text-base"></i>
+                  <div>
+                    <span class="font-bold text-blue-900 block">Courier: ${escapeHtml(order.courier_name || order.courierName || 'Courier Delivery')}</span>
+                    ${(order.tracking_number || order.trackingNumber) ? `<span class="text-[11px] text-blue-700 font-medium">Tracking Code: <strong class="font-mono bg-blue-100 px-1.5 py-0.5 rounded text-blue-900">${escapeHtml(order.tracking_number || order.trackingNumber)}</strong></span>` : ''}
+                  </div>
+                </div>
+              </div>
+            ` : ''}
+          </div>
+        ` : ''}
 
         <div class="space-y-3 pt-2">
           <h5 class="text-xs font-bold text-gray-500 uppercase tracking-wider">Order Items (${itemsList.length})</h5>
