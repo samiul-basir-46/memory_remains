@@ -28,6 +28,7 @@ export async function renderShopPage(db) {
   let collectionsList = [];
 
   let activeFilters = {
+    searchQuery: null,
     categoryId: null,
     collectionSlug: null,
     productType: null,
@@ -41,6 +42,10 @@ export async function renderShopPage(db) {
   let currentSort = 'recommended';
 
   const urlParams = new URLSearchParams(window.location.search);
+  const qParam = urlParams.get('q') || urlParams.get('search');
+  if (qParam) {
+    activeFilters.searchQuery = qParam.trim();
+  }
   const initialParam = urlParams.get('title') || urlParams.get('category') || urlParams.get('collection');
 
   // Badge filter chips render — products এ যে badges আছে শুধু সেগুলোই দেখাবে
@@ -280,6 +285,10 @@ export async function renderShopPage(db) {
 
     const activeList = [];
 
+    if (activeFilters.searchQuery) {
+      activeList.push({ key: 'searchQuery', label: `Search: "${activeFilters.searchQuery}"` });
+    }
+
     if (activeFilters.categoryId) {
       const catObj = categoriesList.find((c) => c.id === activeFilters.categoryId);
       activeList.push({ key: 'categoryId', label: catObj ? catObj.name : 'Category' });
@@ -420,6 +429,18 @@ export async function renderShopPage(db) {
 
   const applyFiltering = () => {
     let result = [...allTemplates];
+
+    if (activeFilters.searchQuery) {
+      const q = activeFilters.searchQuery.toLowerCase().trim();
+      result = result.filter((t) => {
+        const titleMatch = (t.title || t.name || '').toLowerCase().includes(q);
+        const descMatch = (t.description || '').toLowerCase().includes(q);
+        const typeMatch = (t.product_type || t.productType || '').toLowerCase().includes(q);
+        const catMatch = (t.category_name || t.category || '').toLowerCase().includes(q);
+        const colMatch = (t.collection || '').toLowerCase().includes(q);
+        return titleMatch || descMatch || typeMatch || catMatch || colMatch;
+      });
+    }
 
     if (activeFilters.collectionSlug) {
       const colObj = collectionsList.find((c) => c.slug === activeFilters.collectionSlug);

@@ -31,23 +31,23 @@ export default {
     extend: {
       colors: {
         primary: {
-          DEFAULT: '#DC3C71',
-          strong: '#c23260',
-          light: '#F9E7EF'
+          DEFAULT: '#C97B5F',
+          strong: '#8B4A38',
+          light: '#FFE8DF'
         },
         accent: {
-          DEFAULT: '#0a6586',
-          dark: '#084f69'
+          DEFAULT: '#2C1A14',
+          dark: '#1F120E'
         },
         bg: {
-          DEFAULT: '#ffffff',
-          elevated: '#F9E7EF'
+          DEFAULT: '#FFF5F0',
+          elevated: '#F8F0EB'
         },
         text: {
-          dark: '#2A2A2A',
-          soft: '#5C5C5C'
+          dark: '#2C1A14',
+          soft: '#8B4A38'
         },
-        discount: '#00664E'
+        discount: '#C97B5F'
       },
       fontFamily: {
         body: ['Roboto', 'sans-serif'],

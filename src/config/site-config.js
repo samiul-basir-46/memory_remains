@@ -1,6 +1,6 @@
 export const SITE_CONFIG = {
   brandName: 'Petty Bloom',
-  announcement: 'An additional ৳110 charge applies to the Cash on Delivery (COD) method, which must be paid in advance.',
+  announcement: 'COD Advance Payment: ৳60 (Inside Dhaka) | ৳110 (Outside Dhaka)',
   supportPhoneLabel: '+880 1622-000471',
   supportPhoneHref: 'tel:+8801622000471',
   primaryCtaLabel: 'Shop Now',

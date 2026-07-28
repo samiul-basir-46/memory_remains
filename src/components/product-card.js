@@ -5,22 +5,22 @@ import { comparePrice, discountPercent } from '../services/templates-service.js'
 const FALLBACK_IMAGE = '/assets/product_placeholder.png';
 
 const PRODUCT_TYPE_META = {
-  magazine:   { label: 'Magazine',   emoji: '📖', badgeBg: 'bg-rose-500',    cardBg: '#F9E7EF', cardBorder: '#f5cfe0' },
-  poster:     { label: 'Poster',     emoji: '📜', badgeBg: 'bg-violet-500',  cardBg: '#F0EEF9', cardBorder: '#dbd8f5' },
-  wall_frame: { label: 'Wall Frame', emoji: '🖼️', badgeBg: 'bg-sky-500',     cardBg: '#EDF4FC', cardBorder: '#c7ddf5' },
-  sticker:    { label: 'Sticker',    emoji: '🏷️', badgeBg: 'bg-emerald-500', cardBg: '#EFFAF4', cardBorder: '#b6eaca' }
+  magazine: { label: 'Magazine', emoji: '📖', badgeBg: 'bg-[#C97B5F]', cardBg: '#FFE8DF', cardBorder: '#F4C5B1' },
+  poster: { label: 'Poster', emoji: '📜', badgeBg: 'bg-[#8B4A38]', cardBg: '#F8F0EB', cardBorder: '#F4C5B1' },
+  wall_frame: { label: 'Wall Frame', emoji: '🖼️', badgeBg: 'bg-[#C97B5F]', cardBg: '#FFF5F0', cardBorder: '#F4C5B1' },
+  sticker: { label: 'Sticker', emoji: '🏷️', badgeBg: 'bg-[#8B4A38]', cardBg: '#FFE8DF', cardBorder: '#F4C5B1' }
 };
 
 // Badge config — admin panel থেকে যে string আসবে সেটা এখানে match করবে
 const BADGE_META = {
-  new:          { label: 'New',           bg: '#185FA5', color: '#fff' },
-  bestseller:   { label: 'Best Seller',   bg: '#BA7517', color: '#fff' },
-  recommended:  { label: 'Recommended',   bg: '#0F6E56', color: '#fff' },
-  limited:      { label: 'Limited',       bg: '#A32D2D', color: '#fff' },
-  sale:         { label: 'Sale',          bg: '#993556', color: '#fff' },
-  editors_pick: { label: "Editor's Pick", bg: '#534AB7', color: '#fff' },
-  trending:     { label: 'Trending',      bg: '#1D9E75', color: '#fff' },
-  top_rated:    { label: 'Top Rated',     bg: '#BA7517', color: '#fff' }
+  new: { label: 'New', bg: '#C97B5F', color: '#FFF5F0' },
+  bestseller: { label: 'Best Seller', bg: '#8B4A38', color: '#FFF5F0' },
+  recommended: { label: 'Recommended', bg: '#8B4A38', color: '#FFF5F0' },
+  limited: { label: 'Limited', bg: '#8B4A38', color: '#FFF5F0' },
+  sale: { label: 'Sale', bg: '#C97B5F', color: '#FFF5F0' },
+  editors_pick: { label: "Editor's Pick", bg: '#C97B5F', color: '#FFF5F0' },
+  trending: { label: 'Trending', bg: '#C97B5F', color: '#FFF5F0' },
+  top_rated: { label: 'Top Rated', bg: '#8B4A38', color: '#FFF5F0' }
 };
 
 // badge field normalize করে — string বা array দুটোই handle করে
@@ -37,10 +37,10 @@ function renderBadgePills(badge) {
 
   return `<div class="product-badge-stack absolute top-2.5 right-2.5 z-20 flex flex-col items-end gap-1">
     ${badges.map((b) => {
-      const meta = BADGE_META[b];
-      if (!meta) return '';
-      return `<span class="product-status-badge px-2 py-0.5 text-[10px] font-bold rounded-full shadow-sm leading-tight" style="background:${meta.bg};color:${meta.color}">${meta.label}</span>`;
-    }).filter(Boolean).join('')}
+    const meta = BADGE_META[b];
+    if (!meta) return '';
+    return `<span class="product-status-badge px-2 py-0.5 text-[10px] font-bold rounded-full shadow-sm leading-tight" style="background:${meta.bg};color:${meta.color}">${meta.label}</span>`;
+  }).filter(Boolean).join('')}
   </div>`;
 }
 
@@ -77,9 +77,9 @@ export function renderProductCard(template = {}) {
 
   return `
     <article class="product-card group flex-shrink-0 w-[270px] rounded-xl overflow-hidden border shadow-sm hover:shadow-md transition-all duration-300" style="background:${meta.cardBg};border-color:${meta.cardBorder}" data-product-card>
-      <a href="${detailsUrl}" class="product-card__media relative block aspect-square bg-[#1a1a1a] overflow-hidden ${secondaryImg ? 'has-hover-image' : ''}">
-        <span class="product-type-badge absolute top-2.5 left-2.5 z-10 px-3 py-1 ${meta.badgeBg} text-white text-xs font-semibold rounded-md shadow-sm">${meta.emoji} ${meta.label}</span>
-        <span class="absolute bottom-2.5 left-2.5 z-10 px-2 py-0.5 bg-black/60 backdrop-blur-md text-white text-[11px] font-medium rounded-md flex items-center gap-1">
+      <a href="${detailsUrl}" class="product-card__media relative block aspect-square bg-[#2C1A14] overflow-hidden ${secondaryImg ? 'has-hover-image' : ''}">
+        <span class="product-type-badge absolute top-2.5 left-2.5 z-10 px-3 py-1 ${meta.badgeBg} text-[#FFF5F0] text-xs font-semibold rounded-md shadow-sm">${meta.emoji} ${meta.label}</span>
+        <span class="absolute bottom-2.5 left-2.5 z-10 px-2 py-0.5 bg-[#2C1A14]/75 backdrop-blur-md text-[#F4C5B1] text-[11px] font-medium rounded-md flex items-center gap-1">
           ${isPoster ? '<i class="fa-solid fa-layer-group text-[10px]"></i> 5-20 Pcs Combo' : `<i class="fa-solid fa-camera text-[10px]"></i> ${requiredPhotos} Photos`}
         </span>
         ${renderBadgePills(template.badge)}
@@ -87,13 +87,13 @@ export function renderProductCard(template = {}) {
         ${secondaryImg ? imageMarkup(secondaryImg, template.title, 'product-card__image secondary-image absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105') : ''}
       </a>
       <div class="product-card__body p-4" style="background:${meta.cardBg}">
-        <h3 class="product-card__title font-body text-base font-normal text-[#2A2A2A] mb-2 truncate">
-          <a href="${detailsUrl}" class="hover:text-primary transition-colors">${escapeHtml(template.title || 'Untitled product')}</a>
+        <h3 class="product-card__title font-body text-base font-normal text-[#2C1A14] mb-2 truncate">
+          <a href="${detailsUrl}" class="hover:text-[#C97B5F] transition-colors">${escapeHtml(template.title || 'Untitled product')}</a>
         </h3>
         <div class="product-price-row flex items-baseline gap-2 flex-wrap">
-          <strong class="text-[#2A2A2A] text-xl font-bold">${priceText}</strong>
-          ${compare ? `<span class="text-gray-500 line-through text-sm">৳${compare}</span>` : ''}
-          ${discount ? `<span class="text-[#00664E] text-sm font-normal ml-auto">${discount}% Off</span>` : ''}
+          <strong class="text-[#2C1A14] text-xl font-bold">${priceText}</strong>
+          ${compare ? `<span class="text-[#8B4A38] line-through text-sm opacity-75">৳${compare}</span>` : ''}
+          ${discount ? `<span class="text-[#C97B5F] text-sm font-semibold ml-auto">${discount}% Off</span>` : ''}
         </div>
       </div>
     </article>
@@ -145,7 +145,7 @@ export function renderProductCardV2(template = {}) {
   if (isPoster) {
     priceBlock = `
       <div class="mt-2.5">
-        <a href="${detailsUrl}" class="block w-full py-2 text-center rounded-lg bg-primary text-white text-xs font-bold hover:bg-primary-strong transition-colors cursor-pointer">📜 Customize Combo (${displayPrice})</a>
+        <a href="${detailsUrl}" class="block w-full py-2 text-center rounded-lg bg-primary text-white text-xs font-bold hover:bg-primary-strong transition-colors cursor-pointer">📦 Customize Combo</a>
       </div>
       <a href="${detailsUrl}" class="block text-center text-[10px] text-gray-400 hover:text-primary mt-1.5 transition-colors">View Details →</a>
     `;

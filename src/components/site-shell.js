@@ -1,7 +1,8 @@
 import { SITE_CONFIG } from '../config/site-config.js';
 import { openAuthModal } from '../services/auth-service.js';
 import { getCurrentGpsLocation } from '../services/location-service.js';
-import { fetchCategories, fetchCollections } from '../services/templates-service.js';
+import { fetchCategories, fetchCollections, getCachedTemplates, DEFAULT_FEATURED_TEMPLATES } from '../services/templates-service.js';
+import { escapeHtml } from '../utils/ui.js';
 
 export function openModal(modal, overlay) {
   if (modal) {
@@ -157,30 +158,30 @@ function renderNavLinks(pageId, isMobile = false) {
 
     let icon = '';
     if (isFeatured) {
-      icon = ' <i class="fa-solid fa-wand-magic-sparkles text-xs ml-1.5 text-[#3b1c1c]"></i>';
+      icon = ' <i class="fa-solid fa-wand-magic-sparkles text-xs ml-1.5 text-[#F4C5B1]"></i>';
     } else if (isDropdown) {
-      icon = ' <i class="fa-solid fa-chevron-down text-[0.7em] ml-1 text-[#3b1c1c] transition-transform duration-200"></i>';
+      icon = ' <i class="fa-solid fa-chevron-down text-[0.7em] ml-1 text-[#F4C5B1] transition-transform duration-200"></i>';
     }
 
     let dropdownHtml = '';
     if (isDropdown) {
       if (link.label === 'Categories') {
         dropdownHtml = `
-          <div class="megamenu-dropdown absolute top-full left-0 w-full bg-white border-b border-pink-100 shadow-2xl py-8 opacity-0 invisible transition-all duration-200 z-50 pointer-events-none">
+          <div class="megamenu-dropdown absolute top-full left-0 w-full bg-[#2C1A14] border-b border-[#8B4A38]/40 shadow-2xl py-8 opacity-0 invisible transition-all duration-200 z-50 pointer-events-none">
             <div class="megamenu-inner max-w-container mx-auto px-4 flex gap-8 relative">
-              <button type="button" class="megamenu-close-btn absolute -top-4 right-4 text-3xl text-gray-700 hover:text-primary cursor-pointer p-1" aria-label="Close menu">&times;</button>
+              <button type="button" class="megamenu-close-btn absolute -top-4 right-4 text-3xl text-[#F4C5B1] hover:text-[#FFE8DF] cursor-pointer p-1" aria-label="Close menu">&times;</button>
               <div class="megamenu-grid megamenu-grid-categories flex-1 grid grid-cols-5 gap-4 pr-4">
                 <a href="/collections/paid-products?title=Magazine+%26+Newspaper" class="megamenu-card flex flex-col gap-2 no-underline group">
-                  <div class="megamenu-card-bg bg-[#360505] rounded-xl aspect-[3/4] flex items-center justify-center p-3 text-center border-2 border-transparent transition-all duration-300 group-hover:scale-105 group-hover:-translate-y-1 group-hover:border-primary group-hover:shadow-2xl">
-                    <span class="text-white font-heading text-base font-bold leading-tight text-glow">MAGAZINE<br>&<br>NEWSPAPER</span>
+                  <div class="megamenu-card-bg bg-[#8B4A38] rounded-xl aspect-[3/4] flex items-center justify-center p-3 text-center border-2 border-transparent transition-all duration-300 group-hover:scale-105 group-hover:-translate-y-1 group-hover:border-[#C97B5F] group-hover:shadow-2xl">
+                    <span class="text-[#FFF5F0] font-heading text-base font-bold leading-tight text-glow">MAGAZINE<br>&<br>NEWSPAPER</span>
                   </div>
-                  <span class="megamenu-card-title text-text-dark text-xs font-semibold text-center group-hover:text-primary transition-colors">Magazine & Newspaper</span>
+                  <span class="megamenu-card-title text-[#F4C5B1] text-xs font-semibold text-center group-hover:text-[#FFE8DF] transition-colors">Magazine & Newspaper</span>
                 </a>
               </div>
-              <div class="megamenu-sidebar w-[220px] border-l border-pink-100 pl-8 pr-4">
-                <h4 class="text-sm mb-4 text-text-soft font-medium">Browse Categories</h4>
+              <div class="megamenu-sidebar w-[220px] border-l border-[#8B4A38]/40 pl-8 pr-4">
+                <h4 class="text-sm mb-4 text-[#F4C5B1] font-medium">Browse Categories</h4>
                 <ul class="list-none p-0 m-0 grid gap-3">
-                  <li><a href="/collections/paid-products" class="text-text-dark no-underline text-sm hover:text-primary transition-colors">All Products</a></li>
+                  <li><a href="/collections/paid-products" class="text-[#FFE8DF] no-underline text-sm hover:text-[#F4C5B1] transition-colors">All Products</a></li>
                 </ul>
               </div>
             </div>
@@ -189,31 +190,31 @@ function renderNavLinks(pageId, isMobile = false) {
 
       } else if (link.label === 'Collections') {
         dropdownHtml = `
-          <div class="megamenu-dropdown absolute top-full left-0 w-full bg-white border-b border-pink-100 shadow-2xl py-8 opacity-0 invisible transition-all duration-200 z-50 pointer-events-none">
+          <div class="megamenu-dropdown absolute top-full left-0 w-full bg-[#2C1A14] border-b border-[#8B4A38]/40 shadow-2xl py-8 opacity-0 invisible transition-all duration-200 z-50 pointer-events-none">
             <div class="megamenu-inner max-w-container mx-auto px-4 flex gap-8 relative">
-              <button type="button" class="megamenu-close-btn absolute -top-4 right-4 text-3xl text-gray-700 hover:text-primary cursor-pointer p-1" aria-label="Close menu">&times;</button>
+              <button type="button" class="megamenu-close-btn absolute -top-4 right-4 text-3xl text-[#F4C5B1] hover:text-[#FFE8DF] cursor-pointer p-1" aria-label="Close menu">&times;</button>
               <div class="megamenu-grid megamenu-grid-collections flex-1 grid grid-cols-4 gap-6 pr-4">
                 <a href="/collections/paid-products?title=FOR+HER" class="megamenu-card flex flex-col gap-3 no-underline group">
-                  <div class="megamenu-card-bg bg-[#360505] rounded-xl aspect-[3/4] flex items-center justify-center p-4 text-center border-2 border-transparent transition-all duration-300 group-hover:scale-105 group-hover:-translate-y-1 group-hover:border-primary group-hover:shadow-2xl"><span class="text-white font-heading text-2xl font-bold leading-tight text-glow">FOR HER</span></div>
-                  <span class="megamenu-card-title text-text-dark text-sm font-semibold text-center group-hover:text-primary transition-colors">FOR HER</span>
+                  <div class="megamenu-card-bg bg-[#8B4A38] rounded-xl aspect-[3/4] flex items-center justify-center p-4 text-center border-2 border-transparent transition-all duration-300 group-hover:scale-105 group-hover:-translate-y-1 group-hover:border-[#C97B5F] group-hover:shadow-2xl"><span class="text-[#FFF5F0] font-heading text-2xl font-bold leading-tight text-glow">FOR HER</span></div>
+                  <span class="megamenu-card-title text-[#F4C5B1] text-sm font-semibold text-center group-hover:text-[#FFE8DF] transition-colors">FOR HER</span>
                 </a>
                 <a href="/collections/paid-products?title=I+Love+My+Self" class="megamenu-card flex flex-col gap-3 no-underline group">
-                  <div class="megamenu-card-bg bg-[#360505] rounded-xl aspect-[3/4] flex items-center justify-center p-4 text-center border-2 border-transparent transition-all duration-300 group-hover:scale-105 group-hover:-translate-y-1 group-hover:border-primary group-hover:shadow-2xl"><span class="text-white font-heading text-2xl font-bold leading-tight text-glow">I LOVE<br>MY SELF</span></div>
-                  <span class="megamenu-card-title text-text-dark text-sm font-semibold text-center group-hover:text-primary transition-colors">I Love My Self</span>
+                  <div class="megamenu-card-bg bg-[#8B4A38] rounded-xl aspect-[3/4] flex items-center justify-center p-4 text-center border-2 border-transparent transition-all duration-300 group-hover:scale-105 group-hover:-translate-y-1 group-hover:border-[#C97B5F] group-hover:shadow-2xl"><span class="text-[#FFF5F0] font-heading text-2xl font-bold leading-tight text-glow">I LOVE<br>MY SELF</span></div>
+                  <span class="megamenu-card-title text-[#F4C5B1] text-sm font-semibold text-center group-hover:text-[#FFE8DF] transition-colors">I Love My Self</span>
                 </a>
                 <a href="/collections/paid-products?title=Best+Selling" class="megamenu-card flex flex-col gap-3 no-underline group">
-                  <div class="megamenu-card-bg bg-[#360505] rounded-xl aspect-[3/4] flex items-center justify-center p-4 text-center border-2 border-transparent transition-all duration-300 group-hover:scale-105 group-hover:-translate-y-1 group-hover:border-primary group-hover:shadow-2xl"><span class="text-white font-heading text-2xl font-bold leading-tight text-glow">BEST<br>SELLING</span></div>
-                  <span class="megamenu-card-title text-text-dark text-sm font-semibold text-center group-hover:text-primary transition-colors">Best Selling</span>
+                  <div class="megamenu-card-bg bg-[#8B4A38] rounded-xl aspect-[3/4] flex items-center justify-center p-4 text-center border-2 border-transparent transition-all duration-300 group-hover:scale-105 group-hover:-translate-y-1 group-hover:border-[#C97B5F] group-hover:shadow-2xl"><span class="text-[#FFF5F0] font-heading text-2xl font-bold leading-tight text-glow">BEST<br>SELLING</span></div>
+                  <span class="megamenu-card-title text-[#F4C5B1] text-sm font-semibold text-center group-hover:text-[#FFE8DF] transition-colors">Best Selling</span>
                 </a>
                 <a href="/collections/paid-products?title=Birthday+Special" class="megamenu-card flex flex-col gap-3 no-underline group">
-                  <div class="megamenu-card-bg bg-[#360505] rounded-xl aspect-[3/4] flex items-center justify-center p-4 text-center border-2 border-transparent transition-all duration-300 group-hover:scale-105 group-hover:-translate-y-1 group-hover:border-primary group-hover:shadow-2xl"><span class="text-white font-heading text-2xl font-bold leading-tight text-glow">BIRTHDAY<br>SPECIAL</span></div>
-                  <span class="megamenu-card-title text-text-dark text-sm font-semibold text-center group-hover:text-primary transition-colors">Birthday Special</span>
+                  <div class="megamenu-card-bg bg-[#8B4A38] rounded-xl aspect-[3/4] flex items-center justify-center p-4 text-center border-2 border-transparent transition-all duration-300 group-hover:scale-105 group-hover:-translate-y-1 group-hover:border-[#C97B5F] group-hover:shadow-2xl"><span class="text-[#FFF5F0] font-heading text-2xl font-bold leading-tight text-glow">BIRTHDAY<br>SPECIAL</span></div>
+                  <span class="megamenu-card-title text-[#F4C5B1] text-sm font-semibold text-center group-hover:text-[#FFE8DF] transition-colors">Birthday Special</span>
                 </a>
               </div>
-              <div class="megamenu-sidebar w-[250px] border-l border-pink-100 pl-8 pr-12">
-                <h4 class="text-sm mb-4 text-text-soft font-medium">Other Collections</h4>
+              <div class="megamenu-sidebar w-[250px] border-l border-[#8B4A38]/40 pl-8 pr-12">
+                <h4 class="text-sm mb-4 text-[#F4C5B1] font-medium">Other Collections</h4>
                 <ul class="list-none p-0 m-0 grid gap-3 megamenu-collections-sidebar-list">
-                  <li><a href="/collections/paid-products?title=FOR+HIM" class="text-text-dark no-underline text-sm hover:text-primary transition-colors">FOR HIM</a></li>
+                  <li><a href="/collections/paid-products?title=FOR+HIM" class="text-[#FFE8DF] no-underline text-sm hover:text-[#F4C5B1] transition-colors">FOR HIM</a></li>
                 </ul>
               </div>
             </div>
@@ -236,10 +237,10 @@ function renderNavLinks(pageId, isMobile = false) {
 }
 
 function renderFooterGroup(group) {
-  const links = group.links.map((link) => `<li><a href="${link.href}" class="text-white/80 hover:text-bg-elevated text-sm transition-colors">${link.label}</a></li>`).join('');
+  const links = group.links.map((link) => `<li><a href="${link.href}" class="text-[#FFE8DF] hover:text-[#F4C5B1] text-sm transition-colors">${link.label}</a></li>`).join('');
   return `
     <div class="footer-group">
-      <h4 class="text-white font-heading font-bold text-base mb-3.5">${group.title}</h4>
+      <h4 class="text-[#F4C5B1] font-heading font-bold text-base mb-3.5">${group.title}</h4>
       <ul class="list-none p-0 m-0 grid gap-3">${links}</ul>
     </div>
   `;
@@ -247,7 +248,7 @@ function renderFooterGroup(group) {
 
 function renderSocialLinks() {
   return SITE_CONFIG.socialLinks.map((link) => (
-    `<a href="${link.href}" target="_blank" rel="noreferrer" aria-label="${link.label}" class="inline-flex items-center gap-2 text-white/90 hover:text-white transition-colors">
+    `<a href="${link.href}" target="_blank" rel="noreferrer" aria-label="${link.label}" class="inline-flex items-center gap-2 text-[#FFE8DF] hover:text-[#F4C5B1] transition-colors">
       <i class="fa-brands ${link.icon}"></i>
       <span>${link.label}</span>
     </a>`
@@ -264,7 +265,7 @@ export function renderSiteShell(pageId) {
   shell.className = 'sticky top-0 z-[1000] w-full transition-transform duration-350 ease-in-out';
 
   shell.innerHTML = `
-    <div id="announcement-bar-container" class="announcement-bar py-2.5 text-center text-xs font-medium tracking-wider text-white bg-accent overflow-hidden relative whitespace-nowrap">
+    <div id="announcement-bar-container" class="announcement-bar py-2.5 text-center text-xs font-medium tracking-wider text-[#F4C5B1] bg-[#2C1A14] overflow-hidden relative whitespace-nowrap">
       <div class="announcement-bar__track animate-marquee inline-flex whitespace-nowrap">
         <div class="announcement-bar__content inline-flex items-center" style="padding-right:100vw;">
           <span id="announcement-bar-text-1">${SITE_CONFIG.announcement}</span>
@@ -274,66 +275,66 @@ export function renderSiteShell(pageId) {
         </div>
       </div>
     </div>
-    <header class="site-header relative z-40 backdrop-blur-md bg-white/95 border-b border-pink-100">
+    <header class="site-header relative z-40 bg-[#2C1A14]">
       <div class="max-w-container mx-auto px-4 flex items-center justify-between gap-4 min-h-[76px] md:grid md:grid-cols-3">
         <!-- Hamburger Menu toggle (mobile left) -->
-        <button class="menu-toggle md:hidden cursor-pointer text-[#3b1c1c] text-xl p-1" type="button" aria-label="Toggle Menu">
+        <button class="menu-toggle md:hidden cursor-pointer text-[#F4C5B1] hover:text-[#FFE8DF] text-xl p-1" type="button" aria-label="Toggle Menu">
           <i class="fa-solid fa-bars"></i>
         </button>
 
         <!-- Brand Logo -->
         <a class="site-logo flex items-center gap-2.5 no-underline" href="/">
-          <div class="w-11 h-11 rounded-full bg-[#3b1c1c] flex items-center justify-center overflow-hidden flex-shrink-0 shadow-sm">
+          <div class="w-11 h-11 rounded-full bg-[#8B4A38] flex items-center justify-center overflow-hidden flex-shrink-0 shadow-sm border border-[#F4C5B1]/30">
             <img src="/assets/IMG-20260715-WA0003.jpg" alt="${SITE_CONFIG.brandName} Logo" class="w-full h-full object-cover">
           </div>
-          <span class="site-logo__text font-heading text-xl md:text-2xl text-[#3b1c1c] font-bold">${SITE_CONFIG.brandName}</span>
+          <span class="site-logo__text font-heading text-xl md:text-2xl text-[#F4C5B1] font-bold">${SITE_CONFIG.brandName}</span>
         </a>
         
         <!-- Search bar (Desktop) -->
         <div class="header-search hidden md:flex items-center relative max-w-[520px] mx-auto w-full">
-          <input type="text" id="header-search-input" placeholder="Search anything..." aria-label="Search" class="w-full py-2.5 px-4 pr-10 border border-gray-300 rounded-lg bg-transparent text-text-dark outline-none text-sm focus:border-primary transition-colors">
-          <i class="fa-solid fa-magnifying-glass absolute right-3.5 text-text-soft pointer-events-none"></i>
+          <input type="text" id="header-search-input" placeholder="Search anything..." aria-label="Search" class="w-full py-2.5 px-4 pr-10 border border-[#8B4A38]/50 rounded-lg bg-[#1F120E]/50 text-[#F4C5B1] placeholder-[#F4C5B1]/60 outline-none text-sm focus:border-[#C97B5F] transition-colors">
+          <i class="fa-solid fa-magnifying-glass absolute right-3.5 text-[#F4C5B1]/70 pointer-events-none"></i>
         </div>
         
         <div class="site-actions flex items-center justify-end gap-3.5">
-          <button id="location-btn" class="pill-button location-btn hidden md:inline-flex items-center gap-1.5 bg-primary hover:bg-primary-strong text-white px-4 py-2 text-xs font-medium rounded-lg shadow-sm transition-colors" type="button">
+          <button id="location-btn" class="pill-button location-btn hidden md:inline-flex items-center gap-1.5 bg-[#C97B5F] hover:bg-[#8B4A38] text-[#FFF5F0] px-4 py-2 text-xs font-medium rounded-lg shadow-sm transition-colors" type="button">
             <i class="fa-solid fa-map-pin"></i>
             <span>Check Location</span>
           </button>
 
           <!-- Mobile Search Toggle Icon -->
-          <button id="mobile-search-toggle-btn" class="mobile-search-toggle md:hidden text-[#3b1c1c] text-lg p-1" type="button" aria-label="Search">
+          <button id="mobile-search-toggle-btn" class="mobile-search-toggle md:hidden text-[#F4C5B1] hover:text-[#FFE8DF] text-lg p-1" type="button" aria-label="Search">
             <i class="fa-solid fa-magnifying-glass"></i>
           </button>
           
-          <a href="/pages/cart" class="cart-icon relative text-[#3b1c1c] text-xl mx-1.5 cursor-pointer hover:text-primary transition-colors flex items-center justify-center no-underline" aria-label="Shopping Cart">
+          <a href="/pages/cart" class="cart-icon relative text-[#F4C5B1] hover:text-[#FFE8DF] text-xl mx-1.5 cursor-pointer transition-colors flex items-center justify-center no-underline" aria-label="Shopping Cart">
             <i class="fa-solid fa-cart-shopping"></i>
-            <span class="cart-count cart-badge-count absolute -top-2 -right-2.5 w-4.5 h-4.5 grid place-items-center rounded-full bg-primary text-white text-[10px] font-bold shadow-sm">0</span>
+            <span class="cart-count cart-badge-count absolute -top-2 -right-2.5 w-4.5 h-4.5 grid place-items-center rounded-full bg-[#C97B5F] text-[#FFF5F0] text-[10px] font-bold shadow-sm">0</span>
           </a>
           
           <div class="user-profile-menu-wrapper relative">
-            <button id="auth-nav-btn" class="flex items-center gap-2 text-[#3b1c1c] hover:text-primary text-sm font-semibold p-1 transition-colors cursor-pointer" type="button">
-              <div id="header-user-avatar" class="w-8 h-8 rounded-full bg-pink-100 text-primary flex items-center justify-center font-bold text-xs overflow-hidden border border-pink-200 shadow-sm hidden">
+            <button id="auth-nav-btn" class="flex items-center gap-2 text-[#F4C5B1] hover:text-[#FFE8DF] text-sm font-semibold p-1 transition-colors cursor-pointer" type="button">
+              <div id="header-user-avatar" class="w-8 h-8 rounded-full bg-[#8B4A38] text-[#F4C5B1] flex items-center justify-center font-bold text-xs overflow-hidden border border-[#F4C5B1]/40 shadow-sm hidden">
                 <img id="header-user-avatar-img" src="" class="w-full h-full object-cover hidden" alt="Profile">
                 <span id="header-user-avatar-initials">U</span>
               </div>
               <span id="header-user-btn-text">Sign In</span>
             </button>
-            <div id="user-profile-dropdown" class="user-dropdown-menu absolute right-0 top-full mt-2 w-52 bg-white border border-gray-100 shadow-xl rounded-xl py-2 hidden z-50">
-              <div id="user-dropdown-info" class="px-4 py-2 border-b border-gray-100">
-                <p id="user-dropdown-name" class="text-sm font-bold text-gray-800 truncate">User Name</p>
-                <p id="user-dropdown-email" class="text-xs text-gray-500 truncate">user@example.com</p>
+            <div id="user-profile-dropdown" class="user-dropdown-menu absolute right-0 top-full mt-2 w-52 bg-[#2C1A14] border border-[#8B4A38]/40 shadow-xl rounded-xl py-2 hidden z-50">
+              <div id="user-dropdown-info" class="px-4 py-2 border-b border-[#8B4A38]/40">
+                <p id="user-dropdown-name" class="text-sm font-bold text-[#F4C5B1] truncate">User Name</p>
+                <p id="user-dropdown-email" class="text-xs text-[#FFE8DF]/80 truncate">user@example.com</p>
               </div>
-              <a href="/pages/profile" class="flex items-center gap-2.5 px-4 py-2 text-sm text-gray-700 hover:bg-pink-50 hover:text-primary transition-colors no-underline">
-                <i class="fa-regular fa-user text-primary"></i>
+              <a href="/pages/profile" class="flex items-center gap-2.5 px-4 py-2 text-sm text-[#FFE8DF] hover:bg-[#8B4A38]/30 hover:text-[#F4C5B1] transition-colors no-underline">
+                <i class="fa-regular fa-user text-[#C97B5F]"></i>
                 <span>My Profile</span>
               </a>
-              <a href="/pages/profile#orders" class="flex items-center gap-2.5 px-4 py-2 text-sm text-gray-700 hover:bg-pink-50 hover:text-primary transition-colors no-underline">
-                <i class="fa-solid fa-box-archive text-primary"></i>
+              <a href="/pages/profile#orders" class="flex items-center gap-2.5 px-4 py-2 text-sm text-[#FFE8DF] hover:bg-[#8B4A38]/30 hover:text-[#F4C5B1] transition-colors no-underline">
+                <i class="fa-solid fa-box-archive text-[#C97B5F]"></i>
                 <span>My Orders</span>
               </a>
-              <div class="border-t border-gray-100 my-1"></div>
-              <button id="header-logout-btn" class="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer text-left" type="button">
+              <div class="border-t border-[#8B4A38]/40 my-1"></div>
+              <button id="header-logout-btn" class="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-[#F4C5B1] hover:bg-[#8B4A38]/40 transition-colors cursor-pointer text-left" type="button">
                 <i class="fa-solid fa-right-from-bracket"></i>
                 <span>Logout</span>
               </button>
@@ -343,70 +344,70 @@ export function renderSiteShell(pageId) {
       </div>
       
       <!-- Mobile Search Bar input box -->
-      <div id="mobile-search-bar" class="mobile-search-bar hidden md:hidden bg-white border-b border-pink-100 py-2 shadow-sm">
+      <div id="mobile-search-bar" class="mobile-search-bar hidden md:hidden bg-[#2C1A14] py-2 shadow-sm">
         <div class="max-w-container mx-auto px-4">
-          <input type="text" id="mobile-search-input" placeholder="Search anything..." aria-label="Search" class="w-full py-2 px-4 rounded-lg border border-gray-300 outline-none text-sm">
+          <input type="text" id="mobile-search-input" placeholder="Search anything..." aria-label="Search" class="w-full py-2 px-4 rounded-lg border border-[#8B4A38]/50 bg-[#1F120E]/50 text-[#F4C5B1] placeholder-[#F4C5B1]/60 outline-none text-sm">
         </div>
       </div>
       
       <!-- Sub navigation row -->
-      <nav class="site-sub-nav hidden md:block border-t border-pink-100 bg-white shadow-sm" aria-label="Primary">
+      <nav class="site-sub-nav hidden md:block bg-[#2C1A14] shadow-sm" aria-label="Primary">
         <div class="max-w-container mx-auto px-4 flex items-center justify-around max-w-[900px]">
           ${renderNavLinks(pageId)}
         </div>
       </nav>
     </header>
 
-    <aside class="mobile-drawer fixed top-0 -left-full z-[1001] w-[min(85vw,320px)] h-screen bg-white transition-[left] duration-300 flex flex-col shadow-2xl overflow-hidden" id="mobile-drawer">
-      <div class="mobile-drawer__header flex items-center justify-between p-5 border-b border-gray-100">
+    <aside class="mobile-drawer fixed top-0 -left-full z-[1001] w-[min(85vw,320px)] h-screen bg-[#FFF5F0] transition-[left] duration-300 flex flex-col shadow-2xl overflow-hidden" id="mobile-drawer">
+      <div class="mobile-drawer__header flex items-center justify-between p-5 border-b border-[#F4C5B1]">
         <div class="mobile-drawer__brand flex items-center gap-3">
-          <div class="w-11 h-11 rounded-full bg-[#3b1c1c] flex items-center justify-center overflow-hidden flex-shrink-0">
+          <div class="w-11 h-11 rounded-full bg-[#8B4A38] flex items-center justify-center overflow-hidden flex-shrink-0">
             <img src="/assets/IMG-20260715-WA0003.jpg" alt="${SITE_CONFIG.brandName} Logo" class="w-full h-full object-cover">
           </div>
-          <span class="mobile-drawer__brand-title font-heading text-lg font-bold text-[#2b1717]">${SITE_CONFIG.brandName}</span>
+          <span class="mobile-drawer__brand-title font-heading text-lg font-bold text-[#2C1A14]">${SITE_CONFIG.brandName}</span>
         </div>
-        <button id="mobile-drawer-close-btn" class="mobile-drawer__close-btn text-xl text-[#2b1717] p-1 cursor-pointer" type="button" aria-label="Close menu">
+        <button id="mobile-drawer-close-btn" class="mobile-drawer__close-btn text-xl text-[#8B4A38] p-1 cursor-pointer" type="button" aria-label="Close menu">
           <i class="fa-solid fa-xmark"></i>
         </button>
       </div>
 
       <div class="mobile-drawer__nav flex-1 p-5 flex flex-col gap-5 overflow-y-auto">
-        <a href="/pages/featured" class="mobile-drawer__link font-heading text-base font-semibold text-[#2b1717] no-underline flex items-center justify-between hover:text-primary transition-colors">
+        <a href="/pages/featured" class="mobile-drawer__link font-heading text-base font-semibold text-[#2C1A14] no-underline flex items-center justify-between hover:text-[#C97B5F] transition-colors">
           <span>Featured Products</span>
-          <i class="fa-solid fa-wand-magic-sparkles text-sm text-[#3b1c1c]"></i>
+          <i class="fa-solid fa-wand-magic-sparkles text-sm text-[#C97B5F]"></i>
         </a>
 
         <div class="mobile-drawer__accordion">
-          <button type="button" class="mobile-drawer__accordion-toggle font-heading text-base font-semibold text-[#2b1717] flex items-center justify-between w-full hover:text-primary transition-colors">
+          <button type="button" class="mobile-drawer__accordion-toggle font-heading text-base font-semibold text-[#2C1A14] flex items-center justify-between w-full hover:text-[#C97B5F] transition-colors">
             <span>Categories</span>
-            <i class="fa-solid fa-chevron-down text-sm"></i>
+            <i class="fa-solid fa-chevron-down text-sm text-[#C97B5F]"></i>
           </button>
-          <div class="mobile-drawer__accordion-content mobile-drawer-categories-content hidden flex-col mt-2 border-t border-gray-100">
-            <a href="/collections/paid-products?title=Magazine+%26+Newspaper" class="mobile-drawer__sublink font-heading text-sm font-semibold text-[#2b1717] no-underline py-3 px-4 border-b border-gray-50 hover:text-primary transition-colors">Magazine & Newspaper</a>
+          <div class="mobile-drawer__accordion-content mobile-drawer-categories-content hidden flex-col mt-2 border-t border-[#F4C5B1]">
+            <a href="/collections/paid-products?title=Magazine+%26+Newspaper" class="mobile-drawer__sublink font-heading text-sm font-semibold text-[#8B4A38] no-underline py-3 px-4 border-b border-[#F4C5B1]/50 hover:text-[#C97B5F] transition-colors">Magazine & Newspaper</a>
           </div>
         </div>
 
         <div class="mobile-drawer__accordion">
-          <button type="button" class="mobile-drawer__accordion-toggle font-heading text-base font-semibold text-[#2b1717] flex items-center justify-between w-full hover:text-primary transition-colors">
+          <button type="button" class="mobile-drawer__accordion-toggle font-heading text-base font-semibold text-[#2C1A14] flex items-center justify-between w-full hover:text-[#C97B5F] transition-colors">
             <span>Collections</span>
-            <i class="fa-solid fa-chevron-down text-sm"></i>
+            <i class="fa-solid fa-chevron-down text-sm text-[#C97B5F]"></i>
           </button>
-          <div class="mobile-drawer__accordion-content mobile-drawer-collections-content hidden flex-col mt-2 border-t border-gray-100">
-            <a href="/collections/paid-products?title=FOR+HER" class="mobile-drawer__sublink font-heading text-sm font-semibold text-[#2b1717] no-underline py-3 px-4 border-b border-gray-50 hover:text-primary transition-colors">FOR HER</a>
-            <a href="/collections/paid-products?title=I+Love+My+Self" class="mobile-drawer__sublink font-heading text-sm font-semibold text-[#2b1717] no-underline py-3 px-4 border-b border-gray-50 hover:text-primary transition-colors">I Love My Self</a>
-            <a href="/collections/paid-products?title=Best+Selling" class="mobile-drawer__sublink font-heading text-sm font-semibold text-[#2b1717] no-underline py-3 px-4 border-b border-gray-50 hover:text-primary transition-colors">Best Selling</a>
-            <a href="/collections/paid-products?title=Birthday+Special" class="mobile-drawer__sublink font-heading text-sm font-semibold text-[#2b1717] no-underline py-3 px-4 border-b border-gray-50 hover:text-primary transition-colors">Birthday Special</a>
-            <a href="/collections/paid-products?title=FOR+HIM" class="mobile-drawer__sublink font-heading text-sm font-semibold text-[#2b1717] no-underline py-3 px-4 border-b border-gray-50 hover:text-primary transition-colors">FOR HIM</a>
+          <div class="mobile-drawer__accordion-content mobile-drawer-collections-content hidden flex-col mt-2 border-t border-[#F4C5B1]">
+            <a href="/collections/paid-products?title=FOR+HER" class="mobile-drawer__sublink font-heading text-sm font-semibold text-[#8B4A38] no-underline py-3 px-4 border-b border-[#F4C5B1]/50 hover:text-[#C97B5F] transition-colors">FOR HER</a>
+            <a href="/collections/paid-products?title=I+Love+My+Self" class="mobile-drawer__sublink font-heading text-sm font-semibold text-[#8B4A38] no-underline py-3 px-4 border-b border-[#F4C5B1]/50 hover:text-[#C97B5F] transition-colors">I Love My Self</a>
+            <a href="/collections/paid-products?title=Best+Selling" class="mobile-drawer__sublink font-heading text-sm font-semibold text-[#8B4A38] no-underline py-3 px-4 border-b border-[#F4C5B1]/50 hover:text-[#C97B5F] transition-colors">Best Selling</a>
+            <a href="/collections/paid-products?title=Birthday+Special" class="mobile-drawer__sublink font-heading text-sm font-semibold text-[#8B4A38] no-underline py-3 px-4 border-b border-[#F4C5B1]/50 hover:text-[#C97B5F] transition-colors">Birthday Special</a>
+            <a href="/collections/paid-products?title=FOR+HIM" class="mobile-drawer__sublink font-heading text-sm font-semibold text-[#8B4A38] no-underline py-3 px-4 border-b border-[#F4C5B1]/50 hover:text-[#C97B5F] transition-colors">FOR HIM</a>
           </div>
         </div>
 
-        <a href="/collections/paid-products?title=All+Products" class="mobile-drawer__link font-heading text-base font-semibold text-[#2b1717] no-underline flex items-center justify-between hover:text-primary transition-colors">All Products</a>
+        <a href="/collections/paid-products?title=All+Products" class="mobile-drawer__link font-heading text-base font-semibold text-[#2C1A14] no-underline flex items-center justify-between hover:text-[#C97B5F] transition-colors">All Products</a>
       </div>
 
-      <div class="mobile-drawer__footer p-5 border-t border-gray-200 bg-white mt-auto">
+      <div class="mobile-drawer__footer p-5 border-t border-[#F4C5B1] bg-[#FFF5F0] mt-auto">
         <!-- Guest State: Sign In Button -->
-        <button id="auth-mobile-btn" class="mobile-drawer__auth-btn flex items-center gap-3 text-base font-semibold text-[#2b1717] hover:text-primary transition-colors cursor-pointer w-full" type="button">
-          <div class="w-9 h-9 rounded-full bg-pink-50 border border-pink-100 text-primary flex items-center justify-center text-base">
+        <button id="auth-mobile-btn" class="mobile-drawer__auth-btn flex items-center gap-3 text-base font-semibold text-[#2C1A14] hover:text-[#C97B5F] transition-colors cursor-pointer w-full" type="button">
+          <div class="w-9 h-9 rounded-full bg-[#FFE8DF] border border-[#F4C5B1] text-[#C97B5F] flex items-center justify-center text-base">
             <i class="fa-regular fa-user"></i>
           </div>
           <span id="mobile-auth-btn-text">Sign In</span>
@@ -414,19 +415,19 @@ export function renderSiteShell(pageId) {
 
         <!-- Logged-in User Profile Container -->
         <div id="mobile-user-profile-box" class="space-y-3 hidden">
-          <div class="flex items-center gap-3 pb-3 border-b border-gray-100">
-            <div id="mobile-user-avatar" class="w-10 h-10 rounded-full bg-pink-100 text-primary flex items-center justify-center font-bold text-sm overflow-hidden border border-pink-200 shadow-sm flex-shrink-0">
+          <div class="flex items-center gap-3 pb-3 border-b border-[#F4C5B1]">
+            <div id="mobile-user-avatar" class="w-10 h-10 rounded-full bg-[#FFE8DF] text-[#C97B5F] flex items-center justify-center font-bold text-sm overflow-hidden border border-[#F4C5B1] shadow-sm flex-shrink-0">
               <img id="mobile-user-avatar-img" src="" class="w-full h-full object-cover hidden" alt="Profile">
               <span id="mobile-user-avatar-initials">U</span>
             </div>
             <div class="flex-1 min-w-0">
-              <p id="mobile-user-name" class="text-sm font-bold text-gray-800 truncate">Account</p>
-              <p id="mobile-user-email" class="text-xs text-gray-500 truncate"></p>
+              <p id="mobile-user-name" class="text-sm font-bold text-[#2C1A14] truncate">Account</p>
+              <p id="mobile-user-email" class="text-xs text-[#8B4A38] truncate"></p>
             </div>
           </div>
           <div class="grid grid-cols-2 gap-2 text-xs">
-            <a href="/pages/profile" class="py-2.5 px-3 bg-pink-50 text-primary font-bold rounded-lg text-center hover:bg-pink-100 transition-colors no-underline">My Profile</a>
-            <button id="mobile-logout-btn" type="button" class="py-2.5 px-3 bg-gray-100 hover:bg-rose-50 hover:text-rose-600 text-gray-700 font-bold rounded-lg text-center transition-colors cursor-pointer">Logout</button>
+            <a href="/pages/profile" class="py-2.5 px-3 bg-[#FFE8DF] text-[#C97B5F] font-bold rounded-lg text-center hover:bg-[#F4C5B1] transition-colors no-underline">My Profile</a>
+            <button id="mobile-logout-btn" type="button" class="py-2.5 px-3 bg-[#FFE8DF] hover:bg-[#F4C5B1] text-[#8B4A38] font-bold rounded-lg text-center transition-colors cursor-pointer">Logout</button>
           </div>
         </div>
       </div>
@@ -438,33 +439,33 @@ export function renderSiteShell(pageId) {
   let footer = document.querySelector('.site-footer');
   if (!footer) {
     footer = document.createElement('footer');
-    footer.className = 'site-footer mt-16 bg-accent text-white';
+    footer.className = 'site-footer mt-16 bg-[#2C1A14] text-[#F4C5B1]';
     document.body.appendChild(footer);
   }
   footer.innerHTML = `
     <div class="max-w-container mx-auto px-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 py-12">
       <div class="footer-brand pr-8">
         <div class="flex items-center gap-2 mb-6">
-          <div class="w-12 h-12 rounded-full bg-[#3b1c1c] flex items-center justify-center overflow-hidden">
+          <div class="w-12 h-12 rounded-full bg-[#8B4A38] flex items-center justify-center overflow-hidden border border-[#F4C5B1]/30">
             <img src="/assets/IMG-20260715-WA0003.jpg" alt="${SITE_CONFIG.brandName} Logo" class="w-full h-full object-cover">
           </div>
-          <h3 class="font-heading text-2xl m-0 text-white">${SITE_CONFIG.brandName}</h3>
+          <h3 class="font-heading text-2xl m-0 text-[#F4C5B1]">${SITE_CONFIG.brandName}</h3>
         </div>
         
-        <div class="flex gap-3 mb-4 items-start text-sm text-white/90">
-          <i class="fa-solid fa-location-dot mt-1"></i>
+        <div class="flex gap-3 mb-4 items-start text-sm text-[#FFE8DF]">
+          <i class="fa-solid fa-location-dot mt-1 text-[#C97B5F]"></i>
           <p class="m-0">Rampura Bazar, Dhaka</p>
         </div>
         
-        <div class="flex gap-3 mb-6 items-center text-sm text-white/90">
-          <i class="fa-solid fa-phone"></i>
+        <div class="flex gap-3 mb-6 items-center text-sm text-[#FFE8DF]">
+          <i class="fa-solid fa-phone text-[#C97B5F]"></i>
           <div>
-            <div class="text-xs opacity-90">Talk to us</div>
-            <div class="font-bold text-white">${SITE_CONFIG.supportPhoneLabel}</div>
+            <div class="text-xs text-[#FFE8DF]/80">Talk to us</div>
+            <div class="font-bold text-[#F4C5B1]">${SITE_CONFIG.supportPhoneLabel}</div>
           </div>
         </div>
         
-        <div class="flex flex-wrap items-center gap-3 text-sm font-bold">
+        <div class="flex flex-wrap items-center gap-3 text-sm font-bold text-[#F4C5B1]">
           <span class="mr-1">Connect with us:</span>
           ${renderSocialLinks()}
         </div>
@@ -472,17 +473,17 @@ export function renderSiteShell(pageId) {
       ${SITE_CONFIG.footerGroups.map(renderFooterGroup).join('')}
     </div>
     
-    <div class="border-t border-white/20 mx-8"></div>
+    <div class="border-t border-[#8B4A38]/40 mx-8"></div>
     
-    <div class="max-w-container mx-auto px-4 py-6 flex flex-wrap items-center justify-between gap-4 text-white text-xs">
+    <div class="max-w-container mx-auto px-4 py-6 flex flex-wrap items-center justify-between gap-4 text-[#FFE8DF] text-xs">
       <div class="flex items-center gap-3 flex-wrap">
-        <strong>Payment</strong>
-        <span class="flex items-center gap-1.5 bg-white/10 rounded-md px-3 py-1.5">
-          <i class="fa-solid fa-money-bill-1"></i> Cash on Delivery
+        <strong class="text-[#F4C5B1]">Payment</strong>
+        <span class="flex items-center gap-1.5 bg-[#8B4A38]/40 text-[#F4C5B1] rounded-md px-3 py-1.5">
+          <i class="fa-solid fa-money-bill-1 text-[#C97B5F]"></i> Cash on Delivery
         </span>
-        <span class="text-white/60 text-[11px]">• COD charge ৳110 additional</span>
+        <span class="text-[#FFE8DF]/90 text-[11px] font-medium">• COD Advance Payment: ৳60 (Inside Dhaka) | ৳110 (Outside Dhaka)</span>
       </div>
-      <div class="text-white/60">
+      <div class="text-[#FFE8DF]/70">
         © ${new Date().getFullYear()} Petty Bloom. All rights reserved.
       </div>
     </div>
@@ -786,17 +787,97 @@ function initAllShellButtonEvents() {
     }
   });
 
-  const searchInput = document.getElementById('header-search-input');
-  const mobileSearchInput = document.getElementById('mobile-search-input');
+  const searchInputs = [
+    document.getElementById('header-search-input'),
+    document.getElementById('mobile-search-input')
+  ].filter(Boolean);
 
-  const handleSearch = (e) => {
-    if (e.key === 'Enter') {
-      const q = e.target.value.trim();
-      if (q) {
-        window.location.href = `/collections/paid-products?title=${encodeURIComponent(q)}`;
-      }
+  searchInputs.forEach((input) => {
+    const parent = input.parentElement;
+    if (!parent) return;
+
+    let dropdown = parent.querySelector('.search-live-dropdown');
+    if (!dropdown) {
+      dropdown = document.createElement('div');
+      dropdown.className = 'search-live-dropdown absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl border border-pink-200 shadow-2xl z-[1100] overflow-hidden hidden transition-all space-y-1 p-2 text-left';
+      parent.appendChild(dropdown);
     }
-  };
+
+    const performSearchSubmit = () => {
+      const q = input.value.trim();
+      if (q) {
+        window.location.href = `/collections/paid-products?q=${encodeURIComponent(q)}`;
+      }
+    };
+
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        performSearchSubmit();
+      }
+    });
+
+    input.addEventListener('input', () => {
+      const q = input.value.trim().toLowerCase();
+      if (q.length < 1) {
+        dropdown.classList.add('hidden');
+        dropdown.innerHTML = '';
+        return;
+      }
+
+      let pool = getCachedTemplates() || [];
+      if (!pool || pool.length === 0) {
+        pool = DEFAULT_FEATURED_TEMPLATES;
+      }
+
+      const matches = pool.filter(t => {
+        const title = (t.title || t.name || '').toLowerCase();
+        const pType = (t.product_type || t.productType || '').toLowerCase();
+        const desc = (t.description || '').toLowerCase();
+        return title.includes(q) || pType.includes(q) || desc.includes(q);
+      }).slice(0, 5);
+
+      if (matches.length === 0) {
+        dropdown.innerHTML = `
+          <div class="p-3 text-center text-xs text-gray-500 font-medium">
+            No products matching "<strong class="text-gray-900">${escapeHtml(q)}</strong>". Press Enter to view all results.
+          </div>
+        `;
+      } else {
+        dropdown.innerHTML = `
+          <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-3 py-1.5 border-b border-gray-100 flex items-center justify-between">
+            <span>Matching Products</span>
+            <span class="text-primary">${matches.length} found</span>
+          </div>
+          <div class="divide-y divide-gray-50 max-h-72 overflow-y-auto">
+            ${matches.map(item => `
+              <a href="/pages/product-details?id=${encodeURIComponent(item.id)}" class="flex items-center gap-3 p-2.5 hover:bg-pink-50/80 rounded-xl transition-colors no-underline group">
+                <img src="${item.imageUrl || item.image_url || '/assets/IMG-20260715-WA0003.jpg'}" class="w-10 h-10 rounded-lg object-cover border border-pink-100 flex-shrink-0 group-hover:scale-105 transition-transform" alt="${escapeHtml(item.title)}">
+                <div class="flex-1 min-w-0">
+                  <h5 class="text-xs font-bold text-gray-900 truncate m-0 group-hover:text-primary transition-colors">${escapeHtml(item.title || item.name)}</h5>
+                  <p class="text-[11px] text-primary font-extrabold m-0">৳${item.price || 0}</p>
+                </div>
+                <i class="fa-solid fa-chevron-right text-xs text-gray-300 group-hover:text-primary"></i>
+              </a>
+            `).join('')}
+          </div>
+          <button type="button" class="search-submit-btn w-full text-center py-2 text-xs font-bold text-primary hover:bg-pink-50 rounded-xl transition-colors border-t border-pink-100 mt-1 cursor-pointer">
+            View all results for "${escapeHtml(q)}" &rarr;
+          </button>
+        `;
+
+        dropdown.querySelector('.search-submit-btn')?.addEventListener('click', performSearchSubmit);
+      }
+
+      dropdown.classList.remove('hidden');
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!parent.contains(e.target)) {
+        dropdown.classList.add('hidden');
+      }
+    });
+  });
 
   const locationBtn = document.getElementById('location-btn');
   const locationBtnText = locationBtn?.querySelector('span');
@@ -884,9 +965,6 @@ function initAllShellButtonEvents() {
 
     closeModal(locationModal, locationModalOverlay);
   });
-
-  searchInput?.addEventListener('keydown', handleSearch);
-  mobileSearchInput?.addEventListener('keydown', handleSearch);
 }
 
 function initMegamenuEvents() {
