@@ -508,15 +508,34 @@ function renderOrderCard(order) {
             <span class="text-[9px] font-bold mt-1 ${isDelivered ? 'text-emerald-700' : 'text-gray-400'}">Delivered</span>
           </div>
         </div>
-        ${(order.courier_name || order.courierName || order.tracking_number || order.trackingNumber) ? `
-          <div class="mt-2 p-2.5 bg-blue-50/80 rounded-xl border border-blue-200 text-xs text-blue-900 flex items-center justify-between shadow-sm">
-            <div class="flex items-center gap-2.5">
-              <i class="fa-solid fa-truck-fast text-blue-600 text-base"></i>
-              <div>
-                <span class="font-bold text-blue-900 block">Courier: ${escapeHtml(order.courier_name || order.courierName || 'Courier Delivery')}</span>
-                ${(order.tracking_number || order.trackingNumber) ? `<span class="text-[11px] text-blue-700 font-medium">Tracking Code: <strong class="font-mono bg-blue-100 px-1.5 py-0.5 rounded text-blue-900">${escapeHtml(order.tracking_number || order.trackingNumber)}</strong></span>` : ''}
+        ${(!isDelivered && (order.courier_name || order.courierName || order.tracking_number || order.trackingNumber || order.steadfast_tracking_code || isShipped)) ? `
+          <div class="mt-3 p-3.5 bg-gradient-to-r from-blue-50/90 to-indigo-50/90 rounded-2xl border border-blue-200 text-xs text-blue-950 space-y-2.5 shadow-sm">
+            <div class="flex items-center justify-between gap-2 border-b border-blue-200/80 pb-2">
+              <div class="flex items-center gap-2 font-bold text-blue-900">
+                <i class="fa-solid fa-truck-fast text-blue-600 animate-pulse"></i>
+                <span>Courier: ${escapeHtml(order.courier_name || order.courierName || 'Steadfast Courier')}</span>
               </div>
+              ${(order.steadfast_tracking_code || order.tracking_number || order.trackingNumber) ? `
+                <a href="https://steadfast.com.bd/t/${encodeURIComponent(order.steadfast_tracking_code || order.tracking_number || order.trackingNumber)}" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white font-bold text-[11px] rounded-lg inline-flex items-center gap-1 no-underline transition-all active:scale-95">
+                  Track Live <i class="fa-solid fa-arrow-up-right-from-square text-[9px]"></i>
+                </a>
+              ` : ''}
             </div>
+            ${(order.steadfast_tracking_code || order.tracking_number || order.trackingNumber) ? `
+              <div class="flex flex-wrap items-center justify-between text-[11px]">
+                <span class="text-gray-600">Tracking Code: <strong class="font-mono bg-blue-100 px-1.5 py-0.5 rounded text-blue-900">${escapeHtml(order.steadfast_tracking_code || order.tracking_number || order.trackingNumber)}</strong></span>
+                ${order.steadfast_consignment_id ? `<span class="text-gray-500 font-mono">ID: ${escapeHtml(order.steadfast_consignment_id)}</span>` : ''}
+              </div>
+            ` : ''}
+          </div>
+        ` : (isDelivered && (order.courier_name || order.courierName || order.tracking_number || order.trackingNumber || order.steadfast_tracking_code)) ? `
+          <div class="mt-3 p-3 bg-emerald-50 rounded-xl border border-emerald-200 text-xs text-emerald-950 flex items-center justify-between">
+            <span class="font-semibold text-emerald-900 flex items-center gap-1.5">
+              <i class="fa-solid fa-circle-check text-emerald-600"></i> Delivered via ${escapeHtml(order.courier_name || order.courierName || 'Steadfast Courier')}
+            </span>
+            ${(order.steadfast_tracking_code || order.tracking_number || order.trackingNumber) ? `
+              <span class="font-mono text-[11px] bg-emerald-100 text-emerald-900 px-2 py-0.5 rounded font-bold">${escapeHtml(order.steadfast_tracking_code || order.tracking_number || order.trackingNumber)}</span>
+            ` : ''}
           </div>
         ` : ''}
       </div>
