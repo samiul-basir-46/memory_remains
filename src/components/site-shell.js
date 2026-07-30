@@ -3,6 +3,7 @@ import { openAuthModal } from '../services/auth-service.js';
 import { getCurrentGpsLocation } from '../services/location-service.js';
 import { fetchCategories, fetchCollections, getCachedTemplates, DEFAULT_FEATURED_TEMPLATES } from '../services/templates-service.js';
 import { escapeHtml } from '../utils/ui.js';
+import { initSmoothScroll } from '../utils/smooth-scroll.js';
 
 export function openModal(modal, overlay) {
   if (modal) {
@@ -158,30 +159,30 @@ function renderNavLinks(pageId, isMobile = false) {
 
     let icon = '';
     if (isFeatured) {
-      icon = ' <i class="fa-solid fa-wand-magic-sparkles text-xs ml-1.5 text-[#F4C5B1]"></i>';
+      icon = ' <i class="fa-solid fa-wand-magic-sparkles text-xs ml-1.5 text-[#C97B5F]"></i>';
     } else if (isDropdown) {
-      icon = ' <i class="fa-solid fa-chevron-down text-[0.7em] ml-1 text-[#F4C5B1] transition-transform duration-200"></i>';
+      icon = ' <i class="fa-solid fa-chevron-down text-[0.7em] ml-1 text-[#C97B5F] transition-transform duration-200"></i>';
     }
 
     let dropdownHtml = '';
     if (isDropdown) {
       if (link.label === 'Categories') {
         dropdownHtml = `
-          <div class="megamenu-dropdown absolute top-full left-0 w-full bg-[#2C1A14] border-b border-[#8B4A38]/40 shadow-2xl py-8 opacity-0 invisible transition-all duration-200 z-50 pointer-events-none">
+          <div class="megamenu-dropdown absolute top-full left-0 w-full bg-[#FFF5F0] border-b border-[#EACEC3] shadow-2xl py-8 opacity-0 invisible transition-all duration-200 z-50 pointer-events-none">
             <div class="megamenu-inner max-w-container mx-auto px-4 flex gap-8 relative">
-              <button type="button" class="megamenu-close-btn absolute -top-4 right-4 text-3xl text-[#F4C5B1] hover:text-[#FFE8DF] cursor-pointer p-1" aria-label="Close menu">&times;</button>
+              <button type="button" class="megamenu-close-btn absolute -top-4 right-4 text-3xl text-[#2C1A14] hover:text-[#C97B5F] cursor-pointer p-1" aria-label="Close menu">&times;</button>
               <div class="megamenu-grid megamenu-grid-categories flex-1 grid grid-cols-5 gap-4 pr-4">
                 <a href="/collections/paid-products?title=Magazine+%26+Newspaper" class="megamenu-card flex flex-col gap-2 no-underline group">
-                  <div class="megamenu-card-bg bg-[#8B4A38] rounded-xl aspect-[3/4] flex items-center justify-center p-3 text-center border-2 border-transparent transition-all duration-300 group-hover:scale-105 group-hover:-translate-y-1 group-hover:border-[#C97B5F] group-hover:shadow-2xl">
-                    <span class="text-[#FFF5F0] font-heading text-base font-bold leading-tight text-glow">MAGAZINE<br>&<br>NEWSPAPER</span>
+                  <div class="megamenu-card-bg bg-[#C97B5F] rounded-xl aspect-[3/4] flex items-center justify-center p-3 text-center border-2 border-transparent transition-all duration-300 group-hover:scale-105 group-hover:-translate-y-1 group-hover:border-[#8B4A38] group-hover:shadow-2xl">
+                    <span class="text-white font-heading text-base font-bold leading-tight drop-shadow-sm">MAGAZINE<br>&<br>NEWSPAPER</span>
                   </div>
-                  <span class="megamenu-card-title text-[#F4C5B1] text-xs font-semibold text-center group-hover:text-[#FFE8DF] transition-colors">Magazine & Newspaper</span>
+                  <span class="megamenu-card-title text-[#2C1A14] text-xs font-semibold text-center group-hover:text-[#C97B5F] transition-colors">Magazine & Newspaper</span>
                 </a>
               </div>
-              <div class="megamenu-sidebar w-[220px] border-l border-[#8B4A38]/40 pl-8 pr-4">
-                <h4 class="text-sm mb-4 text-[#F4C5B1] font-medium">Browse Categories</h4>
+              <div class="megamenu-sidebar w-[220px] border-l border-[#EACEC3] pl-8 pr-4">
+                <h4 class="text-sm mb-4 text-[#2C1A14] font-bold">Browse Categories</h4>
                 <ul class="list-none p-0 m-0 grid gap-3">
-                  <li><a href="/collections/paid-products" class="text-[#FFE8DF] no-underline text-sm hover:text-[#F4C5B1] transition-colors">All Products</a></li>
+                  <li><a href="/collections/paid-products" class="text-[#4A2C23] no-underline text-sm hover:text-[#C97B5F] transition-colors">All Products</a></li>
                 </ul>
               </div>
             </div>
@@ -190,31 +191,31 @@ function renderNavLinks(pageId, isMobile = false) {
 
       } else if (link.label === 'Collections') {
         dropdownHtml = `
-          <div class="megamenu-dropdown absolute top-full left-0 w-full bg-[#2C1A14] border-b border-[#8B4A38]/40 shadow-2xl py-8 opacity-0 invisible transition-all duration-200 z-50 pointer-events-none">
+          <div class="megamenu-dropdown absolute top-full left-0 w-full bg-[#FFF5F0] border-b border-[#EACEC3] shadow-2xl py-8 opacity-0 invisible transition-all duration-200 z-50 pointer-events-none">
             <div class="megamenu-inner max-w-container mx-auto px-4 flex gap-8 relative">
-              <button type="button" class="megamenu-close-btn absolute -top-4 right-4 text-3xl text-[#F4C5B1] hover:text-[#FFE8DF] cursor-pointer p-1" aria-label="Close menu">&times;</button>
+              <button type="button" class="megamenu-close-btn absolute -top-4 right-4 text-3xl text-[#2C1A14] hover:text-[#C97B5F] cursor-pointer p-1" aria-label="Close menu">&times;</button>
               <div class="megamenu-grid megamenu-grid-collections flex-1 grid grid-cols-4 gap-6 pr-4">
                 <a href="/collections/paid-products?title=FOR+HER" class="megamenu-card flex flex-col gap-3 no-underline group">
-                  <div class="megamenu-card-bg bg-[#8B4A38] rounded-xl aspect-[3/4] flex items-center justify-center p-4 text-center border-2 border-transparent transition-all duration-300 group-hover:scale-105 group-hover:-translate-y-1 group-hover:border-[#C97B5F] group-hover:shadow-2xl"><span class="text-[#FFF5F0] font-heading text-2xl font-bold leading-tight text-glow">FOR HER</span></div>
-                  <span class="megamenu-card-title text-[#F4C5B1] text-sm font-semibold text-center group-hover:text-[#FFE8DF] transition-colors">FOR HER</span>
+                  <div class="megamenu-card-bg bg-[#C97B5F] rounded-xl aspect-[3/4] flex items-center justify-center p-4 text-center border-2 border-transparent transition-all duration-300 group-hover:scale-105 group-hover:-translate-y-1 group-hover:border-[#8B4A38] group-hover:shadow-2xl"><span class="text-white font-heading text-2xl font-bold leading-tight drop-shadow-sm">FOR HER</span></div>
+                  <span class="megamenu-card-title text-[#2C1A14] text-sm font-semibold text-center group-hover:text-[#C97B5F] transition-colors">FOR HER</span>
                 </a>
                 <a href="/collections/paid-products?title=I+Love+My+Self" class="megamenu-card flex flex-col gap-3 no-underline group">
-                  <div class="megamenu-card-bg bg-[#8B4A38] rounded-xl aspect-[3/4] flex items-center justify-center p-4 text-center border-2 border-transparent transition-all duration-300 group-hover:scale-105 group-hover:-translate-y-1 group-hover:border-[#C97B5F] group-hover:shadow-2xl"><span class="text-[#FFF5F0] font-heading text-2xl font-bold leading-tight text-glow">I LOVE<br>MY SELF</span></div>
-                  <span class="megamenu-card-title text-[#F4C5B1] text-sm font-semibold text-center group-hover:text-[#FFE8DF] transition-colors">I Love My Self</span>
+                  <div class="megamenu-card-bg bg-[#C97B5F] rounded-xl aspect-[3/4] flex items-center justify-center p-4 text-center border-2 border-transparent transition-all duration-300 group-hover:scale-105 group-hover:-translate-y-1 group-hover:border-[#8B4A38] group-hover:shadow-2xl"><span class="text-white font-heading text-2xl font-bold leading-tight drop-shadow-sm">I LOVE<br>MY SELF</span></div>
+                  <span class="megamenu-card-title text-[#2C1A14] text-sm font-semibold text-center group-hover:text-[#C97B5F] transition-colors">I Love My Self</span>
                 </a>
                 <a href="/collections/paid-products?title=Best+Selling" class="megamenu-card flex flex-col gap-3 no-underline group">
-                  <div class="megamenu-card-bg bg-[#8B4A38] rounded-xl aspect-[3/4] flex items-center justify-center p-4 text-center border-2 border-transparent transition-all duration-300 group-hover:scale-105 group-hover:-translate-y-1 group-hover:border-[#C97B5F] group-hover:shadow-2xl"><span class="text-[#FFF5F0] font-heading text-2xl font-bold leading-tight text-glow">BEST<br>SELLING</span></div>
-                  <span class="megamenu-card-title text-[#F4C5B1] text-sm font-semibold text-center group-hover:text-[#FFE8DF] transition-colors">Best Selling</span>
+                  <div class="megamenu-card-bg bg-[#C97B5F] rounded-xl aspect-[3/4] flex items-center justify-center p-4 text-center border-2 border-transparent transition-all duration-300 group-hover:scale-105 group-hover:-translate-y-1 group-hover:border-[#8B4A38] group-hover:shadow-2xl"><span class="text-white font-heading text-2xl font-bold leading-tight drop-shadow-sm">BEST<br>SELLING</span></div>
+                  <span class="megamenu-card-title text-[#2C1A14] text-sm font-semibold text-center group-hover:text-[#C97B5F] transition-colors">Best Selling</span>
                 </a>
                 <a href="/collections/paid-products?title=Birthday+Special" class="megamenu-card flex flex-col gap-3 no-underline group">
-                  <div class="megamenu-card-bg bg-[#8B4A38] rounded-xl aspect-[3/4] flex items-center justify-center p-4 text-center border-2 border-transparent transition-all duration-300 group-hover:scale-105 group-hover:-translate-y-1 group-hover:border-[#C97B5F] group-hover:shadow-2xl"><span class="text-[#FFF5F0] font-heading text-2xl font-bold leading-tight text-glow">BIRTHDAY<br>SPECIAL</span></div>
-                  <span class="megamenu-card-title text-[#F4C5B1] text-sm font-semibold text-center group-hover:text-[#FFE8DF] transition-colors">Birthday Special</span>
+                  <div class="megamenu-card-bg bg-[#C97B5F] rounded-xl aspect-[3/4] flex items-center justify-center p-4 text-center border-2 border-transparent transition-all duration-300 group-hover:scale-105 group-hover:-translate-y-1 group-hover:border-[#8B4A38] group-hover:shadow-2xl"><span class="text-white font-heading text-2xl font-bold leading-tight drop-shadow-sm">BIRTHDAY<br>SPECIAL</span></div>
+                  <span class="megamenu-card-title text-[#2C1A14] text-sm font-semibold text-center group-hover:text-[#C97B5F] transition-colors">Birthday Special</span>
                 </a>
               </div>
-              <div class="megamenu-sidebar w-[250px] border-l border-[#8B4A38]/40 pl-8 pr-12">
-                <h4 class="text-sm mb-4 text-[#F4C5B1] font-medium">Other Collections</h4>
+              <div class="megamenu-sidebar w-[250px] border-l border-[#EACEC3] pl-8 pr-12">
+                <h4 class="text-sm mb-4 text-[#2C1A14] font-bold">Other Collections</h4>
                 <ul class="list-none p-0 m-0 grid gap-3 megamenu-collections-sidebar-list">
-                  <li><a href="/collections/paid-products?title=FOR+HIM" class="text-[#FFE8DF] no-underline text-sm hover:text-[#F4C5B1] transition-colors">FOR HIM</a></li>
+                  <li><a href="/collections/paid-products?title=FOR+HIM" class="text-[#4A2C23] no-underline text-sm hover:text-[#C97B5F] transition-colors">FOR HIM</a></li>
                 </ul>
               </div>
             </div>
@@ -248,9 +249,8 @@ function renderFooterGroup(group) {
 
 function renderSocialLinks() {
   return SITE_CONFIG.socialLinks.map((link) => (
-    `<a href="${link.href}" target="_blank" rel="noreferrer" aria-label="${link.label}" class="inline-flex items-center gap-2 text-[#FFE8DF] hover:text-[#F4C5B1] transition-colors">
+    `<a href="${link.href}" target="_blank" rel="noreferrer" aria-label="${link.label}" title="${link.label}" class="w-9 h-9 rounded-full bg-[#8B4A38]/40 border border-[#F4C5B1]/20 hover:bg-[#C97B5F] text-[#FFE8DF] hover:text-white inline-flex items-center justify-center transition-all duration-200 hover:scale-110 text-base shadow-sm">
       <i class="fa-brands ${link.icon}"></i>
-      <span>${link.label}</span>
     </a>`
   )).join('');
 }
@@ -265,7 +265,7 @@ export function renderSiteShell(pageId) {
   shell.className = 'sticky top-0 z-[1000] w-full transition-transform duration-350 ease-in-out';
 
   shell.innerHTML = `
-    <div id="announcement-bar-container" class="announcement-bar py-2.5 text-center text-xs font-medium tracking-wider text-[#F4C5B1] bg-[#2C1A14] overflow-hidden relative whitespace-nowrap">
+    <div id="announcement-bar-container" class="announcement-bar py-2.5 text-center text-xs font-semibold tracking-wider text-[#5C2B1E] bg-[#F8EBE4] border-b border-[#ECCEC3] overflow-hidden relative whitespace-nowrap">
       <div class="announcement-bar__track animate-marquee inline-flex whitespace-nowrap">
         <div class="announcement-bar__content inline-flex items-center" style="padding-right:100vw;">
           <span id="announcement-bar-text-1">${SITE_CONFIG.announcement}</span>
@@ -275,66 +275,66 @@ export function renderSiteShell(pageId) {
         </div>
       </div>
     </div>
-    <header class="site-header relative z-40 bg-[#2C1A14]">
+    <header class="site-header relative z-40 bg-[#FFF5F0] border-b border-[#F0D5C9]/80 shadow-2xs">
       <div class="max-w-container mx-auto px-4 flex items-center justify-between gap-4 min-h-[76px] md:grid md:grid-cols-3">
         <!-- Hamburger Menu toggle (mobile left) -->
-        <button class="menu-toggle md:hidden cursor-pointer text-[#F4C5B1] hover:text-[#FFE8DF] text-xl p-1" type="button" aria-label="Toggle Menu">
+        <button class="menu-toggle md:hidden cursor-pointer text-[#2C1A14] hover:text-[#C97B5F] text-xl p-1" type="button" aria-label="Toggle Menu">
           <i class="fa-solid fa-bars"></i>
         </button>
 
         <!-- Brand Logo -->
         <a class="site-logo flex items-center gap-2.5 no-underline" href="/">
-          <div class="w-11 h-11 rounded-full bg-[#8B4A38] flex items-center justify-center overflow-hidden flex-shrink-0 shadow-sm border border-[#F4C5B1]/30">
+          <div class="w-11 h-11 rounded-full bg-[#C97B5F] flex items-center justify-center overflow-hidden flex-shrink-0 shadow-sm border border-[#C97B5F]/30">
             <img src="/assets/IMG-20260715-WA0003.jpg" alt="${SITE_CONFIG.brandName} Logo" class="w-full h-full object-cover">
           </div>
-          <span class="site-logo__text font-heading text-xl md:text-2xl text-[#F4C5B1] font-bold">${SITE_CONFIG.brandName}</span>
+          <span class="site-logo__text font-heading text-xl md:text-2xl text-[#2C1A14] font-extrabold">${SITE_CONFIG.brandName}</span>
         </a>
         
         <!-- Search bar (Desktop) -->
         <div class="header-search hidden md:flex items-center relative max-w-[520px] mx-auto w-full">
-          <input type="text" id="header-search-input" placeholder="Search anything..." aria-label="Search" class="w-full py-2.5 px-4 pr-10 border border-[#8B4A38]/50 rounded-lg bg-[#1F120E]/50 text-[#F4C5B1] placeholder-[#F4C5B1]/60 outline-none text-sm focus:border-[#C97B5F] transition-colors">
-          <i class="fa-solid fa-magnifying-glass absolute right-3.5 text-[#F4C5B1]/70 pointer-events-none"></i>
+          <input type="text" id="header-search-input" placeholder="Search anything..." aria-label="Search" class="w-full py-2.5 px-4 pr-10 border border-[#EACEC3] rounded-lg bg-white/90 text-[#2C1A14] placeholder-[#A87B6E] outline-none text-sm focus:border-[#C97B5F] shadow-2xs transition-colors">
+          <i class="fa-solid fa-magnifying-glass absolute right-3.5 text-[#A87B6E] pointer-events-none"></i>
         </div>
         
         <div class="site-actions flex items-center justify-end gap-3.5">
-          <button id="location-btn" class="pill-button location-btn hidden md:inline-flex items-center gap-1.5 bg-[#C97B5F] hover:bg-[#8B4A38] text-[#FFF5F0] px-4 py-2 text-xs font-medium rounded-lg shadow-sm transition-colors" type="button">
+          <button id="location-btn" class="pill-button location-btn hidden md:inline-flex items-center gap-1.5 bg-[#C97B5F] hover:bg-[#8B4A38] text-white px-4 py-2 text-xs font-semibold rounded-lg shadow-sm transition-colors" type="button">
             <i class="fa-solid fa-map-pin"></i>
             <span>Check Location</span>
           </button>
 
           <!-- Mobile Search Toggle Icon -->
-          <button id="mobile-search-toggle-btn" class="mobile-search-toggle md:hidden text-[#F4C5B1] hover:text-[#FFE8DF] text-lg p-1" type="button" aria-label="Search">
+          <button id="mobile-search-toggle-btn" class="mobile-search-toggle md:hidden text-[#2C1A14] hover:text-[#C97B5F] text-lg p-1" type="button" aria-label="Search">
             <i class="fa-solid fa-magnifying-glass"></i>
           </button>
           
-          <a href="/pages/cart" class="cart-icon relative text-[#F4C5B1] hover:text-[#FFE8DF] text-xl mx-1.5 cursor-pointer transition-colors flex items-center justify-center no-underline" aria-label="Shopping Cart">
+          <a href="/pages/cart" class="cart-icon relative text-[#2C1A14] hover:text-[#C97B5F] text-xl mx-1.5 cursor-pointer transition-colors flex items-center justify-center no-underline" aria-label="Shopping Cart">
             <i class="fa-solid fa-cart-shopping"></i>
-            <span class="cart-count cart-badge-count absolute -top-2 -right-2.5 w-4.5 h-4.5 grid place-items-center rounded-full bg-[#C97B5F] text-[#FFF5F0] text-[10px] font-bold shadow-sm">0</span>
+            <span class="cart-count cart-badge-count absolute -top-2 -right-2.5 w-4.5 h-4.5 grid place-items-center rounded-full bg-[#C97B5F] text-white text-[10px] font-bold shadow-sm">0</span>
           </a>
           
           <div class="user-profile-menu-wrapper relative">
-            <button id="auth-nav-btn" class="flex items-center gap-2 text-[#F4C5B1] hover:text-[#FFE8DF] text-sm font-semibold p-1 transition-colors cursor-pointer" type="button">
-              <div id="header-user-avatar" class="w-8 h-8 rounded-full bg-[#8B4A38] text-[#F4C5B1] flex items-center justify-center font-bold text-xs overflow-hidden border border-[#F4C5B1]/40 shadow-sm hidden">
+            <button id="auth-nav-btn" class="flex items-center gap-2 text-[#2C1A14] hover:text-[#C97B5F] text-sm font-semibold p-1 transition-colors cursor-pointer" type="button">
+              <div id="header-user-avatar" class="w-8 h-8 rounded-full bg-[#C97B5F] text-white flex items-center justify-center font-bold text-xs overflow-hidden border border-[#C97B5F]/40 shadow-sm hidden">
                 <img id="header-user-avatar-img" src="" class="w-full h-full object-cover hidden" alt="Profile">
                 <span id="header-user-avatar-initials">U</span>
               </div>
               <span id="header-user-btn-text">Sign In</span>
             </button>
-            <div id="user-profile-dropdown" class="user-dropdown-menu absolute right-0 top-full mt-2 w-52 bg-[#2C1A14] border border-[#8B4A38]/40 shadow-xl rounded-xl py-2 hidden z-50">
-              <div id="user-dropdown-info" class="px-4 py-2 border-b border-[#8B4A38]/40">
-                <p id="user-dropdown-name" class="text-sm font-bold text-[#F4C5B1] truncate">User Name</p>
-                <p id="user-dropdown-email" class="text-xs text-[#FFE8DF]/80 truncate">user@example.com</p>
+            <div id="user-profile-dropdown" class="user-dropdown-menu absolute right-0 top-full mt-2 w-52 bg-[#FFF5F0] border border-[#EACEC3] shadow-xl rounded-xl py-2 hidden z-50">
+              <div id="user-dropdown-info" class="px-4 py-2 border-b border-[#EACEC3]">
+                <p id="user-dropdown-name" class="text-sm font-bold text-[#2C1A14] truncate">User Name</p>
+                <p id="user-dropdown-email" class="text-xs text-[#8B4A38] truncate">user@example.com</p>
               </div>
-              <a href="/pages/profile" class="flex items-center gap-2.5 px-4 py-2 text-sm text-[#FFE8DF] hover:bg-[#8B4A38]/30 hover:text-[#F4C5B1] transition-colors no-underline">
+              <a href="/pages/profile" class="flex items-center gap-2.5 px-4 py-2 text-sm text-[#2C1A14] hover:bg-[#F5E6DE] hover:text-[#C97B5F] transition-colors no-underline">
                 <i class="fa-regular fa-user text-[#C97B5F]"></i>
                 <span>My Profile</span>
               </a>
-              <a href="/pages/profile#orders" class="flex items-center gap-2.5 px-4 py-2 text-sm text-[#FFE8DF] hover:bg-[#8B4A38]/30 hover:text-[#F4C5B1] transition-colors no-underline">
+              <a href="/pages/profile#orders" class="flex items-center gap-2.5 px-4 py-2 text-sm text-[#2C1A14] hover:bg-[#F5E6DE] hover:text-[#C97B5F] transition-colors no-underline">
                 <i class="fa-solid fa-box-archive text-[#C97B5F]"></i>
                 <span>My Orders</span>
               </a>
-              <div class="border-t border-[#8B4A38]/40 my-1"></div>
-              <button id="header-logout-btn" class="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-[#F4C5B1] hover:bg-[#8B4A38]/40 transition-colors cursor-pointer text-left" type="button">
+              <div class="border-t border-[#EACEC3] my-1"></div>
+              <button id="header-logout-btn" class="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-rose-600 hover:bg-[#F5E6DE] transition-colors cursor-pointer text-left" type="button">
                 <i class="fa-solid fa-right-from-bracket"></i>
                 <span>Logout</span>
               </button>
@@ -344,14 +344,14 @@ export function renderSiteShell(pageId) {
       </div>
       
       <!-- Mobile Search Bar input box -->
-      <div id="mobile-search-bar" class="mobile-search-bar hidden md:hidden bg-[#2C1A14] py-2 shadow-sm">
+      <div id="mobile-search-bar" class="mobile-search-bar hidden md:hidden bg-[#FFF5F0] border-t border-[#F0D5C9] py-2 shadow-sm">
         <div class="max-w-container mx-auto px-4">
-          <input type="text" id="mobile-search-input" placeholder="Search anything..." aria-label="Search" class="w-full py-2 px-4 rounded-lg border border-[#8B4A38]/50 bg-[#1F120E]/50 text-[#F4C5B1] placeholder-[#F4C5B1]/60 outline-none text-sm">
+          <input type="text" id="mobile-search-input" placeholder="Search anything..." aria-label="Search" class="w-full py-2 px-4 rounded-lg border border-[#EACEC3] bg-white text-[#2C1A14] placeholder-[#A87B6E] outline-none text-sm">
         </div>
       </div>
       
       <!-- Sub navigation row -->
-      <nav class="site-sub-nav hidden md:block bg-[#2C1A14] shadow-sm" aria-label="Primary">
+      <nav class="site-sub-nav hidden md:block bg-[#FFF5F0] border-t border-[#F0D5C9]/60 shadow-2xs" aria-label="Primary">
         <div class="max-w-container mx-auto px-4 flex items-center justify-around max-w-[900px]">
           ${renderNavLinks(pageId)}
         </div>
@@ -465,9 +465,11 @@ export function renderSiteShell(pageId) {
           </div>
         </div>
         
-        <div class="flex flex-wrap items-center gap-3 text-sm font-bold text-[#F4C5B1]">
-          <span class="mr-1">Connect with us:</span>
-          ${renderSocialLinks()}
+        <div class="flex items-center gap-3 text-sm font-bold text-[#F4C5B1]">
+          <span>Connect with us:</span>
+          <div class="flex items-center gap-2">
+            ${renderSocialLinks()}
+          </div>
         </div>
       </div>
       ${SITE_CONFIG.footerGroups.map(renderFooterGroup).join('')}
@@ -728,6 +730,7 @@ export function renderSiteShell(pageId) {
   initStickyHeaderScroll();
   initMegamenuEvents();
   initAllShellButtonEvents();
+  initSmoothScroll();
 }
 
 function initAllShellButtonEvents() {

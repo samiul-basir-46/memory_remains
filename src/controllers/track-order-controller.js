@@ -64,7 +64,7 @@ export async function renderTrackOrderPage() {
 
           <p id="track-error" class="text-xs text-rose-600 mt-1 hidden font-semibold">Please enter your Phone Number or Order ID to search.</p>
 
-          <button type="submit" id="track-submit-btn" class="w-full py-3.5 bg-[#DC3C71] hover:bg-[#c23260] text-white font-bold rounded-xl text-sm shadow-md transition-colors cursor-pointer text-center">Track Order</button>
+          <button type="submit" id="track-submit-btn" class="w-full py-3.5 bg-[#C97B5F] hover:bg-[#8B4A38] text-white font-bold rounded-xl text-sm shadow-md transition-colors cursor-pointer text-center">Track Order</button>
         </form>
       </div>
 
@@ -314,7 +314,7 @@ function renderTrackingResult(orders) {
           itemBannerHtml = `
             <div class="bg-gradient-to-r from-pink-50 to-purple-50 p-4 rounded-xl border border-pink-200 text-center space-y-3">
               <h5 class="font-bold text-sm text-[#2A2A2A]">🎉 ${escapeHtml(item.template_name || 'Template')} Ready</h5>
-              <a href="${escapeHtml(itemCanva)}" target="_blank" rel="noopener noreferrer" class="px-4 py-2 bg-[#DC3C71] text-white font-bold text-xs rounded-lg inline-flex items-center gap-2">
+              <a href="${escapeHtml(itemCanva)}" target="_blank" rel="noopener noreferrer" class="px-4 py-2 bg-[#C97B5F] hover:bg-[#8B4A38] text-white font-bold text-xs rounded-lg inline-flex items-center gap-2">
                 <i class="fa-solid fa-arrow-up-right-from-square"></i> Open in Canva
               </a>
             </div>

@@ -244,7 +244,7 @@ export async function renderHomePage(db) {
     const categoriesCircleGrid = qs('#categories-circle-grid');
     if (categoriesCircleGrid) {
       categoriesCircleGrid.innerHTML = categories.map((cat) => {
-        const meta = CAT_META[cat] || { icon: 'fa-tag', tagline: 'Personalized Gifts', bg: 'linear-gradient(135deg,#3b1c1c,#DC3C71)' };
+        const meta = CAT_META[cat] || { icon: 'fa-tag', tagline: 'Personalized Gifts', bg: 'linear-gradient(135deg,#3b1c1c,#C97B5F)' };
 
         // Find a matching product image for background if available
         const catProduct = list.find((t) =>

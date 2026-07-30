@@ -62,7 +62,7 @@
     font-family: 'Yeseva One', serif;
     font-size: 0.95rem;
     font-weight: 500;
-    color: #FFE8DF;
+    color: #2C1A14;
     padding: 0.6rem 0;
     text-decoration: none;
     display: inline-flex;
@@ -70,8 +70,9 @@
     transition: color 0.2s ease;
   }
 
-  .nav-link:hover {
-    color: #F4C5B1;
+  .nav-link:hover,
+  .nav-link.is-active {
+    color: #C97B5F;
   }
 
   .nav-link::after {
@@ -103,9 +104,9 @@
     left: 0;
     right: 0;
     width: 100%;
-    background: #2C1A14;
-    border-bottom: 1px solid rgba(244, 197, 177, 0.3);
-    box-shadow: 0px 16px 36px rgba(0, 0, 0, 0.25);
+    background: #FFF5F0;
+    border-bottom: 1px solid #EACEC3;
+    box-shadow: 0px 16px 36px rgba(44, 26, 20, 0.12);
     padding: 2rem 0;
     opacity: 0;
     visibility: hidden;
@@ -734,8 +735,8 @@
 
   .cat-big-card:hover {
     transform: translateY(-8px) scale(1.02);
-    box-shadow: 0 20px 40px rgba(220, 60, 113, 0.25);
-    border-color: #DC3C71;
+    box-shadow: 0 20px 40px rgba(201, 123, 95, 0.25);
+    border-color: #C97B5F;
   }
 
   .cat-big-card-img {
@@ -772,7 +773,7 @@
     width: 44px;
     height: 44px;
     border-radius: 14px;
-    background: rgba(220, 60, 113, 0.9);
+    background: rgba(201, 123, 95, 0.9);
     border: 1px solid rgba(255, 255, 255, 0.3);
     backdrop-filter: blur(10px);
     display: flex;
@@ -781,13 +782,13 @@
     font-size: 1.1rem;
     color: #fff;
     margin-bottom: 0.6rem;
-    box-shadow: 0 6px 20px rgba(220, 60, 113, 0.5);
+    box-shadow: 0 6px 20px rgba(201, 123, 95, 0.5);
     transition: transform 0.3s;
   }
 
   .cat-big-card:hover .cat-big-icon {
     transform: scale(1.15) rotate(6deg);
-    background: #DC3C71;
+    background: #C97B5F;
   }
 
   .cat-big-name {
@@ -825,8 +826,8 @@
   }
 
   .cat-big-card:hover .cat-big-btn {
-    background: #DC3C71;
-    border-color: #DC3C71;
+    background: #C97B5F;
+    border-color: #C97B5F;
     color: #fff;
   }
 
@@ -852,12 +853,12 @@
     width: 42px;
     height: 42px;
     border-radius: 11px;
-    background: rgba(220, 60, 113, 0.15);
-    border: 1px solid rgba(220, 60, 113, 0.25);
+    background: rgba(201, 123, 95, 0.15);
+    border: 1px solid rgba(201, 123, 95, 0.25);
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #DC3C71;
+    color: #C97B5F;
     font-size: 1rem;
     flex-shrink: 0;
   }

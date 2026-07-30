@@ -140,7 +140,7 @@ export function renderPhotoUploadUI(container, options = {}) {
               <span class="text-primary font-bold">${overallProgress}%</span>
             </div>
             <div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
-              <div class="bg-[#DC3C71] h-3 rounded-full transition-all duration-300" style="width: ${overallProgress}%"></div>
+              <div class="bg-[#C97B5F] h-3 rounded-full transition-all duration-300" style="width: ${overallProgress}%"></div>
             </div>
           </div>
         ` : ''}
@@ -151,7 +151,7 @@ export function renderPhotoUploadUI(container, options = {}) {
           </div>
         ` : ''}
 
-        <button type="button" id="upload-btn-${safeOrderId}" ${countMatches && !isUploading ? '' : 'disabled'} class="w-full py-3.5 bg-[#DC3C71] hover:bg-[#c23260] disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-bold rounded-xl text-sm shadow-md transition-colors cursor-pointer text-center">
+        <button type="button" id="upload-btn-${safeOrderId}" ${countMatches && !isUploading ? '' : 'disabled'} class="w-full py-3.5 bg-[#C97B5F] hover:bg-[#8B4A38] disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-bold rounded-xl text-sm shadow-md transition-colors cursor-pointer text-center">
           ${isUploading ? 'Uploading Photos...' : 'Upload Photos'}
         </button>
       </div>
