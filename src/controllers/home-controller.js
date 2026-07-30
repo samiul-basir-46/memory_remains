@@ -14,38 +14,38 @@ function renderShowcaseCard(template = {}) {
   const gallery = [primaryImg, ...(template.galleryUrls || [])].filter(Boolean);
 
   return `
-    <div class="showcase-card bg-white rounded-2xl overflow-hidden shadow-2xl border border-pink-100 grid grid-cols-1 lg:grid-cols-12 max-w-5xl mx-auto my-2 max-h-[85vh] lg:max-h-[540px]">
-      <div class="relative bg-gray-950 lg:col-span-6 flex items-center justify-center p-4 overflow-hidden h-[360px] sm:h-[440px] lg:h-[540px] group">
+    <div class="showcase-card bg-[#FFF5F0] rounded-2xl overflow-hidden shadow-2xl border border-[#F4C5B1] grid grid-cols-1 lg:grid-cols-12 max-w-5xl mx-auto my-2 max-h-[85vh] lg:max-h-[540px]">
+      <div class="relative bg-[#2C1A14] lg:col-span-6 flex items-center justify-center p-4 overflow-hidden h-[360px] sm:h-[440px] lg:h-[540px] group">
         <img id="showcase-bg-${template.id || 'default'}" src="${buildCloudinaryDeliveryUrl(primaryImg, { width: 300 })}" alt="" class="absolute inset-0 w-full h-full object-cover blur-2xl opacity-30 scale-125 pointer-events-none transition-all duration-300">
         <img id="showcase-img-${template.id || 'default'}" src="${buildCloudinaryDeliveryUrl(primaryImg, { width: 900 })}" alt="${escapeHtml(template.title || template.name)}" class="relative z-10 max-w-full max-h-full object-contain drop-shadow-2xl transition-all duration-300">
         ${gallery.length > 1 ? `
-          <button type="button" onclick="const img=document.getElementById('showcase-img-${template.id}');const bg=document.getElementById('showcase-bg-${template.id}');const urls=${JSON.stringify(gallery).replace(/"/g,'&quot;')};let idx=parseInt(img.dataset.idx||0);idx=(idx-1+urls.length)%urls.length;img.src=urls[idx];if(bg)bg.src=urls[idx];img.dataset.idx=idx;" class="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/90 text-[#2A2A2A] flex items-center justify-center shadow-lg cursor-pointer hover:bg-white hover:scale-110 active:scale-95 text-xs z-20 border border-pink-100"><i class="fa-solid fa-chevron-left"></i></button>
-          <button type="button" onclick="const img=document.getElementById('showcase-img-${template.id}');const bg=document.getElementById('showcase-bg-${template.id}');const urls=${JSON.stringify(gallery).replace(/"/g,'&quot;')};let idx=parseInt(img.dataset.idx||0);idx=(idx+1)%urls.length;img.src=urls[idx];if(bg)bg.src=urls[idx];img.dataset.idx=idx;" class="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/90 text-[#2A2A2A] flex items-center justify-center shadow-lg cursor-pointer hover:bg-white hover:scale-110 active:scale-95 text-xs z-20 border border-pink-100"><i class="fa-solid fa-chevron-right"></i></button>
+          <button type="button" onclick="const img=document.getElementById('showcase-img-${template.id}');const bg=document.getElementById('showcase-bg-${template.id}');const urls=${JSON.stringify(gallery).replace(/"/g, '&quot;')};let idx=parseInt(img.dataset.idx||0);idx=(idx-1+urls.length)%urls.length;img.src=urls[idx];if(bg)bg.src=urls[idx];img.dataset.idx=idx;" class="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-[#FFF5F0]/90 text-[#2C1A14] flex items-center justify-center shadow-lg cursor-pointer hover:bg-[#FFF5F0] hover:scale-110 active:scale-95 text-xs z-20 border border-[#F4C5B1]"><i class="fa-solid fa-chevron-left"></i></button>
+          <button type="button" onclick="const img=document.getElementById('showcase-img-${template.id}');const bg=document.getElementById('showcase-bg-${template.id}');const urls=${JSON.stringify(gallery).replace(/"/g, '&quot;')};let idx=parseInt(img.dataset.idx||0);idx=(idx+1)%urls.length;img.src=urls[idx];if(bg)bg.src=urls[idx];img.dataset.idx=idx;" class="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-[#FFF5F0]/90 text-[#2C1A14] flex items-center justify-center shadow-lg cursor-pointer hover:bg-[#FFF5F0] hover:scale-110 active:scale-95 text-xs z-20 border border-[#F4C5B1]"><i class="fa-solid fa-chevron-right"></i></button>
         ` : ''}
       </div>
-      <div class="bg-[#FDF0F4] lg:col-span-6 p-6 sm:p-8 flex flex-col justify-between space-y-4 overflow-y-auto max-h-[540px]">
+      <div class="bg-[#FFE8DF] lg:col-span-6 p-6 sm:p-8 flex flex-col justify-between space-y-4 overflow-y-auto max-h-[540px]">
         <div>
-          <h3 class="font-heading text-2xl md:text-3xl text-[#2A2A2A] font-normal mb-3 leading-snug">
-            <a href="${detailsUrl}" class="hover:text-primary transition-colors">${escapeHtml(template.title || template.name || 'Untitled Product')}</a>
+          <h3 class="font-heading text-2xl md:text-3xl text-[#2C1A14] font-normal mb-3 leading-snug">
+            <a href="${detailsUrl}" class="hover:text-[#C97B5F] transition-colors">${escapeHtml(template.title || template.name || 'Untitled Product')}</a>
           </h3>
           <div class="flex items-baseline gap-3 mb-1">
-            <strong class="text-2xl md:text-3xl font-bold text-[#2A2A2A]">৳${price}</strong>
-            ${compare ? `<span class="text-gray-500 line-through text-base">৳${compare}</span>` : ''}
-            ${discount ? `<span class="text-[#00664E] font-semibold text-base">${discount}% Off</span>` : ''}
+            <strong class="text-2xl md:text-3xl font-bold text-[#2C1A14]">৳${price}</strong>
+            ${compare ? `<span class="text-[#8B4A38] line-through text-base opacity-75">৳${compare}</span>` : ''}
+            ${discount ? `<span class="text-[#C97B5F] font-semibold text-base">${discount}% Off</span>` : ''}
           </div>
-          <p class="text-xs text-text-soft mb-6">Incl. of all taxes</p>
+          <p class="text-xs text-[#8B4A38] mb-6">Incl. of all taxes</p>
           <div class="grid grid-cols-2 gap-4 mb-6">
-            <button onclick="addTemplateToCart(${JSON.stringify(template).replace(/"/g,'&quot;')})" type="button" class="py-3 px-4 rounded-xl border-2 border-primary bg-white/80 hover:bg-white text-primary font-bold text-sm transition-all cursor-pointer text-center active:scale-95 shadow-sm">Add To Cart</button>
-            <button onclick="addTemplateToCart(${JSON.stringify(template).replace(/"/g,'&quot;')}); window.location.href='/pages/cart'" type="button" class="py-3 px-4 rounded-xl bg-[#DC3C71] hover:bg-[#c23260] text-white font-bold text-sm shadow-md transition-all cursor-pointer text-center active:scale-95">Buy Now</button>
+            <button onclick="addTemplateToCart(${JSON.stringify(template).replace(/"/g, '&quot;')})" type="button" class="py-3 px-4 rounded-xl border-2 border-[#C97B5F] bg-[#FFF5F0] hover:bg-[#FFE8DF] text-[#8B4A38] font-bold text-sm transition-all cursor-pointer text-center active:scale-95 shadow-sm">Add To Cart</button>
+            <button onclick="addTemplateToCart(${JSON.stringify(template).replace(/"/g, '&quot;')}); window.location.href='/pages/cart'" type="button" class="py-3 px-4 rounded-xl bg-[#C97B5F] hover:bg-[#8B4A38] text-[#FFF5F0] font-bold text-sm shadow-md transition-all cursor-pointer text-center active:scale-95">Buy Now</button>
           </div>
-          <div class="space-y-2.5 text-xs text-[#2A2A2A] pt-4 border-t border-pink-200/60">
-            <div class="flex items-center gap-2.5"><i class="fa-solid fa-truck text-primary text-sm"></i> <span>Delivered in 3-15 Days</span></div>
-            <div class="flex items-center gap-2.5"><i class="fa-solid fa-box text-primary text-sm"></i> <span>Free Delivery on all purchases above ৳999</span></div>
+          <div class="space-y-2.5 text-xs text-[#2C1A14] pt-4 border-t border-[#F4C5B1]">
+            <div class="flex items-center gap-2.5"><i class="fa-solid fa-truck text-[#C97B5F] text-sm"></i> <span>Delivered in 3-15 Days</span></div>
+            <div class="flex items-center gap-2.5"><i class="fa-solid fa-box text-[#C97B5F] text-sm"></i> <span>Free Delivery on all purchases above ৳999</span></div>
           </div>
         </div>
-        <div class="flex justify-between items-center text-xs font-semibold text-[#2A2A2A] border-t border-pink-200/60 pt-4">
+        <div class="flex justify-between items-center text-xs font-semibold text-[#2C1A14] border-t border-[#F4C5B1] pt-4">
           <span>Personalized Gift Template</span>
-          <a href="${detailsUrl}" class="text-primary hover:underline font-bold text-sm">View More</a>
+          <a href="${detailsUrl}" class="text-[#C97B5F] hover:underline font-bold text-sm">View More</a>
         </div>
       </div>
     </div>
@@ -62,12 +62,12 @@ function filterByKeyword(list, keywords) {
 
 // ─── Category metadata ──────────────────────────────────────────────────────
 const CAT_META = {
-  'FOR HIM':          { icon: 'fa-person',       tagline: 'Gifts for Guys',     bg: 'linear-gradient(135deg,#0d254c,#1e3a8a)' },
-  'FOR HER':          { icon: 'fa-person-dress',  tagline: 'Special for Her',   bg: 'linear-gradient(135deg,#4c0d28,#9f1239)' },
-  'Birthday Special': { icon: 'fa-cake-candles',  tagline: 'Make It Memorable', bg: 'linear-gradient(135deg,#4c220d,#c2410c)' },
-  'Anniversary':      { icon: 'fa-heart',         tagline: 'Romantic Stories',  bg: 'linear-gradient(135deg,#4c0d0d,#b91c1c)' },
-  'Best Selling':     { icon: 'fa-fire',           tagline: 'Top Loved Items',   bg: 'linear-gradient(135deg,#36260d,#b45309)' },
-  'Self Love':        { icon: 'fa-spa',            tagline: 'Personalized Art',  bg: 'linear-gradient(135deg,#240d4c,#6d28d9)' },
+  'FOR HIM': { icon: 'fa-person', tagline: 'Gifts for Guys', bg: 'linear-gradient(135deg,#2C1A14,#8B4A38)' },
+  'FOR HER': { icon: 'fa-person-dress', tagline: 'Special for Her', bg: 'linear-gradient(135deg,#8B4A38,#C97B5F)' },
+  'Birthday Special': { icon: 'fa-cake-candles', tagline: 'Make It Memorable', bg: 'linear-gradient(135deg,#C97B5F,#F4C5B1)' },
+  'Anniversary': { icon: 'fa-heart', tagline: 'Romantic Stories', bg: 'linear-gradient(135deg,#8B4A38,#C97B5F)' },
+  'Best Selling': { icon: 'fa-fire', tagline: 'Top Loved Items', bg: 'linear-gradient(135deg,#2C1A14,#C97B5F)' },
+  'Self Love': { icon: 'fa-spa', tagline: 'Personalized Art', bg: 'linear-gradient(135deg,#8B4A38,#F4C5B1)' },
 };
 
 export async function renderHomePage(db) {
@@ -128,24 +128,24 @@ export async function renderHomePage(db) {
         heroPreview.innerHTML = `
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;opacity:0.9;">
             ${top3.slice(0, 2).map((t) => {
-              const img = buildCloudinaryDeliveryUrl(t.imageUrl, { width: 350 });
-              const url = t.id ? `/pages/product-details/?id=${encodeURIComponent(t.id)}` : '#';
-              return `
+          const img = buildCloudinaryDeliveryUrl(t.imageUrl, { width: 350 });
+          const url = t.id ? `/pages/product-details/?id=${encodeURIComponent(t.id)}` : '#';
+          return `
                 <a href="${url}" style="border-radius:18px;overflow:hidden;display:block;box-shadow:0 14px 40px rgba(0,0,0,0.35);border:2px solid rgba(255,255,255,0.15);text-decoration:none;" class="transition-transform duration-300 hover:scale-105">
-                  <img src="${img}" alt="${escapeHtml(t.title||'')}" style="width:100%;aspect-ratio:3/4;object-fit:cover;display:block;">
+                  <img src="${img}" alt="${escapeHtml(t.title || '')}" style="width:100%;aspect-ratio:3/4;object-fit:cover;display:block;">
                 </a>
               `;
-            }).join('')}
+        }).join('')}
             ${top3[2] ? (() => {
-              const t = top3[2];
-              const img = buildCloudinaryDeliveryUrl(t.imageUrl, { width: 350 });
-              const url = t.id ? `/pages/product-details/?id=${encodeURIComponent(t.id)}` : '#';
-              return `
+            const t = top3[2];
+            const img = buildCloudinaryDeliveryUrl(t.imageUrl, { width: 350 });
+            const url = t.id ? `/pages/product-details/?id=${encodeURIComponent(t.id)}` : '#';
+            return `
                 <a href="${url}" style="grid-column:1/-1;border-radius:18px;overflow:hidden;display:block;box-shadow:0 14px 40px rgba(0,0,0,0.35);border:2px solid rgba(255,255,255,0.15);text-decoration:none;" class="transition-transform duration-300 hover:scale-105">
-                  <img src="${img}" alt="${escapeHtml(t.title||'')}" style="width:100%;height:140px;object-fit:cover;display:block;">
+                  <img src="${img}" alt="${escapeHtml(t.title || '')}" style="width:100%;height:140px;object-fit:cover;display:block;">
                 </a>
               `;
-            })() : ''}
+          })() : ''}
           </div>
         `;
       }
@@ -244,13 +244,13 @@ export async function renderHomePage(db) {
     const categoriesCircleGrid = qs('#categories-circle-grid');
     if (categoriesCircleGrid) {
       categoriesCircleGrid.innerHTML = categories.map((cat) => {
-        const meta = CAT_META[cat] || { icon: 'fa-tag', tagline: 'Personalized Gifts', bg: 'linear-gradient(135deg,#3b1c1c,#DC3C71)' };
-        
+        const meta = CAT_META[cat] || { icon: 'fa-tag', tagline: 'Personalized Gifts', bg: 'linear-gradient(135deg,#3b1c1c,#C97B5F)' };
+
         // Find a matching product image for background if available
         const catProduct = list.find((t) =>
           ((t.title || '').toLowerCase().includes(cat.toLowerCase()) ||
-          (t.category || '').toLowerCase().includes(cat.toLowerCase()) ||
-          (t.collection || '').toLowerCase().includes(cat.toLowerCase())) &&
+            (t.category || '').toLowerCase().includes(cat.toLowerCase()) ||
+            (t.collection || '').toLowerCase().includes(cat.toLowerCase())) &&
           t.imageUrl && t.imageUrl.trim().length > 0
         );
 

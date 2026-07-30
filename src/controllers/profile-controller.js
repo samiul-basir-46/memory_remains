@@ -187,17 +187,114 @@ function bindProfileForm(user) {
   }
 }
 
+function getOrderCategoryGroup(order) {
+  const s = String(order.status || '').toLowerCase().trim();
+  if (s === 'cancelled' || s === 'canceled') {
+    return 'cancelled';
+  }
+  if (['verified', 'paid', 'confirmed', 'preparing', 'prepared', 'shipped', 'delivered', 'completed'].includes(s)) {
+    return 'verified';
+  }
+  return 'pending';
+}
+
 async function loadUserOrders(user) {
   const loadingState = qs('#orders-loading-state');
   const emptyState = qs('#orders-empty-state');
   const listContainer = qs('#orders-list-container');
   const ordersBadge = qs('#my-orders-badge');
+  const filterTabsContainer = qs('#orders-filter-tabs');
 
   if (!loadingState || !emptyState || !listContainer) return;
 
   loadingState.classList.remove('hidden');
   emptyState.classList.add('hidden');
   listContainer.classList.add('hidden');
+  if (filterTabsContainer) filterTabsContainer.classList.add('hidden');
+
+  let activeOrderFilter = 'all';
+  let allUserOrders = [];
+
+  const updateOrderFilterUI = () => {
+    if (allUserOrders.length === 0) {
+      emptyState.classList.remove('hidden');
+      listContainer.classList.add('hidden');
+      if (filterTabsContainer) filterTabsContainer.classList.add('hidden');
+      return;
+    }
+
+    emptyState.classList.add('hidden');
+    if (filterTabsContainer) filterTabsContainer.classList.remove('hidden');
+
+    // Calculate category counts
+    const cntAll = allUserOrders.length;
+    const cntPending = allUserOrders.filter(o => getOrderCategoryGroup(o) === 'pending').length;
+    const cntVerified = allUserOrders.filter(o => getOrderCategoryGroup(o) === 'verified').length;
+    const cntCancelled = allUserOrders.filter(o => getOrderCategoryGroup(o) === 'cancelled').length;
+
+    const elAll = qs('#cnt-filter-all');
+    const elPending = qs('#cnt-filter-pending');
+    const elVerified = qs('#cnt-filter-verified');
+    const elCancelled = qs('#cnt-filter-cancelled');
+
+    if (elAll) elAll.textContent = cntAll;
+    if (elPending) elPending.textContent = cntPending;
+    if (elVerified) elVerified.textContent = cntVerified;
+    if (elCancelled) elCancelled.textContent = cntCancelled;
+
+    // Filter orders
+    const filteredOrders = allUserOrders.filter(order => {
+      if (activeOrderFilter === 'all') return true;
+      return getOrderCategoryGroup(order) === activeOrderFilter;
+    });
+
+    listContainer.innerHTML = '';
+    listContainer.classList.remove('hidden');
+
+    if (filteredOrders.length === 0) {
+      const emptyMsgMap = {
+        all: 'No orders found.',
+        pending: 'No orders are currently under processing or review.',
+        verified: 'No verified or active orders yet.',
+        cancelled: 'No cancelled orders.'
+      };
+      listContainer.innerHTML = `
+        <div class="bg-white rounded-2xl border border-pink-100 p-8 text-center text-sm text-gray-500 font-semibold space-y-2">
+          <i class="fa-solid fa-filter text-2xl text-pink-300"></i>
+          <p class="m-0">${emptyMsgMap[activeOrderFilter] || 'No orders in this category.'}</p>
+        </div>
+      `;
+      return;
+    }
+
+    filteredOrders.forEach(order => {
+      const orderCard = renderOrderCard(order);
+      listContainer.appendChild(orderCard);
+    });
+  };
+
+  // Bind filter button clicks
+  if (filterTabsContainer) {
+    const filterBtns = filterTabsContainer.querySelectorAll('.order-filter-btn');
+    filterBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const filterVal = btn.dataset.orderFilter || 'all';
+        activeOrderFilter = filterVal;
+
+        // Update button styles
+        filterBtns.forEach(b => {
+          const isSelected = b.dataset.orderFilter === activeOrderFilter;
+          if (isSelected) {
+            b.className = 'order-filter-btn px-4 py-2 text-xs font-bold rounded-xl transition-all border border-pink-200 bg-primary text-white shadow-xs flex items-center gap-1.5 whitespace-nowrap cursor-pointer scale-105';
+          } else {
+            b.className = 'order-filter-btn px-4 py-2 text-xs font-bold rounded-xl transition-all border border-pink-100 bg-white text-gray-700 hover:bg-pink-50 hover:text-primary flex items-center gap-1.5 whitespace-nowrap cursor-pointer';
+          }
+        });
+
+        updateOrderFilterUI();
+      });
+    });
+  }
 
   try {
     const { db } = getFirebaseServices();
@@ -232,20 +329,8 @@ async function loadUserOrders(user) {
         ordersBadge.classList.remove('hidden');
       }
 
-      if (orders.length === 0) {
-        emptyState.classList.remove('hidden');
-        listContainer.classList.add('hidden');
-        return;
-      }
-
-      emptyState.classList.add('hidden');
-      listContainer.innerHTML = '';
-      listContainer.classList.remove('hidden');
-
-      orders.forEach(order => {
-        const orderCard = renderOrderCard(order);
-        listContainer.appendChild(orderCard);
-      });
+      allUserOrders = orders;
+      updateOrderFilterUI();
     });
 
   } catch (err) {
@@ -423,15 +508,34 @@ function renderOrderCard(order) {
             <span class="text-[9px] font-bold mt-1 ${isDelivered ? 'text-emerald-700' : 'text-gray-400'}">Delivered</span>
           </div>
         </div>
-        ${(order.courier_name || order.courierName || order.tracking_number || order.trackingNumber) ? `
-          <div class="mt-2 p-2.5 bg-blue-50/80 rounded-xl border border-blue-200 text-xs text-blue-900 flex items-center justify-between shadow-sm">
-            <div class="flex items-center gap-2.5">
-              <i class="fa-solid fa-truck-fast text-blue-600 text-base"></i>
-              <div>
-                <span class="font-bold text-blue-900 block">Courier: ${escapeHtml(order.courier_name || order.courierName || 'Courier Delivery')}</span>
-                ${(order.tracking_number || order.trackingNumber) ? `<span class="text-[11px] text-blue-700 font-medium">Tracking Code: <strong class="font-mono bg-blue-100 px-1.5 py-0.5 rounded text-blue-900">${escapeHtml(order.tracking_number || order.trackingNumber)}</strong></span>` : ''}
+        ${(!isDelivered && (order.courier_name || order.courierName || order.tracking_number || order.trackingNumber || order.steadfast_tracking_code || isShipped)) ? `
+          <div class="mt-3 p-3.5 bg-gradient-to-r from-blue-50/90 to-indigo-50/90 rounded-2xl border border-blue-200 text-xs text-blue-950 space-y-2.5 shadow-sm">
+            <div class="flex items-center justify-between gap-2 border-b border-blue-200/80 pb-2">
+              <div class="flex items-center gap-2 font-bold text-blue-900">
+                <i class="fa-solid fa-truck-fast text-blue-600 animate-pulse"></i>
+                <span>Courier: ${escapeHtml(order.courier_name || order.courierName || 'Steadfast Courier')}</span>
               </div>
+              ${(order.steadfast_tracking_code || order.tracking_number || order.trackingNumber) ? `
+                <a href="https://steadfast.com.bd/t/${encodeURIComponent(order.steadfast_tracking_code || order.tracking_number || order.trackingNumber)}" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white font-bold text-[11px] rounded-lg inline-flex items-center gap-1 no-underline transition-all active:scale-95">
+                  Track Live <i class="fa-solid fa-arrow-up-right-from-square text-[9px]"></i>
+                </a>
+              ` : ''}
             </div>
+            ${(order.steadfast_tracking_code || order.tracking_number || order.trackingNumber) ? `
+              <div class="flex flex-wrap items-center justify-between text-[11px]">
+                <span class="text-gray-600">Tracking Code: <strong class="font-mono bg-blue-100 px-1.5 py-0.5 rounded text-blue-900">${escapeHtml(order.steadfast_tracking_code || order.tracking_number || order.trackingNumber)}</strong></span>
+                ${order.steadfast_consignment_id ? `<span class="text-gray-500 font-mono">ID: ${escapeHtml(order.steadfast_consignment_id)}</span>` : ''}
+              </div>
+            ` : ''}
+          </div>
+        ` : (isDelivered && (order.courier_name || order.courierName || order.tracking_number || order.trackingNumber || order.steadfast_tracking_code)) ? `
+          <div class="mt-3 p-3 bg-emerald-50 rounded-xl border border-emerald-200 text-xs text-emerald-950 flex items-center justify-between">
+            <span class="font-semibold text-emerald-900 flex items-center gap-1.5">
+              <i class="fa-solid fa-circle-check text-emerald-600"></i> Delivered via ${escapeHtml(order.courier_name || order.courierName || 'Steadfast Courier')}
+            </span>
+            ${(order.steadfast_tracking_code || order.tracking_number || order.trackingNumber) ? `
+              <span class="font-mono text-[11px] bg-emerald-100 text-emerald-900 px-2 py-0.5 rounded font-bold">${escapeHtml(order.steadfast_tracking_code || order.tracking_number || order.trackingNumber)}</span>
+            ` : ''}
           </div>
         ` : ''}
       </div>

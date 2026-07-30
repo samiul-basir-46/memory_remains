@@ -64,7 +64,15 @@ export async function renderProductDetailsPage(db) {
     // Set Text Content & Badges
     const category = template.category || template.collection || template.target_audience || template.targetAudience || inferCollection(template);
     const title = template.title || template.name || 'Product details';
-    const requiredPhotos = template.requiredPhotos || 12;
+    const requiredPhotos = Number(
+      template.requiredPhotos ||
+      template.required_photos ||
+      template.required_photo_count ||
+      template.requiredImageCount ||
+      template.photoCount ||
+      template.photo_count ||
+      12
+    );
     const descriptionText = template.description || template.magazineDescription || template.templateDescription || template.subtitle || 'No description available for this product.';
 
     const breadcrumbTitle = qs('#details-breadcrumb-title');
@@ -91,6 +99,29 @@ export async function renderProductDetailsPage(db) {
         badgeElem.hidden = false;
       } else {
         badgeElem.hidden = true;
+      }
+    }
+
+    // Render Specifications (Specs)
+    const specsContainer = qs('#details-specs-container');
+    const specsList = qs('#details-specs');
+    if (specsContainer && specsList) {
+      const specs = template.specs;
+      if (specs && typeof specs === 'object' && Object.keys(specs).length > 0) {
+        specsList.innerHTML = Object.entries(specs)
+          .map(([key, val]) => {
+            const label = key.charAt(0).toUpperCase() + key.slice(1);
+            return `
+              <div class="flex flex-col py-1">
+                <span class="text-xs text-gray-400 font-medium">${escapeHtml(label)}</span>
+                <span class="text-sm font-semibold text-gray-800">${escapeHtml(String(val))}</span>
+              </div>
+            `;
+          })
+          .join('');
+        specsContainer.classList.remove('hidden');
+      } else {
+        specsContainer.classList.add('hidden');
       }
     }
 
@@ -482,13 +513,20 @@ export async function renderProductDetailsPage(db) {
         }
       }
 
-      // Dynamic Feature Checklist & Notes
-      if (activeMode === 'magazine') {
+      // Dynamic Feature Checklist & Notes: Only show photo requirement box for magazine product type
+      const isMagazineProduct = productType === 'magazine';
+      if (isMagazineProduct && activeMode === 'magazine') {
         if (photoReqBox) photoReqBox.classList.remove('hidden');
         if (templateNoticeBox) templateNoticeBox.classList.add('hidden');
       } else {
         if (photoReqBox) photoReqBox.classList.add('hidden');
-        if (templateNoticeBox) templateNoticeBox.classList.remove('hidden');
+        if (templateNoticeBox) {
+          if (activeMode === 'template') {
+            templateNoticeBox.classList.remove('hidden');
+          } else {
+            templateNoticeBox.classList.add('hidden');
+          }
+        }
       }
     };
 

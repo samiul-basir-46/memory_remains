@@ -51,7 +51,7 @@ function renderCartState(db) {
         <h2 class="font-heading text-2xl md:text-3xl text-[#2A2A2A] font-normal mb-2">Why so light! :(</h2>
         <h3 class="text-xl text-[#2A2A2A] font-semibold mb-2">Your cart is empty</h3>
         <p class="text-text-soft text-sm mb-8">Looks like you haven't added anything yet</p>
-        <a href="/collections/paid-products" class="inline-flex items-center justify-center px-8 py-3.5 bg-[#DC3C71] hover:bg-[#c23260] text-white font-bold text-sm rounded-xl shadow-md transition-colors no-underline">Discover Products</a>
+        <a href="/collections/paid-products" class="inline-flex items-center justify-center px-8 py-3.5 bg-[#C97B5F] text-white font-bold text-sm rounded-xl shadow-md transition-colors no-underline" style="background-color: #C97B5F !important; color: #ffffff !important;">Discover Products</a>
       </div>
     `;
     return;
@@ -119,7 +119,7 @@ function renderCartState(db) {
                 <strong class="text-primary text-xl">৳${subtotal}</strong>
               </div>
             </div>
-            <button type="button" id="start-checkout-btn" class="w-full py-3.5 bg-[#DC3C71] hover:bg-[#c23260] text-white font-bold rounded-xl text-sm shadow-md transition-colors cursor-pointer text-center">Proceed to Checkout</button>
+            <button type="button" id="start-checkout-btn" class="w-full py-3.5 bg-[#C97B5F] text-white font-bold rounded-xl text-sm shadow-md transition-colors cursor-pointer text-center" style="background-color: #C97B5F !important; color: #ffffff !important;">Proceed to Checkout</button>
           </div>
         </div>
       </div>
@@ -302,7 +302,7 @@ function renderCheckoutForm(db, subtotal) {
 
           <div id="checkout-error-msg" class="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-800 hidden"></div>
 
-          <button type="submit" id="place-order-btn" class="w-full py-3.5 bg-[#DC3C71] hover:bg-[#c23260] text-white font-bold rounded-xl text-sm shadow-md transition-colors cursor-pointer text-center">Proceed to Payment Screen</button>
+          <button type="submit" id="place-order-btn" class="w-full py-3.5 bg-[#C97B5F] text-white font-bold rounded-xl text-sm shadow-md transition-colors cursor-pointer text-center" style="background-color: #C97B5F !important; color: #ffffff !important;">Proceed to Payment Screen</button>
         </form>
       </div>
     </div>
@@ -534,7 +534,7 @@ function renderPaymentInstructionsStep(db, checkoutData) {
           <div class="flex items-center justify-center gap-3">
             <span class="text-xs text-text-soft font-medium">bKash Number:</span>
             <strong class="font-bold text-xl text-[#2A2A2A] tracking-wider">${BKASH_NUMBER}</strong>
-            <button type="button" id="copy-bkash-num-btn" class="px-3 py-1.5 bg-[#DC3C71] hover:bg-[#c23260] text-white text-xs font-bold rounded-lg shadow-sm transition-colors cursor-pointer">Copy</button>
+            <button type="button" id="copy-bkash-num-btn" class="px-3 py-1.5 bg-[#C97B5F] hover:bg-[#8B4A38] text-white text-xs font-bold rounded-lg shadow-sm transition-colors cursor-pointer">Copy</button>
           </div>
           <p class="text-xs sm:text-sm font-semibold text-gray-800 leading-relaxed border-t border-pink-200/60 pt-2.5 max-w-md mx-auto">
             <strong class="text-primary font-extrabold text-sm sm:text-base">Note:</strong> Please use the Copy button to copy the payment number. Only the payment number will be copied for your safety and to avoid mistakes during payment.
@@ -597,7 +597,7 @@ function renderPaymentInstructionsStep(db, checkoutData) {
 
           <div id="verify-error-box" class="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-800 hidden"></div>
 
-          <button type="submit" id="confirm-payment-btn" class="w-full py-3.5 bg-[#DC3C71] hover:bg-[#c23260] text-white font-bold rounded-xl text-sm shadow-md transition-colors cursor-pointer text-center">Confirm Payment</button>
+          <button type="submit" id="confirm-payment-btn" class="w-full py-3.5 bg-[#C97B5F] text-white font-bold rounded-xl text-sm shadow-md transition-colors cursor-pointer text-center" style="background-color: #C97B5F !important; color: #ffffff !important;">Confirm Payment</button>
         </form>
       </div>
     </div>
@@ -720,7 +720,21 @@ function renderPaymentInstructionsStep(db, checkoutData) {
                     selectedPosters: selectedPosters,
                     required_photo_count: Number(item.comboQuantity || 5)
                   });
-                } else if (isFrame || isSticker) {
+                } else if (isFrame) {
+                  expanded.push({
+                    item_id: `${newOrderId}-${itemCounter}`,
+                    template_id: itemId,
+                    template_name: `${itemTitle}${itemNumLabel}`,
+                    product_type: pType,
+                    productType: pType,
+                    photos_uploaded: false,
+                    photosUploaded: false,
+                    photo_urls: [],
+                    photoUrls: [],
+                    recipient_name: item.recipient_name || '',
+                    required_photo_count: 1
+                  });
+                } else if (isSticker) {
                   expanded.push({
                     item_id: `${newOrderId}-${itemCounter}`,
                     template_id: itemId,
@@ -742,7 +756,7 @@ function renderPaymentInstructionsStep(db, checkoutData) {
                     product_type: pType,
                     productType: pType,
                     recipient_name: item.recipient_name || '',
-                    required_photo_count: Number(item.required_photo_count || item.photo_count || item.requiredPhotos || 10),
+                    required_photo_count: Number(item.required_photo_count || item.photo_count || item.requiredPhotos || 12),
                     photos_uploaded: pType === 'template'
                   });
                 }
@@ -750,6 +764,46 @@ function renderPaymentInstructionsStep(db, checkoutData) {
               }
             });
             return expanded;
+          })(),
+          requiredImageCount: (() => {
+            let sum = 0;
+            getCart().forEach((item) => {
+              const qty = Math.max(1, Number(item.quantity || 1));
+              const pType = item.product_type || item.productType || '';
+              const isPoster = pType === 'poster';
+              const isFrame = pType === 'wall_frame' || pType === 'frame';
+              const isTemplate = item.purchaseMode === 'template';
+              if (isTemplate) {
+                sum += 0;
+              } else if (isPoster) {
+                sum += Number(item.comboQuantity || 5) * qty;
+              } else if (isFrame) {
+                sum += 1 * qty;
+              } else {
+                sum += Number(item.requiredPhotos || 12) * qty;
+              }
+            });
+            return sum;
+          })(),
+          requiredPhotoCount: (() => {
+            let sum = 0;
+            getCart().forEach((item) => {
+              const qty = Math.max(1, Number(item.quantity || 1));
+              const pType = item.product_type || item.productType || '';
+              const isPoster = pType === 'poster';
+              const isFrame = pType === 'wall_frame' || pType === 'frame';
+              const isTemplate = item.purchaseMode === 'template';
+              if (isTemplate) {
+                sum += 0;
+              } else if (isPoster) {
+                sum += Number(item.comboQuantity || 5) * qty;
+              } else if (isFrame) {
+                sum += 1 * qty;
+              } else {
+                sum += Number(item.requiredPhotos || 12) * qty;
+              }
+            });
+            return sum;
           })(),
           productName: checkoutData.product_name || (purchaseType === 'poster' ? 'Poster Combo Pack Order' : (purchaseType === 'template' ? 'Digital Template Order' : 'Physical Magazine Order')),
           status: 'pending',
@@ -928,7 +982,7 @@ function renderPendingPollingState(orderId, trxId, attempt) {
     <div class="max-w-xl mx-auto py-8 px-4">
       <div class="bg-white p-6 md:p-8 rounded-2xl border border-pink-100 shadow-xl text-center space-y-6">
         <!-- Icon -->
-        <div class="w-18 h-18 bg-pink-50 border-2 border-pink-200 text-[#DC3C71] text-3xl rounded-full flex items-center justify-center mx-auto shadow-sm p-4">
+        <div class="w-18 h-18 bg-pink-50 border-2 border-pink-200 text-[#C97B5F] text-3xl rounded-full flex items-center justify-center mx-auto shadow-sm p-4">
           <i class="fa-solid fa-box-archive text-3xl text-primary"></i>
         </div>
 
@@ -961,7 +1015,7 @@ function renderPendingPollingState(orderId, trxId, attempt) {
 
         <!-- Primary Action Button -->
         <div class="pt-2">
-          <a href="${myOrdersUrl}" class="inline-flex items-center justify-center gap-2 px-8 py-3.5 bg-[#DC3C71] hover:bg-[#c23260] text-white font-bold rounded-xl text-sm shadow-md transition-all no-underline active:scale-95">
+          <a href="${myOrdersUrl}" class="inline-flex items-center justify-center gap-2 px-8 py-3.5 bg-[#C97B5F] hover:bg-[#8B4A38] text-white font-bold rounded-xl text-sm shadow-md transition-all no-underline active:scale-95">
             <i class="fa-solid fa-list-check text-base"></i> View My Orders
           </a>
         </div>
@@ -1004,7 +1058,7 @@ function renderPaidSuccessScreen(orderId, checkoutData, data) {
               </div>
               <h3 class="font-heading text-2xl font-bold text-[#2A2A2A]">🎉 Your template is ready!</h3>
               <div class="flex flex-col sm:flex-row gap-3 justify-center pt-2">
-                <a href="${escapeHtml(canvaLink)}" target="_blank" rel="noopener noreferrer" class="px-6 py-3.5 bg-[#DC3C71] hover:bg-[#c23260] text-white font-bold text-sm rounded-xl shadow-md transition-colors no-underline inline-flex items-center justify-center gap-2">
+                <a href="${escapeHtml(canvaLink)}" target="_blank" rel="noopener noreferrer" class="px-6 py-3.5 bg-[#C97B5F] hover:bg-[#8B4A38] text-white font-bold text-sm rounded-xl shadow-md transition-colors no-underline inline-flex items-center justify-center gap-2">
                   <i class="fa-solid fa-arrow-up-right-from-square"></i>
                   <span>Open in Canva</span>
                 </a>
@@ -1030,7 +1084,7 @@ function renderPaidSuccessScreen(orderId, checkoutData, data) {
               </div>
             </div>
 
-            <a href="/collections/paid-products" class="inline-flex items-center justify-center w-full py-3.5 bg-[#DC3C71] hover:bg-[#c23260] text-white font-bold text-sm rounded-xl shadow-md transition-colors no-underline">Continue Shopping</a>
+            <a href="/collections/paid-products" class="inline-flex items-center justify-center w-full py-3.5 bg-[#C97B5F] hover:bg-[#8B4A38] text-white font-bold text-sm rounded-xl shadow-md transition-colors no-underline">Continue Shopping</a>
           </div>
         </div>
       `;
@@ -1082,7 +1136,7 @@ function renderPaidSuccessScreen(orderId, checkoutData, data) {
             </div>
           </div>
 
-          <a href="/collections/paid-products" class="inline-flex items-center justify-center w-full py-3.5 bg-[#DC3C71] hover:bg-[#c23260] text-white font-bold text-sm rounded-xl shadow-md transition-colors no-underline">Continue Shopping</a>
+          <a href="/collections/paid-products" class="inline-flex items-center justify-center w-full py-3.5 bg-[#C97B5F] hover:bg-[#8B4A38] text-white font-bold text-sm rounded-xl shadow-md transition-colors no-underline">Continue Shopping</a>
         </div>
       </div>
     `;
@@ -1124,7 +1178,7 @@ function renderPaidSuccessScreen(orderId, checkoutData, data) {
             </div>
           </div>
 
-          <a href="/collections/paid-products" class="inline-flex items-center justify-center w-full py-3.5 bg-[#DC3C71] hover:bg-[#c23260] text-white font-bold text-sm rounded-xl shadow-md transition-colors no-underline">Continue Shopping</a>
+          <a href="/collections/paid-products" class="inline-flex items-center justify-center w-full py-3.5 bg-[#C97B5F] hover:bg-[#8B4A38] text-white font-bold text-sm rounded-xl shadow-md transition-colors no-underline">Continue Shopping</a>
         </div>
       </div>
     `;
@@ -1170,7 +1224,7 @@ function renderPaidSuccessScreen(orderId, checkoutData, data) {
             </div>
           </div>
 
-          <a href="/collections/paid-products" class="inline-flex items-center justify-center w-full py-3.5 bg-[#DC3C71] hover:bg-[#c23260] text-white font-bold text-sm rounded-xl shadow-md transition-colors no-underline">Continue Shopping</a>
+          <a href="/collections/paid-products" class="inline-flex items-center justify-center w-full py-3.5 bg-[#C97B5F] hover:bg-[#8B4A38] text-white font-bold text-sm rounded-xl shadow-md transition-colors no-underline">Continue Shopping</a>
         </div>
       </div>
     `;
@@ -1269,7 +1323,7 @@ function renderPollingTimeoutState(db, orderId, trxId) {
         </div>
 
         <div class="space-y-3">
-          <a href="/pages/profile#orders" class="w-full py-3.5 bg-[#DC3C71] hover:bg-[#c23260] text-white font-bold text-sm rounded-xl shadow-md transition-colors inline-flex items-center justify-center gap-2 no-underline">
+          <a href="/pages/profile#orders" class="w-full py-3.5 bg-[#C97B5F] hover:bg-[#8B4A38] text-white font-bold text-sm rounded-xl shadow-md transition-colors inline-flex items-center justify-center gap-2 no-underline">
             <i class="fa-solid fa-box-archive"></i>
             <span>Track Order in My Account</span>
           </a>
@@ -1333,7 +1387,7 @@ function renderDuplicateTrxState(db, orderId, trxId, checkoutData) {
         </div>
 
         <div class="space-y-3">
-          <button type="button" id="re-enter-trx-btn" class="w-full py-3.5 bg-[#DC3C71] hover:bg-[#c23260] text-white font-bold text-sm rounded-xl shadow-md transition-colors cursor-pointer text-center">Try Another Transaction ID</button>
+          <button type="button" id="re-enter-trx-btn" class="w-full py-3.5 bg-[#C97B5F] hover:bg-[#8B4A38] text-white font-bold text-sm rounded-xl shadow-md transition-colors cursor-pointer text-center">Try Another Transaction ID</button>
 
           <a href="${waUrl}" target="_blank" rel="noreferrer" class="w-full py-3 bg-[#25d366] hover:bg-[#20bd5a] text-white font-bold text-sm rounded-xl shadow-sm transition-colors inline-flex items-center justify-center gap-2 no-underline">
             <i class="fa-brands fa-whatsapp text-lg"></i>
@@ -1470,7 +1524,7 @@ async function handlePageRefreshRecovery(db, orderId) {
       container.innerHTML = `
         <div class="max-w-md mx-auto py-16 px-4 text-center space-y-4">
           <p class="text-sm text-[#2A2A2A]">This order has expired, please place a new order.</p>
-          <a href="/collections/paid-products" class="inline-block px-6 py-3 bg-[#DC3C71] text-white font-bold text-sm rounded-xl no-underline">Browse Products</a>
+          <a href="/collections/paid-products" class="inline-block px-6 py-3 bg-[#C97B5F] text-white font-bold text-sm rounded-xl no-underline">Browse Products</a>
         </div>
       `;
     } else {

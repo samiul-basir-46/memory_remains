@@ -1,6 +1,7 @@
 import { escapeHtml, qs } from '../utils/ui.js';
 import { getFirebaseServices } from '../services/firebase-service.js';
 import { renderPhotoUploadUI } from '../components/photo-upload.js';
+import { checkSteadfastStatusByTrackingCode, checkSteadfastStatusByInvoice } from '../services/steadfast-service.js';
 
 const API_BASE = "https://bkash-sms-gateway.onrender.com";
 
@@ -64,7 +65,7 @@ export async function renderTrackOrderPage() {
 
           <p id="track-error" class="text-xs text-rose-600 mt-1 hidden font-semibold">Please enter your Phone Number or Order ID to search.</p>
 
-          <button type="submit" id="track-submit-btn" class="w-full py-3.5 bg-[#DC3C71] hover:bg-[#c23260] text-white font-bold rounded-xl text-sm shadow-md transition-colors cursor-pointer text-center">Track Order</button>
+          <button type="submit" id="track-submit-btn" class="w-full py-3.5 bg-[#C97B5F] hover:bg-[#8B4A38] text-white font-bold rounded-xl text-sm shadow-md transition-colors cursor-pointer text-center">Track Order</button>
         </form>
       </div>
 
@@ -289,6 +290,11 @@ function renderTrackingResult(orders) {
     const actualOrderId = order.order_id || order.id || 'N/A';
     const safeOrderId = actualOrderId.replace(/[^a-zA-Z0-9_-]/g, '');
 
+    const productType = (order.product_type || order.productType || (order.canva_link ? 'template' : 'magazine')).toLowerCase();
+    const requiredPhotoCount = Number(order.required_photo_count || order.requiredPhotoCount || order.photo_count || 10);
+    const photosUploaded = Boolean(order.photos_uploaded || order.photosUploaded);
+    const canvaLink = order.canva_link || order.canvaLink || order.canvaUrl || null;
+
     let itemsList = Array.isArray(order.items) && order.items.length > 0
       ? order.items
       : [{
@@ -314,7 +320,7 @@ function renderTrackingResult(orders) {
           itemBannerHtml = `
             <div class="bg-gradient-to-r from-pink-50 to-purple-50 p-4 rounded-xl border border-pink-200 text-center space-y-3">
               <h5 class="font-bold text-sm text-[#2A2A2A]">🎉 ${escapeHtml(item.template_name || 'Template')} Ready</h5>
-              <a href="${escapeHtml(itemCanva)}" target="_blank" rel="noopener noreferrer" class="px-4 py-2 bg-[#DC3C71] text-white font-bold text-xs rounded-lg inline-flex items-center gap-2">
+              <a href="${escapeHtml(itemCanva)}" target="_blank" rel="noopener noreferrer" class="px-4 py-2 bg-[#C97B5F] hover:bg-[#8B4A38] text-white font-bold text-xs rounded-lg inline-flex items-center gap-2">
                 <i class="fa-solid fa-arrow-up-right-from-square"></i> Open in Canva
               </a>
             </div>
@@ -464,15 +470,56 @@ function renderTrackingResult(orders) {
                 <span class="text-[10px] font-bold mt-1.5 ${isDelivered ? 'text-emerald-700' : 'text-gray-400'}">Delivered</span>
               </div>
             </div>
-            ${(order.courier_name || order.courierName || order.tracking_number || order.trackingNumber) ? `
-              <div class="mt-2.5 p-3 bg-blue-50/80 rounded-xl border border-blue-200 text-xs text-blue-900 flex items-center justify-between shadow-sm">
-                <div class="flex items-center gap-2.5">
-                  <i class="fa-solid fa-truck-fast text-blue-600 text-base"></i>
-                  <div>
-                    <span class="font-bold text-blue-900 block">Courier: ${escapeHtml(order.courier_name || order.courierName || 'Courier Delivery')}</span>
-                    ${(order.tracking_number || order.trackingNumber) ? `<span class="text-[11px] text-blue-700 font-medium">Tracking Code: <strong class="font-mono bg-blue-100 px-1.5 py-0.5 rounded text-blue-900">${escapeHtml(order.tracking_number || order.trackingNumber)}</strong></span>` : ''}
+            ${(!isDelivered && (order.courier_name || order.courierName || order.tracking_number || order.trackingNumber || order.steadfast_tracking_code || isShipped)) ? `
+              <div class="mt-3 p-4 bg-gradient-to-r from-blue-50/90 to-indigo-50/90 rounded-2xl border-2 border-blue-200 text-xs text-blue-950 space-y-3 shadow-sm">
+                <div class="flex items-center justify-between gap-2 border-b border-blue-200/80 pb-2.5">
+                  <div class="flex items-center gap-2 font-extrabold text-blue-900 text-xs uppercase tracking-wide">
+                    <i class="fa-solid fa-truck-fast text-blue-600 text-base animate-pulse"></i>
+                    <span>${escapeHtml(order.courier_name || order.courierName || 'Steadfast Courier')}</span>
+                  </div>
+                  <span class="text-[10px] font-extrabold bg-blue-200 text-blue-900 px-2.5 py-0.5 rounded-full uppercase tracking-wider">Live Tracking Active</span>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                  ${(order.steadfast_tracking_code || order.tracking_number || order.trackingNumber) ? `
+                    <div class="bg-white/90 p-2.5 rounded-xl border border-blue-200 flex items-center justify-between">
+                      <span class="text-gray-600 font-medium">Tracking Code:</span>
+                      <span class="font-mono font-bold text-blue-900 bg-blue-100 px-2 py-0.5 rounded text-xs select-all">${escapeHtml(order.steadfast_tracking_code || order.tracking_number || order.trackingNumber)}</span>
+                    </div>
+                  ` : ''}
+                  ${order.steadfast_consignment_id ? `
+                    <div class="bg-white/90 p-2.5 rounded-xl border border-blue-200 flex items-center justify-between">
+                      <span class="text-gray-600 font-medium">Consignment ID:</span>
+                      <span class="font-mono font-bold text-gray-800">${escapeHtml(order.steadfast_consignment_id)}</span>
+                    </div>
+                  ` : ''}
+                </div>
+
+                <div class="pt-1 flex flex-wrap items-center justify-between gap-2">
+                  <span class="text-[11px] text-blue-800 font-semibold">
+                    🚀 Parcel has been dispatched with Steadfast Courier
+                  </span>
+                  <div class="flex items-center gap-2">
+                    ${(order.steadfast_tracking_code || order.tracking_number || order.trackingNumber) ? `
+                      <button type="button" class="btn-check-steadfast-api px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center gap-1.5 cursor-pointer" data-tracking="${escapeHtml(order.steadfast_tracking_code || order.tracking_number || order.trackingNumber || '')}" data-invoice="${escapeHtml(actualOrderId)}" data-mount="live-steadfast-status-${safeOrderId}">
+                        <i class="fa-solid fa-arrows-rotate text-xs"></i> Check Live API Status
+                      </button>
+                      <a href="https://steadfast.com.bd/t/${encodeURIComponent(order.steadfast_tracking_code || order.tracking_number || order.trackingNumber)}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all no-underline active:scale-95">
+                        <i class="fa-solid fa-location-dot"></i> Steadfast Portal <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+                      </a>
+                    ` : ''}
                   </div>
                 </div>
+                <div id="live-steadfast-status-${safeOrderId}" class="hidden pt-2 border-t border-blue-200"></div>
+              </div>
+            ` : (isDelivered && (order.courier_name || order.courierName || order.tracking_number || order.trackingNumber || order.steadfast_tracking_code)) ? `
+              <div class="mt-3 p-3.5 bg-emerald-50 rounded-2xl border border-emerald-200 text-xs text-emerald-950 flex items-center justify-between shadow-xs">
+                <span class="font-bold text-emerald-900 flex items-center gap-2">
+                  <i class="fa-solid fa-circle-check text-emerald-600 text-base"></i> Delivered Successfully via ${escapeHtml(order.courier_name || order.courierName || 'Steadfast Courier')}
+                </span>
+                ${(order.steadfast_tracking_code || order.tracking_number || order.trackingNumber) ? `
+                  <span class="font-mono text-xs bg-emerald-100 text-emerald-900 px-2.5 py-1 rounded-lg font-bold border border-emerald-200">${escapeHtml(order.steadfast_tracking_code || order.tracking_number || order.trackingNumber)}</span>
+                ` : ''}
               </div>
             ` : ''}
           </div>
@@ -487,6 +534,67 @@ function renderTrackingResult(orders) {
   }).join('');
 
   resultBox.innerHTML = html;
+
+  // Bind live Steadfast API check buttons
+  resultBox.querySelectorAll('.btn-check-steadfast-api').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const trackingCode = btn.dataset.tracking;
+      const invoice = btn.dataset.invoice;
+      const mountId = btn.dataset.mount;
+      const mountEl = resultBox.querySelector(`#${mountId}`);
+      if (!mountEl) return;
+
+      mountEl.classList.remove('hidden');
+      mountEl.innerHTML = `
+        <div class="p-3 bg-white rounded-xl border border-indigo-200 text-xs text-indigo-900 flex items-center gap-2">
+          <i class="fa-solid fa-spinner fa-spin text-indigo-600"></i>
+          <span>Querying Steadfast Courier API for live consignment status...</span>
+        </div>
+      `;
+
+      try {
+        let res = trackingCode ? await checkSteadfastStatusByTrackingCode(trackingCode) : await checkSteadfastStatusByInvoice(invoice);
+        const statusText = res.delivery_status || (res.consignment && res.consignment.status) || 'in_review';
+        
+        const statusMap = {
+          'in_review': { label: 'In Review / Processing', color: 'bg-purple-100 text-purple-900 border-purple-300' },
+          'pending': { label: 'Pending Pickup / Processing', color: 'bg-amber-100 text-amber-900 border-amber-300' },
+          'delivered_approval_pending': { label: 'Delivered (Approval Pending)', color: 'bg-emerald-100 text-emerald-900 border-emerald-300' },
+          'delivered': { label: 'Delivered Successfully', color: 'bg-emerald-100 text-emerald-900 border-emerald-300' },
+          'partial_delivered': { label: 'Partial Delivered (আংশিক ডেলিভারি)', color: 'bg-cyan-100 text-cyan-900 border-cyan-300' },
+          'cancelled_approval_pending': { label: 'Cancelled / Returned', color: 'bg-rose-100 text-rose-900 border-rose-300' },
+          'cancelled': { label: 'Cancelled / Returned', color: 'bg-rose-100 text-rose-900 border-rose-300' }
+        };
+
+        const badgeInfo = statusMap[statusText] || { label: String(statusText).toUpperCase(), color: 'bg-blue-100 text-blue-900 border-blue-300' };
+
+        mountEl.innerHTML = `
+          <div class="p-3.5 bg-white rounded-xl border border-indigo-200 space-y-2 text-xs text-gray-800 shadow-2xs">
+            <div class="flex items-center justify-between">
+              <span class="font-bold text-indigo-950 flex items-center gap-1.5">
+                <i class="fa-solid fa-square-check text-emerald-600"></i> Live Steadfast Courier Response:
+              </span>
+              <span class="px-2 py-0.5 rounded text-[10px] font-bold border ${badgeInfo.color}">${badgeInfo.label}</span>
+            </div>
+            ${res.consignment ? `
+              <div class="grid grid-cols-2 gap-2 text-[11px] bg-indigo-50/50 p-2 rounded-lg">
+                <div>Recipient: <strong>${escapeHtml(res.consignment.recipient_name || '')}</strong></div>
+                <div>Phone: <strong>${escapeHtml(res.consignment.recipient_phone || '')}</strong></div>
+                <div>Address: <strong>${escapeHtml(res.consignment.recipient_address || '')}</strong></div>
+                <div>COD Amount: <strong>৳${res.consignment.cod_amount ?? 0}</strong></div>
+              </div>
+            ` : ''}
+          </div>
+        `;
+      } catch (err) {
+        mountEl.innerHTML = `
+          <div class="p-3 bg-rose-50 rounded-xl border border-rose-200 text-xs text-rose-800">
+            Could not fetch live status from Steadfast API: ${escapeHtml(err.message)}
+          </div>
+        `;
+      }
+    });
+  });
 
   uploadMountTasks.forEach(task => {
     const mountEl = resultBox.querySelector(`#${task.mountId}`);
