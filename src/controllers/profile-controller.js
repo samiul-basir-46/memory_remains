@@ -343,7 +343,7 @@ async function loadUserOrders(user) {
 
 function renderAdminFlagNoteBanner(order) {
   const status = (order.status || '').toLowerCase();
-  
+
   // STRICT RULE: ONLY show Action Required Banner IF status IS 'flagged'!
   if (status !== 'flagged') return '';
 

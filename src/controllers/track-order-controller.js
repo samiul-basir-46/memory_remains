@@ -104,7 +104,6 @@ async function doTrackOrder(phone, orderId) {
   let ordersList = [];
   const seenMap = new Map();
 
-  // Query Firebase Firestore FIRST for real-time order status
   try {
     const { db } = getFirebaseServices();
     if (db) {
@@ -119,22 +118,30 @@ async function doTrackOrder(phone, orderId) {
           }
         }
 
-        const qP1 = await db.collection('purchases').where('orderId', '==', orderId).get();
-        qP1.forEach(doc => seenMap.set(doc.id, { order_id: doc.id, ...doc.data() }));
+        if (seenMap.size === 0) {
+          const qP1 = await db.collection('purchases').where('orderId', '==', orderId).get();
+          qP1.forEach(doc => seenMap.set(doc.id, { order_id: doc.id, ...doc.data() }));
+        }
 
-        const qP2 = await db.collection('purchases').where('order_id', '==', orderId).get();
-        qP2.forEach(doc => seenMap.set(doc.id, { order_id: doc.id, ...doc.data() }));
+        if (seenMap.size === 0) {
+          const qP2 = await db.collection('purchases').where('order_id', '==', orderId).get();
+          qP2.forEach(doc => seenMap.set(doc.id, { order_id: doc.id, ...doc.data() }));
+        }
       }
 
-      if (phone) {
+      if (phone && seenMap.size === 0) {
         const qP = await db.collection('purchases').where('customer_phone', '==', phone).get();
         qP.forEach(doc => seenMap.set(doc.id, { order_id: doc.id, ...doc.data() }));
 
-        const qPAlt = await db.collection('purchases').where('customerPhone', '==', phone).get();
-        qPAlt.forEach(doc => seenMap.set(doc.id, { order_id: doc.id, ...doc.data() }));
+        if (seenMap.size === 0) {
+          const qPAlt = await db.collection('purchases').where('customerPhone', '==', phone).get();
+          qPAlt.forEach(doc => seenMap.set(doc.id, { order_id: doc.id, ...doc.data() }));
+        }
 
-        const qO = await db.collection('orders').where('customer_phone', '==', phone).get();
-        qO.forEach(doc => seenMap.set(doc.id, { order_id: doc.id, ...doc.data() }));
+        if (seenMap.size === 0) {
+          const qO = await db.collection('orders').where('customer_phone', '==', phone).get();
+          qO.forEach(doc => seenMap.set(doc.id, { order_id: doc.id, ...doc.data() }));
+        }
       }
     }
   } catch (fsErr) {
@@ -182,7 +189,6 @@ async function doTrackOrder(phone, orderId) {
 function renderAdminFlagNoteBanner(order) {
   const status = (order.status || '').toLowerCase();
 
-  // STRICT RULE: ONLY show Action Required Banner IF status IS 'flagged'!
   if (status !== 'flagged') return '';
 
   const orderId = order.id || order.order_id || order.orderId || '';
@@ -555,7 +561,7 @@ function renderTrackingResult(orders) {
       try {
         let res = trackingCode ? await checkSteadfastStatusByTrackingCode(trackingCode) : await checkSteadfastStatusByInvoice(invoice);
         const statusText = res.delivery_status || (res.consignment && res.consignment.status) || 'in_review';
-        
+
         const statusMap = {
           'in_review': { label: 'In Review / Processing', color: 'bg-purple-100 text-purple-900 border-purple-300' },
           'pending': { label: 'Pending Pickup / Processing', color: 'bg-amber-100 text-amber-900 border-amber-300' },
