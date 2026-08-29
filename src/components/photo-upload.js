@@ -2,7 +2,6 @@ import { escapeHtml } from '../utils/ui.js';
 import { getFirebaseServices } from '../services/firebase-service.js';
 
 const API_BASE = "https://bkash-sms-gateway.onrender.com";
-const CHUNK_SIZE = 5 * 1024 * 1024;
 
 export function mapUploadError(detail) {
   if (!detail) return "We ran into a slight bump preparing your upload. Please try again.";
@@ -34,10 +33,30 @@ export function renderPhotoUploadUI(container, options = {}) {
 
   const orderId = options.orderId || '';
   const safeOrderId = orderId.replace(/[^a-zA-Z0-9_-]/g, '');
-  const requiredPhotoCount = Number(options.requiredPhotoCount || 10);
+  
+  // Calculate dynamic min/max limits
+  let minPhotos = Number(options.minPhotos || options.min_photos || options.requiredPhotoCount || 8);
+  let maxPhotos = Number(options.maxPhotos || options.max_photos || options.requiredPhotoCount || minPhotos || 12);
+  const pageCount = Number(options.pageCount || options.pages || 0);
+
+  // Fallbacks if pageCount is known
+  if (pageCount > 0 && (!options.minPhotos || options.minPhotos === 10)) {
+    if (pageCount === 4) { minPhotos = 8; maxPhotos = 12; }
+    else if (pageCount === 8) { minPhotos = 15; maxPhotos = 20; }
+    else if (pageCount === 12) { minPhotos = 22; maxPhotos = 30; }
+    else if (pageCount === 16) { minPhotos = 35; maxPhotos = 45; }
+    else if (pageCount === 20) { minPhotos = 45; maxPhotos = 55; }
+    else if (pageCount === 24) { minPhotos = 55; maxPhotos = 65; }
+  }
+
+  const isRange = minPhotos !== maxPhotos && minPhotos > 0;
   const onSuccess = options.onSuccess;
 
-  let selectedFiles = [];
+  // Dedicated slots
+  let coverFile = null;
+  let backFile = null;
+  let innerFiles = [];
+
   let isUploading = false;
   let isComplete = Boolean(options.photosUploaded);
   let statusText = '';
@@ -46,7 +65,15 @@ export function renderPhotoUploadUI(container, options = {}) {
   let replaceTargetIndex = null;
 
   function cleanupObjectUrls() {
-    selectedFiles.forEach(f => {
+    if (coverFile?._objectUrl) {
+      URL.revokeObjectURL(coverFile._objectUrl);
+      delete coverFile._objectUrl;
+    }
+    if (backFile?._objectUrl) {
+      URL.revokeObjectURL(backFile._objectUrl);
+      delete backFile._objectUrl;
+    }
+    innerFiles.forEach(f => {
       if (f._objectUrl) {
         URL.revokeObjectURL(f._objectUrl);
         delete f._objectUrl;
@@ -55,83 +82,192 @@ export function renderPhotoUploadUI(container, options = {}) {
   }
 
   function getFileObjectUrl(file) {
+    if (!file) return '';
     if (!file._objectUrl) {
       file._objectUrl = URL.createObjectURL(file);
     }
     return file._objectUrl;
   }
 
+  function getTotalCount() {
+    return (coverFile ? 1 : 0) + (backFile ? 1 : 0) + innerFiles.length;
+  }
+
   function render() {
     if (isComplete) {
       container.innerHTML = `
-        <div class="bg-gradient-to-r from-emerald-50 to-teal-50 p-5 rounded-xl border border-emerald-200 text-center space-y-2 shadow-sm">
-          <div class="w-10 h-10 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-lg mx-auto">
+        <div class="bg-gradient-to-r from-emerald-50 to-teal-50 p-6 rounded-2xl border border-emerald-200 text-center space-y-2 shadow-sm">
+          <div class="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-xl mx-auto">
             <i class="fa-solid fa-circle-check"></i>
           </div>
           <div>
-            <h4 class="font-heading text-base font-bold text-emerald-950 mb-0.5">✅ Photos Received</h4>
-            <p class="text-xs text-emerald-700">Your magazine is being prepared by our design team.</p>
+            <h4 class="font-heading text-lg font-bold text-emerald-950 mb-0.5">✅ Photos Uploaded Successfully!</h4>
+            <p class="text-xs text-emerald-700 font-medium">Cover page, back page, and inner photos have been safely archived for production.</p>
           </div>
         </div>
       `;
       return;
     }
 
-    const countMatches = selectedFiles.length === requiredPhotoCount;
+    const totalCount = getTotalCount();
+    const hasCover = Boolean(coverFile);
+    const hasBack = Boolean(backFile);
+    const countMatches = hasCover && hasBack && totalCount >= minPhotos && totalCount <= maxPhotos;
+    const isTooFew = totalCount < minPhotos;
+    const isTooMany = totalCount > maxPhotos;
+
+    let validationMessage = '';
+    if (!hasCover && !hasBack) {
+      validationMessage = '⚠️ Please select Front Cover & Back Cover photos';
+    } else if (!hasCover) {
+      validationMessage = '⚠️ Please select Front Cover photo';
+    } else if (!hasBack) {
+      validationMessage = '⚠️ Please select Back Cover photo';
+    } else if (isTooFew) {
+      validationMessage = `⚠️ Need at least ${minPhotos - totalCount} more inner photo${minPhotos - totalCount > 1 ? 's' : ''}`;
+    } else if (isTooMany) {
+      validationMessage = `⚠️ Too many photos (${totalCount}/${maxPhotos}) — please remove ${totalCount - maxPhotos}`;
+    } else {
+      validationMessage = `✓ Ready to upload! (${totalCount} photos selected)`;
+    }
 
     container.innerHTML = `
       <div class="bg-white p-6 md:p-8 rounded-2xl border border-pink-100 shadow-xl space-y-6">
         <div>
-          <h3 class="font-heading text-2xl text-[#2A2A2A] font-bold mb-1">Upload Your Photos</h3>
-          <p class="text-sm text-text-soft">This template requires exactly <strong class="text-primary font-bold">${requiredPhotoCount}</strong> photos</p>
+          <div class="flex items-center justify-between flex-wrap gap-2 mb-1">
+            <h3 class="font-heading text-xl md:text-2xl text-[#2A2A2A] font-bold">Upload Your Photos</h3>
+            <span class="px-3 py-1 bg-pink-100 text-pink-800 text-xs font-bold rounded-full">
+              Required: ${isRange ? `${minPhotos}–${maxPhotos}` : `${maxPhotos}`} Photos
+            </span>
+          </div>
+          <p class="text-xs md:text-sm text-text-soft">
+            Select your dedicated <strong>Front Cover</strong>, <strong>Back Page</strong>, and <strong>Inner Page Photos</strong>.
+          </p>
         </div>
 
         <div class="space-y-1.5 text-left">
           <label for="recipient-input-${safeOrderId}" class="text-xs font-bold text-gray-700 flex items-center gap-1.5">
-            <i class="fa-solid fa-user-pen text-pink-500"></i> Recipient / Person Name <span class="text-gray-400 font-normal">(Optional — e.g. For Samiul, Birthday Special)</span>
+            <i class="fa-solid fa-user-pen text-pink-500"></i> Recipient / Title <span class="text-gray-400 font-normal">(Optional — e.g. For Mim, Birthday Special)</span>
           </label>
-          <input type="text" id="recipient-input-${safeOrderId}" placeholder="e.g. For Samiul, For Mim..." 
+          <input type="text" id="recipient-input-${safeOrderId}" placeholder="e.g. For Mim, Anniversary Special..." 
                  class="w-full text-xs px-3.5 py-2.5 rounded-xl border border-pink-200 focus:border-pink-500 focus:ring-1 focus:ring-pink-500 outline-none transition-all font-body bg-pink-50/20"
                  value="${options.recipientName || ''}">
         </div>
 
-        <div id="drop-zone-${safeOrderId}" class="border-2 border-dashed border-pink-300/80 hover:border-primary bg-pink-50/40 hover:bg-pink-50/70 p-6 md:p-8 rounded-2xl text-center cursor-pointer transition-colors flex flex-col items-center justify-center gap-3">
-          <div class="w-12 h-12 rounded-full bg-pink-100 text-primary flex items-center justify-center text-xl mb-1">
-            <i class="fa-solid fa-cloud-arrow-up"></i>
-          </div>
-          <p class="text-sm font-semibold text-[#2A2A2A]">Drag & drop photos here, or <span class="text-primary underline font-bold">browse</span></p>
-          <p class="text-xs text-text-soft">Supports high-res images (JPEG, PNG, WEBP)</p>
-          <input type="file" id="file-input-${safeOrderId}" accept="image/*" multiple class="hidden">
-          <input type="file" id="replace-file-input-${safeOrderId}" accept="image/*" class="hidden">
-        </div>
-
-        <div class="flex items-center justify-between text-xs font-bold ${countMatches ? 'text-emerald-600' : 'text-[#2A2A2A]'} border-b border-pink-100 pb-2">
-          <span>${selectedFiles.length} of ${requiredPhotoCount} photos selected</span>
-          <span>${countMatches ? '✓ Ready to upload' : `Need ${requiredPhotoCount - selectedFiles.length} more`}</span>
-        </div>
-
-        ${selectedFiles.length > 0 ? `
-          <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            ${selectedFiles.map((file, idx) => `
-              <div class="relative group bg-gray-50 rounded-xl overflow-hidden border border-gray-200 aspect-square shadow-sm flex flex-col">
-                <img src="${getFileObjectUrl(file)}" class="w-full h-full object-cover" alt="Photo ${idx + 1}">
-                <div class="absolute inset-x-0 bottom-0 bg-black/60 backdrop-blur-sm p-1.5 text-center">
-                  <span class="text-white text-[11px] font-bold">Photo ${idx + 1}</span>
+        <!-- Dedicated Cover & Back Page Slots -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <!-- Front Cover Slot -->
+          <div class="relative border-2 ${coverFile ? 'border-emerald-400 bg-emerald-50/30' : 'border-dashed border-pink-300 bg-pink-50/40'} rounded-2xl p-4 flex flex-col items-center justify-center text-center min-h-[190px] transition-all">
+            <span class="absolute top-2.5 left-2.5 px-2.5 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wider ${coverFile ? 'bg-emerald-600 text-white shadow-xs' : 'bg-pink-200 text-pink-900'}">
+              🌟 Front Cover (Page 1)
+            </span>
+            ${coverFile ? `
+              <div class="relative w-full h-32 rounded-xl overflow-hidden mt-5 mb-2 shadow-xs group">
+                <img src="${getFileObjectUrl(coverFile)}" class="w-full h-full object-cover" alt="Front Cover">
+                <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                  <button type="button" id="btn-replace-cover-${safeOrderId}" class="px-2.5 py-1 bg-white text-gray-800 text-xs font-bold rounded-lg shadow-sm hover:bg-gray-100 cursor-pointer">
+                    <i class="fa-solid fa-arrows-rotate"></i> Change
+                  </button>
+                  <button type="button" id="btn-remove-cover-${safeOrderId}" class="px-2.5 py-1 bg-rose-600 text-white text-xs font-bold rounded-lg shadow-sm hover:bg-rose-700 cursor-pointer">
+                    <i class="fa-solid fa-trash"></i>
+                  </button>
                 </div>
-                ${!isUploading ? `
-                  <div class="absolute top-2 right-2 flex gap-1">
-                    <button type="button" data-action="replace" data-index="${idx}" class="w-7 h-7 rounded-full bg-white/90 text-gray-700 hover:text-primary hover:bg-white flex items-center justify-center text-xs shadow-md transition-colors cursor-pointer" title="Replace Photo">
-                      <i class="fa-solid fa-arrows-rotate"></i>
-                    </button>
-                    <button type="button" data-action="remove" data-index="${idx}" class="w-7 h-7 rounded-full bg-white/90 text-rose-600 hover:bg-rose-600 hover:text-white flex items-center justify-center text-xs shadow-md transition-colors cursor-pointer" title="Remove Photo">
-                      <i class="fa-solid fa-xmark"></i>
-                    </button>
-                  </div>
-                ` : ''}
               </div>
-            `).join('')}
+              <p class="text-[11px] font-bold text-emerald-800 truncate max-w-[200px]">${escapeHtml(coverFile.name)}</p>
+            ` : `
+              <div id="zone-cover-${safeOrderId}" class="w-full h-full flex flex-col items-center justify-center cursor-pointer py-4">
+                <div class="w-10 h-10 rounded-full bg-pink-100 text-primary flex items-center justify-center text-lg mb-2">
+                  <i class="fa-solid fa-image"></i>
+                </div>
+                <p class="text-xs font-bold text-[#2A2A2A]">Select Front Cover</p>
+                <p class="text-[10px] text-text-soft mt-0.5">Click to browse / drop photo</p>
+              </div>
+            `}
+            <input type="file" id="input-cover-${safeOrderId}" accept="image/*" class="hidden">
           </div>
-        ` : ''}
+
+          <!-- Back Page Slot -->
+          <div class="relative border-2 ${backFile ? 'border-emerald-400 bg-emerald-50/30' : 'border-dashed border-pink-300 bg-pink-50/40'} rounded-2xl p-4 flex flex-col items-center justify-center text-center min-h-[190px] transition-all">
+            <span class="absolute top-2.5 left-2.5 px-2.5 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wider ${backFile ? 'bg-emerald-600 text-white shadow-xs' : 'bg-pink-200 text-pink-900'}">
+              📖 Back Cover (Last Page)
+            </span>
+            ${backFile ? `
+              <div class="relative w-full h-32 rounded-xl overflow-hidden mt-5 mb-2 shadow-xs group">
+                <img src="${getFileObjectUrl(backFile)}" class="w-full h-full object-cover" alt="Back Cover">
+                <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                  <button type="button" id="btn-replace-back-${safeOrderId}" class="px-2.5 py-1 bg-white text-gray-800 text-xs font-bold rounded-lg shadow-sm hover:bg-gray-100 cursor-pointer">
+                    <i class="fa-solid fa-arrows-rotate"></i> Change
+                  </button>
+                  <button type="button" id="btn-remove-back-${safeOrderId}" class="px-2.5 py-1 bg-rose-600 text-white text-xs font-bold rounded-lg shadow-sm hover:bg-rose-700 cursor-pointer">
+                    <i class="fa-solid fa-trash"></i>
+                  </button>
+                </div>
+              </div>
+              <p class="text-[11px] font-bold text-emerald-800 truncate max-w-[200px]">${escapeHtml(backFile.name)}</p>
+            ` : `
+              <div id="zone-back-${safeOrderId}" class="w-full h-full flex flex-col items-center justify-center cursor-pointer py-4">
+                <div class="w-10 h-10 rounded-full bg-pink-100 text-primary flex items-center justify-center text-lg mb-2">
+                  <i class="fa-solid fa-book-open"></i>
+                </div>
+                <p class="text-xs font-bold text-[#2A2A2A]">Select Back Cover</p>
+                <p class="text-[10px] text-text-soft mt-0.5">Click to browse / drop photo</p>
+              </div>
+            `}
+            <input type="file" id="input-back-${safeOrderId}" accept="image/*" class="hidden">
+          </div>
+        </div>
+
+        <!-- Inner Photos Section -->
+        <div class="space-y-3">
+          <div class="flex items-center justify-between">
+            <div>
+              <h4 class="text-xs font-bold text-gray-800 uppercase tracking-wider">Inner Magazine Photos</h4>
+              <p class="text-[11px] text-gray-500">Remaining photos for the magazine pages</p>
+            </div>
+            <span class="text-xs font-bold text-gray-600">
+              ${innerFiles.length} photos selected
+            </span>
+          </div>
+
+          <div id="drop-zone-inner-${safeOrderId}" class="border-2 border-dashed border-pink-300/80 hover:border-primary bg-pink-50/40 hover:bg-pink-50/70 p-5 rounded-2xl text-center cursor-pointer transition-colors flex flex-col items-center justify-center gap-2">
+            <div class="w-10 h-10 rounded-full bg-pink-100 text-primary flex items-center justify-center text-lg">
+              <i class="fa-solid fa-cloud-arrow-up"></i>
+            </div>
+            <p class="text-xs font-semibold text-[#2A2A2A]">Drag & drop inner photos here, or <span class="text-primary underline font-bold">browse</span></p>
+            <p class="text-[10px] text-text-soft">Select multiple photos at once</p>
+            <input type="file" id="file-input-inner-${safeOrderId}" accept="image/*" multiple class="hidden">
+            <input type="file" id="replace-file-input-${safeOrderId}" accept="image/*" class="hidden">
+          </div>
+
+          ${innerFiles.length > 0 ? `
+            <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 max-h-[360px] overflow-y-auto p-1">
+              ${innerFiles.map((file, idx) => `
+                <div class="relative group bg-gray-50 rounded-xl overflow-hidden border border-gray-200 aspect-square shadow-2xs flex flex-col">
+                  <img src="${getFileObjectUrl(file)}" class="w-full h-full object-cover" alt="Inner Photo ${idx + 1}">
+                  <div class="absolute inset-x-0 bottom-0 bg-black/60 backdrop-blur-xs p-1 text-center">
+                    <span class="text-white text-[10px] font-bold">Page ${idx + 2}</span>
+                  </div>
+                  ${!isUploading ? `
+                    <div class="absolute top-1.5 right-1.5 flex gap-1">
+                      <button type="button" data-action="replace-inner" data-index="${idx}" class="w-6 h-6 rounded-full bg-white/90 text-gray-700 hover:text-primary hover:bg-white flex items-center justify-center text-[10px] shadow-sm transition-colors cursor-pointer" title="Replace">
+                        <i class="fa-solid fa-arrows-rotate"></i>
+                      </button>
+                      <button type="button" data-action="remove-inner" data-index="${idx}" class="w-6 h-6 rounded-full bg-white/90 text-rose-600 hover:bg-rose-600 hover:text-white flex items-center justify-center text-[10px] shadow-sm transition-colors cursor-pointer" title="Remove">
+                        <i class="fa-solid fa-xmark"></i>
+                      </button>
+                    </div>
+                  ` : ''}
+                </div>
+              `).join('')}
+            </div>
+          ` : ''}
+        </div>
+
+        <!-- Overall Summary & Status -->
+        <div class="p-3.5 rounded-xl ${countMatches ? 'bg-emerald-50 border border-emerald-200 text-emerald-900' : 'bg-pink-50 border border-pink-200 text-pink-900'} flex items-center justify-between text-xs font-bold">
+          <span>Total: ${totalCount} / Allowed: ${isRange ? `${minPhotos}–${maxPhotos}` : maxPhotos} Photos</span>
+          <span>${validationMessage}</span>
+        </div>
 
         ${isUploading ? `
           <div class="space-y-2 bg-pink-50/50 p-4 rounded-xl border border-pink-100">
@@ -152,7 +288,7 @@ export function renderPhotoUploadUI(container, options = {}) {
         ` : ''}
 
         <button type="button" id="upload-btn-${safeOrderId}" ${countMatches && !isUploading ? '' : 'disabled'} class="w-full py-3.5 bg-[#C97B5F] hover:bg-[#8B4A38] disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-bold rounded-xl text-sm shadow-md transition-colors cursor-pointer text-center">
-          ${isUploading ? 'Uploading Photos...' : 'Upload Photos'}
+          ${isUploading ? 'Uploading Photos...' : `Upload All Photos (${totalCount})`}
         </button>
       </div>
     `;
@@ -160,64 +296,124 @@ export function renderPhotoUploadUI(container, options = {}) {
     attachEvents();
   }
 
-  function handleFileAdd(newFilesList) {
-    const validFiles = Array.from(newFilesList).filter(f => f.type.startsWith('image/'));
-    const remainingSlots = requiredPhotoCount - selectedFiles.length;
-    if (remainingSlots <= 0) return;
-
-    const filesToAdd = validFiles.slice(0, remainingSlots);
-    selectedFiles = [...selectedFiles, ...filesToAdd];
-    errorMessage = '';
-    render();
-  }
-
   function attachEvents() {
-    const dropZone = container.querySelector(`#drop-zone-${safeOrderId}`);
-    const fileInput = container.querySelector(`#file-input-${safeOrderId}`);
+    const inputCover = container.querySelector(`#input-cover-${safeOrderId}`);
+    const inputBack = container.querySelector(`#input-back-${safeOrderId}`);
+    const zoneCover = container.querySelector(`#zone-cover-${safeOrderId}`);
+    const zoneBack = container.querySelector(`#zone-back-${safeOrderId}`);
+    const btnReplaceCover = container.querySelector(`#btn-replace-cover-${safeOrderId}`);
+    const btnRemoveCover = container.querySelector(`#btn-remove-cover-${safeOrderId}`);
+    const btnReplaceBack = container.querySelector(`#btn-replace-back-${safeOrderId}`);
+    const btnRemoveBack = container.querySelector(`#btn-remove-back-${safeOrderId}`);
+
+    const dropZoneInner = container.querySelector(`#drop-zone-inner-${safeOrderId}`);
+    const fileInputInner = container.querySelector(`#file-input-inner-${safeOrderId}`);
     const replaceInput = container.querySelector(`#replace-file-input-${safeOrderId}`);
     const uploadBtn = container.querySelector(`#upload-btn-${safeOrderId}`);
 
-    if (dropZone && fileInput && !isUploading) {
-      dropZone.addEventListener('click', (e) => {
-        if (e.target.closest('button') || e.target.closest('input')) return;
-        fileInput.click();
+    // Cover page triggers
+    if (zoneCover && inputCover && !isUploading) {
+      zoneCover.addEventListener('click', () => inputCover.click());
+    }
+    if (btnReplaceCover && inputCover && !isUploading) {
+      btnReplaceCover.addEventListener('click', () => inputCover.click());
+    }
+    if (btnRemoveCover && !isUploading) {
+      btnRemoveCover.addEventListener('click', () => {
+        if (coverFile?._objectUrl) URL.revokeObjectURL(coverFile._objectUrl);
+        coverFile = null;
+        errorMessage = '';
+        render();
       });
-
-      fileInput.addEventListener('change', (e) => {
-        if (e.target.files && e.target.files.length > 0) {
-          handleFileAdd(e.target.files);
-          fileInput.value = '';
-        }
-      });
-
-      dropZone.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        dropZone.classList.add('border-primary', 'bg-pink-100/50');
-      });
-
-      dropZone.addEventListener('dragleave', (e) => {
-        e.preventDefault();
-        dropZone.classList.remove('border-primary', 'bg-pink-100/50');
-      });
-
-      dropZone.addEventListener('drop', (e) => {
-        e.preventDefault();
-        dropZone.classList.remove('border-primary', 'bg-pink-100/50');
-        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-          handleFileAdd(e.dataTransfer.files);
+    }
+    if (inputCover && !isUploading) {
+      inputCover.addEventListener('change', (e) => {
+        if (e.target.files && e.target.files[0]) {
+          const f = e.target.files[0];
+          if (f.type.startsWith('image/')) {
+            if (coverFile?._objectUrl) URL.revokeObjectURL(coverFile._objectUrl);
+            coverFile = f;
+            errorMessage = '';
+            render();
+          }
+          inputCover.value = '';
         }
       });
     }
 
+    // Back page triggers
+    if (zoneBack && inputBack && !isUploading) {
+      zoneBack.addEventListener('click', () => inputBack.click());
+    }
+    if (btnReplaceBack && inputBack && !isUploading) {
+      btnReplaceBack.addEventListener('click', () => inputBack.click());
+    }
+    if (btnRemoveBack && !isUploading) {
+      btnRemoveBack.addEventListener('click', () => {
+        if (backFile?._objectUrl) URL.revokeObjectURL(backFile._objectUrl);
+        backFile = null;
+        errorMessage = '';
+        render();
+      });
+    }
+    if (inputBack && !isUploading) {
+      inputBack.addEventListener('change', (e) => {
+        if (e.target.files && e.target.files[0]) {
+          const f = e.target.files[0];
+          if (f.type.startsWith('image/')) {
+            if (backFile?._objectUrl) URL.revokeObjectURL(backFile._objectUrl);
+            backFile = f;
+            errorMessage = '';
+            render();
+          }
+          inputBack.value = '';
+        }
+      });
+    }
+
+    // Inner photos triggers
+    if (dropZoneInner && fileInputInner && !isUploading) {
+      dropZoneInner.addEventListener('click', (e) => {
+        if (e.target.closest('button') || e.target.closest('input')) return;
+        fileInputInner.click();
+      });
+
+      fileInputInner.addEventListener('change', (e) => {
+        if (e.target.files && e.target.files.length > 0) {
+          handleInnerFilesAdd(e.target.files);
+          fileInputInner.value = '';
+        }
+      });
+
+      dropZoneInner.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropZoneInner.classList.add('border-primary', 'bg-pink-100/50');
+      });
+
+      dropZoneInner.addEventListener('dragleave', (e) => {
+        e.preventDefault();
+        dropZoneInner.classList.remove('border-primary', 'bg-pink-100/50');
+      });
+
+      dropZoneInner.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZoneInner.classList.remove('border-primary', 'bg-pink-100/50');
+        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+          handleInnerFilesAdd(e.dataTransfer.files);
+        }
+      });
+    }
+
+    // Replace inner photo trigger
     if (replaceInput && !isUploading) {
       replaceInput.addEventListener('change', (e) => {
         if (e.target.files && e.target.files.length > 0 && replaceTargetIndex !== null) {
           const newFile = e.target.files[0];
           if (newFile.type.startsWith('image/')) {
-            if (selectedFiles[replaceTargetIndex] && selectedFiles[replaceTargetIndex]._objectUrl) {
-              URL.revokeObjectURL(selectedFiles[replaceTargetIndex]._objectUrl);
+            if (innerFiles[replaceTargetIndex] && innerFiles[replaceTargetIndex]._objectUrl) {
+              URL.revokeObjectURL(innerFiles[replaceTargetIndex]._objectUrl);
             }
-            selectedFiles[replaceTargetIndex] = newFile;
+            innerFiles[replaceTargetIndex] = newFile;
             errorMessage = '';
             render();
           }
@@ -227,20 +423,21 @@ export function renderPhotoUploadUI(container, options = {}) {
       });
     }
 
+    // Inner photo action buttons
     container.querySelectorAll('button[data-action]').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
         const action = btn.getAttribute('data-action');
         const idx = Number(btn.getAttribute('data-index'));
 
-        if (action === 'remove') {
-          if (selectedFiles[idx] && selectedFiles[idx]._objectUrl) {
-            URL.revokeObjectURL(selectedFiles[idx]._objectUrl);
+        if (action === 'remove-inner') {
+          if (innerFiles[idx] && innerFiles[idx]._objectUrl) {
+            URL.revokeObjectURL(innerFiles[idx]._objectUrl);
           }
-          selectedFiles.splice(idx, 1);
+          innerFiles.splice(idx, 1);
           errorMessage = '';
           render();
-        } else if (action === 'replace') {
+        } else if (action === 'replace-inner') {
           replaceTargetIndex = idx;
           replaceInput?.click();
         }
@@ -249,17 +446,97 @@ export function renderPhotoUploadUI(container, options = {}) {
 
     if (uploadBtn && !isUploading) {
       uploadBtn.addEventListener('click', () => {
-        if (selectedFiles.length === requiredPhotoCount) {
+        const total = getTotalCount();
+        if (coverFile && backFile && total >= minPhotos && total <= maxPhotos) {
           startUploadProcess();
         }
       });
     }
   }
 
+  function handleInnerFilesAdd(newFilesList) {
+    const validFiles = Array.from(newFilesList).filter(f => f.type.startsWith('image/'));
+    const maxInnerSlots = maxPhotos - (coverFile ? 1 : 0) - (backFile ? 1 : 0);
+    const remainingSlots = maxInnerSlots - innerFiles.length;
+    if (remainingSlots <= 0) return;
+
+    const filesToAdd = validFiles.slice(0, remainingSlots);
+    innerFiles = [...innerFiles, ...filesToAdd];
+    errorMessage = '';
+    render();
+  }
+
+  async function uploadSingleFile(file, category, index, mainOrderId) {
+    const fileExt = file.name ? file.name.split('.').pop().toLowerCase() : 'jpg';
+    let safeFilename = '';
+    if (category === 'cover') {
+      safeFilename = `cover_page.${fileExt}`;
+    } else if (category === 'back') {
+      safeFilename = `back_page.${fileExt}`;
+    } else {
+      const padNum = String(index + 1).padStart(2, '0');
+      safeFilename = `inner_pages/page_${padNum}.${fileExt}`;
+    }
+
+    // 1. Primary: Direct Firebase Storage Upload (5GB Free Plan)
+    try {
+      const { storage } = getFirebaseServices();
+      if (storage) {
+        const storagePath = `orders/${mainOrderId}/${safeFilename}`;
+        const storageRef = storage.ref(storagePath);
+        const uploadSnapshot = await storageRef.put(file);
+        const downloadUrl = await uploadSnapshot.ref.getDownloadURL();
+        if (downloadUrl) return downloadUrl;
+      }
+    } catch (fbErr) {
+      console.warn('Firebase Storage upload error, falling back to secondary:', fbErr);
+    }
+
+    // 2. Secondary: Direct Cloudinary upload
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('upload_preset', 'memory-remains');
+      formData.append('folder', `orders/${mainOrderId}`);
+
+      const cldRes = await fetch('https://api.cloudinary.com/v1_1/cmpl84gp/image/upload', {
+        method: 'POST',
+        body: formData
+      });
+
+      if (cldRes.ok) {
+        const cldData = await cldRes.json();
+        if (cldData.secure_url) return cldData.secure_url;
+      }
+    } catch (cldErr) {
+      console.warn('Cloudinary upload error, falling back to chunk upload:', cldErr);
+    }
+
+    // 3. Fallback: Backend Chunk Upload
+    const formData = new FormData();
+    formData.append('order_id', mainOrderId);
+    formData.append('upload_index', index);
+    formData.append('chunk_index', 0);
+    formData.append('total_chunks', 1);
+    formData.append('file', file, file.name);
+
+    const chunkRes = await fetch(`${API_BASE}/upload-photos/chunk`, {
+      method: 'POST',
+      body: formData
+    });
+
+    if (chunkRes.ok) {
+      const chunkData = await chunkRes.json();
+      if (chunkData.url) return chunkData.url;
+    }
+
+    throw new Error('Failed to upload image file to cloud storage.');
+  }
+
   async function startUploadProcess() {
     isUploading = true;
     errorMessage = '';
-    statusText = 'Initializing upload...';
+    statusText = 'Preparing photos for upload...';
     overallProgress = 0;
     render();
 
@@ -271,91 +548,53 @@ export function renderPhotoUploadUI(container, options = {}) {
       }
     }
 
-    const uploadedUrls = [];
-    const totalFiles = selectedFiles.length;
+    const totalToUpload = 2 + innerFiles.length; // Cover + Back + Inners
+    let completedCount = 0;
 
-    for (let fileIndex = 0; fileIndex < totalFiles; fileIndex++) {
-      const file = selectedFiles[fileIndex];
-      statusText = `Uploading photo ${fileIndex + 1} of ${totalFiles}...`;
-      overallProgress = Math.round((fileIndex / totalFiles) * 100);
-      render();
-
-      let fileSuccess = false;
-      let lastErrMessage = '';
-
-      // Direct Cloudinary upload using unsigned preset memory-remains
-      try {
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('upload_preset', 'memory-remains');
-        formData.append('folder', `orders/${mainOrderId}`);
-
-        const cldRes = await fetch('https://api.cloudinary.com/v1_1/cmpl84gp/image/upload', {
-          method: 'POST',
-          body: formData
-        });
-
-        if (cldRes.ok) {
-          const cldData = await cldRes.json();
-          if (cldData.secure_url) {
-            uploadedUrls.push(cldData.secure_url);
-            fileSuccess = true;
-          }
-        } else {
-          const cldErr = await cldRes.json().catch(() => ({}));
-          lastErrMessage = cldErr.error?.message || `Cloudinary status ${cldRes.status}`;
-        }
-      } catch (err) {
-        lastErrMessage = err.message;
-      }
-
-      // Fallback to chunk upload if direct Cloudinary fails
-      if (!fileSuccess) {
-        try {
-          const formData = new FormData();
-          formData.append('order_id', mainOrderId);
-          formData.append('upload_index', fileIndex);
-          formData.append('chunk_index', 0);
-          formData.append('total_chunks', 1);
-          formData.append('file', file, file.name);
-
-          const chunkRes = await fetch(`${API_BASE}/upload-photos/chunk`, {
-            method: 'POST',
-            body: formData
-          });
-
-          if (chunkRes.ok) {
-            const chunkData = await chunkRes.json();
-            if (chunkData.url) uploadedUrls.push(chunkData.url);
-            fileSuccess = true;
-          } else {
-            const errData = await chunkRes.json().catch(() => ({}));
-            lastErrMessage = errData.detail || errData.message || `API status ${chunkRes.status}`;
-          }
-        } catch (apiErr) {
-          lastErrMessage = apiErr.message;
-        }
-      }
-
-      if (!fileSuccess) {
-        isUploading = false;
-        errorMessage = mapUploadError(lastErrMessage);
-        render();
-        return;
-      }
-    }
-
-    isUploading = false;
-    isComplete = true;
-    overallProgress = 100;
-    statusText = 'Upload completed!';
-    render();
+    let coverUrl = '';
+    let backUrl = '';
+    const innerUrls = [];
 
     try {
+      // 1. Upload Cover Page
+      statusText = `Uploading Front Cover photo (1 of ${totalToUpload})...`;
+      overallProgress = Math.round((completedCount / totalToUpload) * 100);
+      render();
+      coverUrl = await uploadSingleFile(coverFile, 'cover', 0, mainOrderId);
+      completedCount++;
+
+      // 2. Upload Back Page
+      statusText = `Uploading Back Cover photo (2 of ${totalToUpload})...`;
+      overallProgress = Math.round((completedCount / totalToUpload) * 100);
+      render();
+      backUrl = await uploadSingleFile(backFile, 'back', 1, mainOrderId);
+      completedCount++;
+
+      // 3. Upload Inner Photos
+      for (let i = 0; i < innerFiles.length; i++) {
+        statusText = `Uploading Inner Page photo ${i + 1} of ${innerFiles.length} (${completedCount + 1} of ${totalToUpload})...`;
+        overallProgress = Math.round((completedCount / totalToUpload) * 100);
+        render();
+
+        const url = await uploadSingleFile(innerFiles[i], 'inner', i, mainOrderId);
+        innerUrls.push(url);
+        completedCount++;
+      }
+
+      overallProgress = 100;
+      statusText = 'Saving order details...';
+      render();
+
+      const allUploadedUrls = [coverUrl, backUrl, ...innerUrls];
+
+      // Update Firestore Record
       const { db } = getFirebaseServices();
       if (db && mainOrderId) {
         const docRef = db.collection('purchases').doc(mainOrderId);
         const docSnap = await docRef.get();
+
+        const recInput = document.getElementById(`recipient-input-${safeOrderId}`);
+        const recName = recInput ? recInput.value.trim() : '';
 
         if (docSnap.exists) {
           const docData = docSnap.data();
@@ -366,14 +605,17 @@ export function renderPhotoUploadUI(container, options = {}) {
                 ? options.itemIndex
                 : itemsList.findIndex(it => it.item_id === options.itemId || it.template_id === options.templateId);
 
-            const recInput = document.getElementById(`recipient-input-${safeOrderId}`);
-            const recName = recInput ? recInput.value.trim() : '';
-
             if (targetIdx >= 0 && targetIdx < itemsList.length) {
               itemsList[targetIdx].photos_uploaded = true;
               itemsList[targetIdx].photosUploaded = true;
-              itemsList[targetIdx].photo_urls = uploadedUrls;
-              itemsList[targetIdx].imageUrls = uploadedUrls;
+              itemsList[targetIdx].photo_urls = allUploadedUrls;
+              itemsList[targetIdx].imageUrls = allUploadedUrls;
+              itemsList[targetIdx].cover_url = coverUrl;
+              itemsList[targetIdx].cover_photo_url = coverUrl;
+              itemsList[targetIdx].back_url = backUrl;
+              itemsList[targetIdx].back_photo_url = backUrl;
+              itemsList[targetIdx].inner_urls = innerUrls;
+              itemsList[targetIdx].inner_photo_urls = innerUrls;
               if (recName) {
                 itemsList[targetIdx].recipient_name = recName;
                 itemsList[targetIdx].recipientName = recName;
@@ -387,26 +629,50 @@ export function renderPhotoUploadUI(container, options = {}) {
             items: itemsList.length > 0 ? itemsList : docData.items,
             photos_uploaded: allMagazinesUploaded,
             photosUploaded: allMagazinesUploaded,
-            imageUrls: uploadedUrls.length > 0 ? uploadedUrls : (docData.imageUrls || []),
+            cover_url: coverUrl,
+            cover_photo_url: coverUrl,
+            back_url: backUrl,
+            back_photo_url: backUrl,
+            inner_urls: innerUrls,
+            inner_photo_urls: innerUrls,
+            imageUrls: allUploadedUrls,
+            photo_urls: allUploadedUrls,
+            recipient_name: recName || docData.recipient_name || '',
             updated_at: new Date().toISOString()
           }, { merge: true });
         } else {
           await docRef.set({
             photos_uploaded: true,
             photosUploaded: true,
-            imageUrls: uploadedUrls,
+            cover_url: coverUrl,
+            cover_photo_url: coverUrl,
+            back_url: backUrl,
+            back_photo_url: backUrl,
+            inner_urls: innerUrls,
+            inner_photo_urls: innerUrls,
+            imageUrls: allUploadedUrls,
+            photo_urls: allUploadedUrls,
+            recipient_name: recName,
             updated_at: new Date().toISOString()
           }, { merge: true });
         }
       }
-    } catch (fsErr) {
-      console.warn('Error updating Firestore upload status:', fsErr);
-    }
 
-    cleanupObjectUrls();
+      isUploading = false;
+      isComplete = true;
+      statusText = 'Upload completed!';
+      render();
 
-    if (typeof onSuccess === 'function') {
-      onSuccess();
+      cleanupObjectUrls();
+
+      if (typeof onSuccess === 'function') {
+        onSuccess();
+      }
+    } catch (err) {
+      console.error('Photo upload process failed:', err);
+      isUploading = false;
+      errorMessage = mapUploadError(err.message);
+      render();
     }
   }
 

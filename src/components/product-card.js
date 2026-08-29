@@ -18,16 +18,24 @@ const BADGE_META = {
   recommended: { label: 'Recommended', bg: '#8B4A38', color: '#FFF5F0' },
   limited: { label: 'Limited', bg: '#8B4A38', color: '#FFF5F0' },
   sale: { label: 'Sale', bg: '#C97B5F', color: '#FFF5F0' },
+  offer: { label: 'Special Offer', bg: '#C97B5F', color: '#FFF5F0' },
+  special_offer: { label: 'Special Offer', bg: '#C97B5F', color: '#FFF5F0' },
+  hot_offer: { label: 'Hot Offer', bg: '#8B4A38', color: '#FFF5F0' },
+  mega_offer: { label: 'Mega Offer', bg: '#C97B5F', color: '#FFF5F0' },
+  flash_sale: { label: 'Flash Sale', bg: '#8B4A38', color: '#FFF5F0' },
+  eid_offer: { label: 'Eid Offer', bg: '#C97B5F', color: '#FFF5F0' },
+  discount: { label: 'Discount', bg: '#C97B5F', color: '#FFF5F0' },
   editors_pick: { label: "Editor's Pick", bg: '#C97B5F', color: '#FFF5F0' },
   trending: { label: 'Trending', bg: '#C97B5F', color: '#FFF5F0' },
   top_rated: { label: 'Top Rated', bg: '#8B4A38', color: '#FFF5F0' }
 };
 
 // badge field normalize করে — string বা array দুটোই handle করে
-function normalizeBadges(badge) {
+export function normalizeBadges(badge) {
   if (!badge) return [];
-  if (Array.isArray(badge)) return badge.map((b) => String(b).toLowerCase().trim().replace(/\s+/g, '_'));
-  return [String(badge).toLowerCase().trim().replace(/\s+/g, '_')];
+  if (Array.isArray(badge)) return badge.map((b) => String(b).trim()).filter(Boolean);
+  const str = String(badge).trim();
+  return str ? [str] : [];
 }
 
 // badge HTML render করে — card এর top-right corner এ stack হয়ে দেখাবে
@@ -36,10 +44,13 @@ function renderBadgePills(badge) {
   if (badges.length === 0) return '';
 
   return `<div class="product-badge-stack absolute top-2.5 right-2.5 z-20 flex flex-col items-end gap-1">
-    ${badges.map((b) => {
-    const meta = BADGE_META[b];
-    if (!meta) return '';
-    return `<span class="product-status-badge px-2 py-0.5 text-[10px] font-bold rounded-full shadow-sm leading-tight" style="background:${meta.bg};color:${meta.color}">${meta.label}</span>`;
+    ${badges.map((raw) => {
+    const key = raw.toLowerCase().replace(/\s+/g, '_');
+    const meta = BADGE_META[key];
+    const label = meta ? meta.label : raw;
+    const bg = meta ? meta.bg : '#C97B5F';
+    const color = meta ? meta.color : '#FFF5F0';
+    return `<span class="product-status-badge px-2 py-0.5 text-[10px] font-bold rounded-full shadow-sm leading-tight" style="background:${bg};color:${color}">${escapeHtml(label)}</span>`;
   }).filter(Boolean).join('')}
   </div>`;
 }
@@ -166,12 +177,14 @@ export function renderProductCardV2(template = {}) {
     `;
   }
 
+  const photoDisplay = template.photoRangeText || ((template.minPhotos && template.minPhotos !== template.maxPhotos) ? `${template.minPhotos}–${template.maxPhotos}` : `${requiredPhotos}`);
+
   return `
     <article class="product-card-v2 group rounded-xl overflow-hidden border shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300" style="background:${meta.cardBg};border-color:${meta.cardBorder}" data-product-card>
       <a href="${detailsUrl}" class="product-card-v2__media relative block aspect-square bg-[#1a1a1a] overflow-hidden ${secondaryImg ? 'has-hover-image' : ''}">
         ${renderBadgePills(template.badge)}
         <span class="absolute top-2.5 left-2.5 z-10 px-2 py-0.5 bg-black/60 backdrop-blur-md text-white text-[11px] font-medium rounded-md flex items-center gap-1">
-          ${isPoster ? '<i class="fa-solid fa-layer-group text-[10px]"></i> 5-20 Pcs' : `<i class="fa-solid fa-camera text-[10px]"></i> ${requiredPhotos}`}
+          ${isPoster ? '<i class="fa-solid fa-layer-group text-[10px]"></i> 5-20 Pcs' : `<i class="fa-solid fa-camera text-[10px]"></i> ${photoDisplay}`}
         </span>
         ${imageMarkup(primaryImg, template.title, 'product-card-v2__image primary-image absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105')}
         ${secondaryImg ? imageMarkup(secondaryImg, template.title, 'product-card-v2__image secondary-image absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105') : ''}
@@ -193,4 +206,3 @@ export function renderProductCardV2(template = {}) {
 }
 
 // badge filter এর জন্য utility — shop-controller এ use হবে
-export { normalizeBadges };

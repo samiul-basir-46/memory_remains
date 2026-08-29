@@ -1266,8 +1266,18 @@ function renderPaidSuccessScreen(orderId, checkoutData, data) {
 
   const uploadMount = qs('#checkout-photo-upload-mount');
   if (uploadMount) {
+    const firstItem = Array.isArray(orderData.items) && orderData.items.length > 0 ? orderData.items[0] : {};
+    const minPhotos = Number(orderData.minPhotos || orderData.min_photos || firstItem.minPhotos || firstItem.min_photos || orderData.requiredPhotoCount || 8);
+    const maxPhotos = Number(orderData.maxPhotos || orderData.max_photos || firstItem.maxPhotos || firstItem.max_photos || orderData.requiredPhotoCount || minPhotos || 12);
+    const pageCount = Number(orderData.pageCount || orderData.pages || firstItem.pageCount || firstItem.pages || 0);
+    const recipientName = orderData.recipient_name || orderData.recipientName || firstItem.recipient_name || firstItem.recipientName || '';
+
     renderPhotoUploadUI(uploadMount, {
       orderId,
+      minPhotos,
+      maxPhotos,
+      pageCount,
+      recipientName,
       requiredPhotoCount,
       onSuccess: () => {
         renderPaidSuccessScreen(orderId, checkoutData, { ...data, photos_uploaded: true, photosUploaded: true });

@@ -4,7 +4,7 @@ let firebaseApp;
 
 export function getFirebaseServices() {
   if (typeof firebase === 'undefined') {
-    return { app: null, auth: null, db: null };
+    return { app: null, auth: null, db: null, storage: null };
   }
 
   if (!firebaseApp) {
@@ -13,7 +13,8 @@ export function getFirebaseServices() {
 
   return {
     app: firebaseApp,
-    auth: firebase.auth(),
-    db: firebase.firestore()
+    auth: typeof firebase.auth === 'function' ? firebase.auth() : null,
+    db: typeof firebase.firestore === 'function' ? firebase.firestore() : null,
+    storage: typeof firebase.storage === 'function' ? firebase.storage() : null
   };
 }

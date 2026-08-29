@@ -15,6 +15,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-storage-compat.js"></script>
 </head>
 
 <body data-page="home" class="font-body bg-[#FFF5F0] text-[#2C1A14] antialiased">
@@ -24,9 +25,9 @@
     <section class="hero-wrap">
       <div class="hero-blob hero-blob-1"></div>
       <div class="hero-blob hero-blob-2"></div>
-      <div class="max-w-container mx-auto px-4 w-full relative z-10 py-20 lg:py-0"
-        style="min-height:90vh;display:flex;align-items:center;">
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center w-full">
+      <div class="max-w-container mx-auto px-4 w-full relative z-10 py-8 lg:py-0"
+        style="min-height:auto;display:flex;align-items:center;">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center w-full">
           <div>
             <span class="hero-eyebrow">
               <i class="fa-solid fa-sparkles"></i>
@@ -64,27 +65,43 @@
       </div>
     </section>
 
+    <!-- Mobile-First Instant Magazine Showcase (Immediately visible on Mobile) -->
+    <section id="mobile-top-magazines" class="block lg:hidden px-4 py-4 -mt-2 mb-2">
+      <div class="flex items-center justify-between mb-3">
+        <div>
+          <span class="text-[11px] font-bold text-[#C97B5F] uppercase tracking-wider block">🔥 Popular Designs</span>
+          <h2 class="text-xl font-bold font-heading text-[#2C1A14]">Trending Magazines</h2>
+        </div>
+        <a href="/collections/paid-products?title=Magazine+%26+Newspaper" class="text-xs font-bold text-[#C97B5F] flex items-center gap-1">
+          See All <i class="fa-solid fa-arrow-right text-[10px]"></i>
+        </a>
+      </div>
+      <div id="mobile-magazine-carousel" class="flex gap-3.5 overflow-x-auto pb-3 scrollbar-none snap-x snap-mandatory">
+        <!-- Live dynamic magazine cards will be rendered here immediately -->
+      </div>
+    </section>
+
     <div class="type-strip">
       <a href="/collections/paid-products?title=Magazine+%26+Newspaper" class="type-strip-item"
         style="--c:#C97B5F;--bg:#FFE8DF;">
         <div class="type-strip-icon"><i class="fa-solid fa-book-open"></i></div>
         <span class="type-strip-label">Magazine</span>
-        <span class="type-strip-sub">Vogue · Couple · Soulmate</span>
+        <span class="type-strip-sub hidden md:inline">Vogue · Couple · Soulmate</span>
       </a>
       <a href="/collections/paid-products?title=Frame" class="type-strip-item" style="--c:#8B4A38;--bg:#FFE8DF;">
         <div class="type-strip-icon"><i class="fa-solid fa-image"></i></div>
         <span class="type-strip-label">Photo Frame</span>
-        <span class="type-strip-sub">Wall art for your memories</span>
+        <span class="type-strip-sub hidden md:inline">Wall art for your memories</span>
       </a>
       <a href="/collections/paid-products?title=Poster" class="type-strip-item" style="--c:#C97B5F;--bg:#FFE8DF;">
         <div class="type-strip-icon"><i class="fa-solid fa-scroll"></i></div>
         <span class="type-strip-label">Poster</span>
-        <span class="type-strip-sub">Custom designed just for you</span>
+        <span class="type-strip-sub hidden md:inline">Custom designed just for you</span>
       </a>
       <a href="/collections/paid-products?title=Sticker" class="type-strip-item" style="--c:#8B4A38;--bg:#FFE8DF;">
         <div class="type-strip-icon"><i class="fa-solid fa-star"></i></div>
         <span class="type-strip-label">Sticker</span>
-        <span class="type-strip-sub">Fun & personalized</span>
+        <span class="type-strip-sub hidden md:inline">Fun & personalized</span>
       </a>
     </div>
 

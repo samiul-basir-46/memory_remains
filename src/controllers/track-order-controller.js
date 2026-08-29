@@ -385,6 +385,10 @@ function renderTrackingResult(orders) {
             orderId: actualOrderId,
             itemId: item.item_id || `${actualOrderId}-${idx + 1}`,
             itemIndex: idx,
+            minPhotos: Number(item.minPhotos || item.min_photos || order.minPhotos || order.min_photos || itemReqCount),
+            maxPhotos: Number(item.maxPhotos || item.max_photos || order.maxPhotos || order.max_photos || itemReqCount),
+            pageCount: Number(item.pageCount || item.pages || order.pageCount || order.pages || 0),
+            recipientName: item.recipient_name || item.recipientName || order.recipient_name || '',
             requiredPhotoCount: itemReqCount,
             orderObj: order,
             itemObj: item
@@ -609,6 +613,10 @@ function renderTrackingResult(orders) {
         orderId: task.orderId,
         itemId: task.itemId,
         itemIndex: task.itemIndex,
+        minPhotos: task.minPhotos,
+        maxPhotos: task.maxPhotos,
+        pageCount: task.pageCount,
+        recipientName: task.recipientName,
         requiredPhotoCount: task.requiredPhotoCount,
         onSuccess: () => {
           if (task.itemObj) task.itemObj.photos_uploaded = true;

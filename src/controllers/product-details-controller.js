@@ -1,11 +1,20 @@
-import { fetchTemplateById, fetchTemplates, DEFAULT_FEATURED_TEMPLATES, inferCollection, comparePrice, discountPercent } from '../services/templates-service.js';
+import { fetchTemplateById, fetchTemplates, fetchRelatedTemplates, DEFAULT_FEATURED_TEMPLATES, inferCollection, comparePrice, discountPercent } from '../services/templates-service.js';
 import { renderProductDetailsSkeleton, renderEmptyState, renderErrorState } from '../components/skeleton.js';
 import { addTemplateToCart } from '../services/cart-service.js';
-import { imageMarkup } from '../components/product-card.js';
+import { imageMarkup, renderProductCardV2 } from '../components/product-card.js';
 import { buildCloudinaryDeliveryUrl, setupLazyCloudinaryImages } from '../utils/cloudinary.js';
 import { escapeHtml, formatCurrency, qs, qsa } from '../utils/ui.js';
 
 const FALLBACK_IMAGE = '/assets/product_placeholder.png';
+
+const MAGAZINE_PAGE_TIERS = [
+  { pages: 4, label: '4 Pages', price: 259 },
+  { pages: 8, label: '8 Pages', price: 499 },
+  { pages: 12, label: '12 Pages', price: 699 },
+  { pages: 16, label: '16 Pages', price: 849 },
+  { pages: 20, label: '20 Pages', price: 999 },
+  { pages: 24, label: '24 Pages', price: 1149 }
+];
 
 export async function renderProductDetailsPage(db) {
   const detailsContainer = qs('#details-content-container');
@@ -64,15 +73,55 @@ export async function renderProductDetailsPage(db) {
     // Set Text Content & Badges
     const category = template.category || template.collection || template.target_audience || template.targetAudience || inferCollection(template);
     const title = template.title || template.name || 'Product details';
-    const requiredPhotos = Number(
+    const productType = String(template.product_type || template.productType || 'magazine').toLowerCase().replace(/\s+/g, '_');
+    const isMagazine = productType === 'magazine';
+    const isBoth = productType === 'both';
+    const isTemplateOnly = productType === 'template';
+    const isPoster = productType === 'poster';
+    const isFrame = productType === 'wall_frame' || productType === 'frame';
+    const isSticker = productType === 'sticker';
+
+    const minPhotos = Number(template.minPhotos || template.min_photos || template.minImageCount || 0);
+    const maxPhotos = Number(
+      template.maxPhotos ||
+      template.max_photos ||
+      template.maxImageCount ||
       template.requiredPhotos ||
       template.required_photos ||
       template.required_photo_count ||
       template.requiredImageCount ||
       template.photoCount ||
       template.photo_count ||
-      12
+      (isMagazine ? 20 : (isPoster ? 5 : 8))
     );
+    const effectiveMin = (minPhotos > 0 && minPhotos <= maxPhotos) ? minPhotos : maxPhotos;
+    const effectiveMax = maxPhotos;
+    const requiredPhotos = effectiveMax;
+    const photoRangeDisplay = (effectiveMin > 0 && effectiveMin !== effectiveMax)
+      ? `${effectiveMin}–${effectiveMax} Photos`
+      : `${effectiveMax} Photos`;
+
+    // Magazine Page Selection setup from Dynamic Template Page Tiers or default
+    const availablePageTiers = (Array.isArray(template.pageTiers) && template.pageTiers.length > 0)
+      ? template.pageTiers
+      : (Array.isArray(template.page_tiers) && template.page_tiers.length > 0
+          ? template.page_tiers
+          : MAGAZINE_PAGE_TIERS);
+
+    const initialPageNum = Number(template.pages || template.page_count || 8);
+    let selectedPageTier = availablePageTiers.find(t => t.pages === initialPageNum) || availablePageTiers[0];
+    let selectedMagazinePrice = selectedPageTier.price;
+
+    const pages = template.pages || template.page_count || template.pageCount || template.totalPages || template.total_pages || (isMagazine ? '8 Pages' : '');
+    const size = template.size || template.dimension || template.dimensions || template.paper_size || (isMagazine ? 'A4 (8.27" x 11.69")' : (isPoster ? 'A4 Size (8.3" × 11.7")' : (isFrame ? '8×10 in / A4' : (isSticker ? 'A4 Sheet' : 'Standard'))));
+    const paper = template.paper || template.paper_type || template.paperType || template.paper_quality || template.paperQuality || template.paper_gsm || template.gsm || template.material || (isMagazine ? '300 GSM Premium Glossy Art Paper' : (isPoster ? '300 GSM Art Card' : (isFrame ? 'Premium Frame & Glass Sheet' : (isSticker ? 'Waterproof Vinyl' : 'Premium Quality'))));
+    const cover = template.cover || template.cover_type || template.coverType || template.finish || template.cover_finish || template.lamination || (isMagazine ? 'Glossy Protective Lamination' : (isPoster ? 'Glossy / Matte Laminated' : 'Protective Lamination'));
+    const binding = template.binding || template.binding_type || template.bindingType || (isMagazine ? 'Center Pin / Saddle Stitch' : '');
+    const deliveryTime = '4–6 Days Inside Dhaka, 5–7 Days Outside Dhaka';
+    const printQuality = template.print_quality || template.printQuality || template.printing || 'Ultra HD 2400 DPI Full Color';
+    const packaging = template.packaging || template.packaging_type || 'Gift Envelope & Protective Packaging';
+    const occasion = template.occasion || template.theme || category || 'Personalized Special Memories';
+
     const descriptionText = template.description || template.magazineDescription || template.templateDescription || template.subtitle || 'No description available for this product.';
 
     const breadcrumbTitle = qs('#details-breadcrumb-title');
@@ -87,14 +136,41 @@ export async function renderProductDetailsPage(db) {
     const descElem = qs('#details-description');
     if (descElem) descElem.textContent = descriptionText;
 
-    const photoBadge = qs('#details-photo-count-badge');
-    if (photoBadge) photoBadge.textContent = `${requiredPhotos} Photos`;
+    const getActivePhotoInfo = () => {
+      if (isMagazine && selectedPageTier) {
+        const minP = Number(selectedPageTier.minPhotos || 8);
+        const maxP = Number(selectedPageTier.maxPhotos || 12);
+        const rangeText = (minP > 0 && minP !== maxP) ? `${minP}–${maxP} Photos` : `${maxP} Photos`;
+        return { minP, maxP, rangeText };
+      }
+      return { minP: effectiveMin, maxP: effectiveMax, rangeText: photoRangeDisplay };
+    };
+
+    const updatePhotoRequirementBadges = () => {
+      const { minP, maxP, rangeText } = getActivePhotoInfo();
+      const photoBadge = qs('#details-photo-count-badge');
+      if (photoBadge) photoBadge.textContent = rangeText;
+
+      const photoReqDesc = qs('#details-photo-requirement-desc');
+      if (photoReqDesc) {
+        if (minP > 0 && minP !== maxP) {
+          photoReqDesc.textContent = `You can upload between ${minP} to ${maxP} high-resolution photos for this ${selectedPageTier ? selectedPageTier.label : ''} custom magazine.`;
+        } else {
+          photoReqDesc.textContent = `You will need to provide ${maxP} high-resolution photos for this custom magazine.`;
+        }
+      }
+    };
+
+    updatePhotoRequirementBadges();
 
     const badgeElem = qs('#details-badge');
     if (badgeElem) {
-      const rawBadge = String(template.badge || template.offer_badge || '').trim();
-      const isOfferTag = rawBadge.toLowerCase().includes('%') || rawBadge.toLowerCase().includes('off');
-      if (rawBadge && !isOfferTag) {
+      let rawBadge = String(template.badge || template.offer_badge || template.offer_tag || template.offer_text || '').trim();
+      const isOfferExplicitlyDisabled = template.hasOffer === false || template.has_offer === false || Number(template.offerPercentage || template.offer_percentage || 0) === 0;
+      if (isOfferExplicitlyDisabled && (rawBadge.toLowerCase().includes('% off') || rawBadge.toLowerCase().includes('off'))) {
+        rawBadge = '';
+      }
+      if (rawBadge) {
         badgeElem.textContent = rawBadge;
         badgeElem.hidden = false;
       } else {
@@ -102,36 +178,274 @@ export async function renderProductDetailsPage(db) {
       }
     }
 
-    // Render Specifications (Specs)
-    const specsContainer = qs('#details-specs-container');
-    const specsList = qs('#details-specs');
-    if (specsContainer && specsList) {
-      const specs = template.specs;
-      if (specs && typeof specs === 'object' && Object.keys(specs).length > 0) {
-        specsList.innerHTML = Object.entries(specs)
-          .map(([key, val]) => {
-            const label = key.charAt(0).toUpperCase() + key.slice(1);
-            return `
-              <div class="flex flex-col py-1">
-                <span class="text-xs text-gray-400 font-medium">${escapeHtml(label)}</span>
-                <span class="text-sm font-semibold text-gray-800">${escapeHtml(String(val))}</span>
-              </div>
-            `;
-          })
-          .join('');
-        specsContainer.classList.remove('hidden');
+    // Function to render the Quick Highlights Grid
+    const renderHighlightsGrid = (mode) => {
+      const highlightsGrid = qs('#details-highlights-grid');
+      if (!highlightsGrid) return;
+
+      if (mode === 'template') {
+        highlightsGrid.innerHTML = `
+          <div class="p-3 bg-purple-50/60 rounded-xl border border-purple-100 flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center text-sm flex-shrink-0">
+              <i class="fa-solid fa-wand-magic-sparkles"></i>
+            </div>
+            <div>
+              <span class="text-[10px] text-gray-500 font-medium block">Format</span>
+              <strong class="text-xs font-bold text-gray-800">Canva Link</strong>
+            </div>
+          </div>
+          <div class="p-3 bg-purple-50/60 rounded-xl border border-purple-100 flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center text-sm flex-shrink-0">
+              <i class="fa-solid fa-bolt"></i>
+            </div>
+            <div>
+              <span class="text-[10px] text-gray-500 font-medium block">Delivery</span>
+              <strong class="text-xs font-bold text-gray-800">Instant Access</strong>
+            </div>
+          </div>
+          <div class="p-3 bg-purple-50/60 rounded-xl border border-purple-100 flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center text-sm flex-shrink-0">
+              <i class="fa-solid fa-mobile-screen"></i>
+            </div>
+            <div>
+              <span class="text-[10px] text-gray-500 font-medium block">Compatibility</span>
+              <strong class="text-xs font-bold text-gray-800">Mobile & PC</strong>
+            </div>
+          </div>
+          <div class="p-3 bg-purple-50/60 rounded-xl border border-purple-100 flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center text-sm flex-shrink-0">
+              <i class="fa-solid fa-pen-nib"></i>
+            </div>
+            <div>
+              <span class="text-[10px] text-gray-500 font-medium block">Customization</span>
+              <strong class="text-xs font-bold text-gray-800">100% Editable</strong>
+            </div>
+          </div>
+          <div class="p-3 bg-purple-50/60 rounded-xl border border-purple-100 flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center text-sm flex-shrink-0">
+              <i class="fa-solid fa-file-pdf"></i>
+            </div>
+            <div>
+              <span class="text-[10px] text-gray-500 font-medium block">Export Format</span>
+              <strong class="text-xs font-bold text-gray-800">Print-Ready PDF</strong>
+            </div>
+          </div>
+          <div class="p-3 bg-purple-50/60 rounded-xl border border-purple-100 flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center text-sm flex-shrink-0">
+              <i class="fa-solid fa-infinity"></i>
+            </div>
+            <div>
+              <span class="text-[10px] text-gray-500 font-medium block">Usage</span>
+              <strong class="text-xs font-bold text-gray-800">Lifetime Access</strong>
+            </div>
+          </div>
+        `;
       } else {
-        specsContainer.classList.add('hidden');
+        const { rangeText } = getActivePhotoInfo();
+        // Physical Magazine / Product Highlights
+        highlightsGrid.innerHTML = `
+          <div class="p-3 bg-pink-50/50 rounded-xl border border-pink-100 flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-lg bg-pink-100 text-primary flex items-center justify-center text-sm flex-shrink-0">
+              <i class="fa-solid fa-book-open"></i>
+            </div>
+            <div>
+              <span class="text-[10px] text-gray-500 font-medium block">Total Pages</span>
+              <strong class="text-xs font-bold text-gray-800">${isMagazine ? selectedPageTier.label : escapeHtml(pages)}</strong>
+            </div>
+          </div>
+          <div class="p-3 bg-pink-50/50 rounded-xl border border-pink-100 flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-lg bg-pink-100 text-primary flex items-center justify-center text-sm flex-shrink-0">
+              <i class="fa-solid fa-camera"></i>
+            </div>
+            <div>
+              <span class="text-[10px] text-gray-500 font-medium block">Required Photos</span>
+              <strong class="text-xs font-bold text-gray-800">${rangeText}</strong>
+            </div>
+          </div>
+          <div class="p-3 bg-pink-50/50 rounded-xl border border-pink-100 flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-lg bg-pink-100 text-primary flex items-center justify-center text-sm flex-shrink-0">
+              <i class="fa-solid fa-ruler-combined"></i>
+            </div>
+            <div>
+              <span class="text-[10px] text-gray-500 font-medium block">Paper Size</span>
+              <strong class="text-xs font-bold text-gray-800">${escapeHtml(size)}</strong>
+            </div>
+          </div>
+          <div class="p-3 bg-pink-50/50 rounded-xl border border-pink-100 flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-lg bg-pink-100 text-primary flex items-center justify-center text-sm flex-shrink-0">
+              <i class="fa-solid fa-layer-group"></i>
+            </div>
+            <div>
+              <span class="text-[10px] text-gray-500 font-medium block">Paper Quality</span>
+              <strong class="text-xs font-bold text-gray-800 truncate max-w-[110px]" title="${escapeHtml(paper)}">${escapeHtml(paper)}</strong>
+            </div>
+          </div>
+          <div class="p-3 bg-pink-50/50 rounded-xl border border-pink-100 flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-lg bg-pink-100 text-primary flex items-center justify-center text-sm flex-shrink-0">
+              <i class="fa-solid fa-print"></i>
+            </div>
+            <div>
+              <span class="text-[10px] text-gray-500 font-medium block">Print Resolution</span>
+              <strong class="text-xs font-bold text-gray-800 truncate max-w-[110px]" title="${escapeHtml(printQuality)}">Ultra HD</strong>
+            </div>
+          </div>
+          <div class="p-3 bg-pink-50/50 rounded-xl border border-pink-100 flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-lg bg-pink-100 text-primary flex items-center justify-center text-sm flex-shrink-0">
+              <i class="fa-solid fa-truck-fast"></i>
+            </div>
+            <div>
+              <span class="text-[10px] text-gray-500 font-medium block">Delivery Time</span>
+              <strong class="text-xs font-bold text-gray-800">4–7 Days</strong>
+            </div>
+          </div>
+        `;
       }
+    };
+
+    // Function to render Features / What's Included
+    const renderFeaturesList = (mode) => {
+      const featuresList = qs('#details-features-list');
+      if (!featuresList) return;
+
+      let items = [];
+      if (mode === 'template') {
+        items = [
+          'Direct Private Canva Editable Template Link',
+          'Compatible with Canva Mobile App & Web Browser',
+          'Free Google Fonts, Layouts & Graphics Included',
+          'Instant Access Immediately After Order & Payment',
+          'Export in Ultra HD Print-Ready PDF / PNG / JPG',
+          'Unlimited Personal Edits & Lifetime Access'
+        ];
+      } else if (Array.isArray(template.features) && template.features.length > 0) {
+        items = template.features;
+      } else if (isMagazine) {
+        items = [
+          `Custom Designed ${selectedPageTier.label} Photo Magazine`,
+          'Full-Bleed Ultra HD 2400 DPI Precision Color Printing',
+          '300 GSM Premium Heavyweight Glossy Art Paper',
+          'Professional Designer Layout & Photo Retouching Support',
+          'Fast Doorstep Delivery Across Bangladesh via Steadfast'
+        ];
+      } else if (isPoster) {
+        items = [
+          `Premium Wallboard Poster Combo Pack (${selectedComboQty} Pcs)`,
+          '300 GSM Heavyweight Art Card with Protective Lamination',
+          'Ultra HD 2400 DPI Vibrant High-Definition Printing',
+          'Fade-Proof Long Lasting Color Durability',
+          'Fast Doorstep Delivery Across Bangladesh'
+        ];
+      } else {
+        items = [
+          'High Quality Personalized Custom Printing',
+          'Premium Heavyweight Material',
+          'Vibrant Long Lasting Color Reproduction',
+          'Fast Doorstep Delivery'
+        ];
+      }
+
+      featuresList.innerHTML = items.map(item => `
+        <div class="flex items-start gap-2 py-1">
+          <span class="text-primary text-xs font-bold mt-0.5"><i class="fa-solid fa-circle-check"></i></span>
+          <span class="text-gray-700 leading-snug font-medium">${escapeHtml(String(item))}</span>
+        </div>
+      `).join('');
+    };
+
+    // Function to render Full Detailed Specifications Table
+    const renderSpecificationsTable = () => {
+      const specsList = qs('#details-specs');
+      if (!specsList) return;
+
+      const { rangeText } = getActivePhotoInfo();
+      const baseSpecs = {
+        'Product Type': isMagazine ? 'Personalized Photo Magazine' : (isPoster ? 'Custom Poster Combo Pack' : (isFrame ? 'Photo Wall Frame' : (isSticker ? 'Custom Vinyl Sticker' : 'Digital Canva Template'))),
+        'Total Pages': isMagazine ? selectedPageTier.label : (pages ? `${pages}` : ''),
+        'Required Photos': rangeText,
+        'Paper Size': size,
+        'Paper Quality': paper,
+        'Print Resolution': printQuality,
+        'Delivery Time': '4–6 Days Inside Dhaka, 5–7 Days Outside Dhaka',
+        'Delivery Charge': 'Inside Dhaka ৳60 | Outside Dhaka ৳110 (Steadfast)',
+        'Occasion / Theme': occasion
+      };
+
+      specsList.innerHTML = Object.entries(baseSpecs)
+        .filter(([_, val]) => Boolean(val))
+        .map(([key, val]) => {
+          return `
+            <div class="flex flex-col py-1 border-b border-gray-100 sm:border-none">
+              <span class="text-[10px] text-gray-500 font-semibold uppercase tracking-wider">${escapeHtml(key)}</span>
+              <span class="text-xs font-bold text-gray-800 mt-0.5">${escapeHtml(String(val))}</span>
+            </div>
+          `;
+        })
+        .join('');
+    };
+
+    // Magazine Page Selector Renderer
+    const pagesSelectorSection = qs('#details-pages-selector-section');
+    const pagesGrid = qs('#details-pages-grid');
+    const selectedPageBadge = qs('#details-selected-page-badge');
+
+    const renderPagesSelector = () => {
+      if (!pagesGrid) return;
+      const isOfferExplicitlyDisabled = template.hasOffer === false || template.has_offer === false;
+      const offerPct = isOfferExplicitlyDisabled ? 0 : Number(template.offerPercentage || template.offer_percentage || template.discountPercent || template.discount_percent || 0);
+
+      pagesGrid.innerHTML = availablePageTiers.map(tier => {
+        const isSelected = tier.pages === selectedPageTier.pages;
+        const tierPrice = tier.price;
+        const tierOfferPrice = offerPct > 0 ? Math.round(tierPrice * (1 - offerPct / 100)) : tierPrice;
+        const minP = tier.minPhotos || 8;
+        const maxP = tier.maxPhotos || 12;
+        const photoHint = (minP > 0 && minP !== maxP) ? `${minP}–${maxP} Photos` : `${maxP} Photos`;
+
+        return `
+          <button type="button" class="page-tier-btn p-3 rounded-xl border-2 text-center transition-all duration-200 cursor-pointer ${isSelected ? 'border-[#C97B5F] bg-[#C97B5F] text-white font-bold shadow-md ring-2 ring-[#C97B5F]/30 scale-[1.03]' : 'border-gray-200 bg-white hover:border-[#C97B5F]/60 text-gray-800'}" data-page="${tier.pages}">
+            <div class="text-xs font-extrabold ${isSelected ? 'text-white' : 'text-gray-800'}">${escapeHtml(tier.label || `${tier.pages} Pages`)}</div>
+            <div class="text-[10px] font-semibold ${isSelected ? 'text-white/85' : 'text-gray-500'} mt-0.5">${escapeHtml(photoHint)}</div>
+            <div class="text-xs font-bold ${isSelected ? 'text-white/95' : 'text-[#C97B5F]'} mt-1">
+              ${offerPct > 0 ? `<span class="line-through opacity-75 text-[10px] mr-1 ${isSelected ? 'text-white/75' : 'text-gray-400'}">৳${tierPrice}</span>৳${tierOfferPrice}` : `৳${tierPrice}`}
+            </div>
+          </button>
+        `;
+      }).join('');
+
+      if (selectedPageBadge) {
+        const currentTierOfferPrice = offerPct > 0 ? Math.round(selectedPageTier.price * (1 - offerPct / 100)) : selectedPageTier.price;
+        const { rangeText } = getActivePhotoInfo();
+        selectedPageBadge.textContent = `${selectedPageTier.label || `${selectedPageTier.pages} Pages`} • ${rangeText} (৳${currentTierOfferPrice})`;
+      }
+
+      qsa('.page-tier-btn', pagesGrid).forEach(btn => {
+        btn.addEventListener('click', () => {
+          const pageNum = Number(btn.getAttribute('data-page'));
+          const foundTier = availablePageTiers.find(t => t.pages === pageNum);
+          if (foundTier) {
+            selectedPageTier = foundTier;
+            selectedMagazinePrice = foundTier.price;
+            updatePhotoRequirementBadges();
+            renderPagesSelector();
+            renderSpecificationsTable();
+            renderHighlightsGrid(activeMode);
+            renderFeaturesList(activeMode);
+            updateModeUI('magazine');
+          }
+        });
+      });
+    };
+
+    if (isMagazine) {
+      renderPagesSelector();
+    } else if (pagesSelectorSection) {
+      pagesSelectorSection.classList.add('hidden');
     }
+
+    renderSpecificationsTable();
 
     // Dual Selling Mode Setup
     const initialTab = params.get('tab');
-    const productType = String(template.product_type || template.productType || 'magazine').toLowerCase().replace(/\s+/g, '_');
-    const isMagazine = productType === 'magazine';
-    const isBoth = productType === 'both';
-    const isTemplateOnly = productType === 'template';
-
     const isTemplateForSaleExplicit = Boolean(
       template.is_template_for_sale ??
       template.isTemplateForSale ??
@@ -166,7 +480,6 @@ export async function renderProductDetailsPage(db) {
     const purchaseTypeSection = qs('#details-purchase-type-section');
 
     // Poster Wallboard Combo Pack Setup
-    const isPoster = productType === 'poster';
     const comboPrices = template.comboPrices || {
       '5': Number(template.price || 500),
       '10': Number(template.price ? template.price * 1.8 : 900),
@@ -452,13 +765,32 @@ export async function renderProductDetailsPage(db) {
     const updateModeUI = (selectedMode) => {
       activeMode = selectedMode;
 
-      // Update Active Price
-      const activePrice = activeMode === 'magazine' ? magazinePrice : templatePrice;
+      // Dynamic Price calculation based on selected page tier
+      let activePrice = 0;
+      let compare = 0;
+      let discount = 0;
+
+      if (activeMode === 'magazine') {
+        const isOfferExplicitlyDisabled = template.hasOffer === false || template.has_offer === false;
+        const offerPct = isOfferExplicitlyDisabled ? 0 : Number(template.offerPercentage || template.offer_percentage || template.discountPercent || template.discount_percent || 0);
+        if (offerPct > 0) {
+          compare = selectedMagazinePrice;
+          activePrice = Math.round(selectedMagazinePrice * (1 - offerPct / 100));
+          discount = offerPct;
+        } else {
+          activePrice = selectedMagazinePrice;
+          compare = 0;
+          discount = 0;
+        }
+      } else {
+        activePrice = templatePrice;
+        compare = 0;
+        discount = 0;
+      }
+
       const priceElem = qs('#details-price');
       if (priceElem) priceElem.textContent = formatCurrency(activePrice);
-
-      const compare = comparePrice(template);
-      const discount = discountPercent(template);
+      if (modePriceMag) modePriceMag.textContent = formatCurrency(activePrice);
 
       const compareElem = qs('#details-compare-price');
       if (compareElem) {
@@ -528,6 +860,10 @@ export async function renderProductDetailsPage(db) {
           }
         }
       }
+
+      // Re-render highlights & features dynamically for the chosen mode
+      renderHighlightsGrid(activeMode);
+      renderFeaturesList(activeMode);
     };
 
     modeBtnMagazine?.addEventListener('click', () => {
@@ -564,24 +900,27 @@ export async function renderProductDetailsPage(db) {
 
       if (mainImg) {
         mainImg.src = deliveryUrl;
-        mainImg.onerror = () => { mainImg.src = FALLBACK_IMAGE; };
+        mainImg.onload = () => {
+          mainImg.style.opacity = '1';
+          mainImg.style.transform = 'scale(1)';
+        };
       }
-
       if (blurBgImg) {
-        blurBgImg.src = deliveryUrl;
-        blurBgImg.onerror = () => { blurBgImg.src = FALLBACK_IMAGE; };
+        blurBgImg.src = buildCloudinaryDeliveryUrl(nextSrc, { width: 400 });
       }
 
       if (counterText) {
         counterText.textContent = `${activeGalleryIdx + 1} / ${galleryList.length}`;
       }
+      if (thumbsCount) {
+        thumbsCount.textContent = `${galleryList.length} Photos`;
+      }
 
       if (thumbsContainer) {
-        const btns = thumbsContainer.querySelectorAll('button[data-gallery-index]');
-        btns.forEach((btn, i) => {
-          const isActive = i === activeGalleryIdx;
-          if (isActive) {
-            btn.classList.add('border-primary', 'ring-2', 'ring-primary/30', 'opacity-100', 'scale-105');
+        const buttons = thumbsContainer.querySelectorAll('button[data-gallery-index]');
+        buttons.forEach((btn, idx) => {
+          if (idx === activeGalleryIdx) {
+            btn.classList.add('border-primary', 'ring-2', 'ring-primary/30', 'scale-105');
             btn.classList.remove('opacity-70', 'border-gray-200');
           } else {
             btn.classList.remove('border-primary', 'ring-2', 'ring-primary/30', 'scale-105');
@@ -721,13 +1060,26 @@ export async function renderProductDetailsPage(db) {
           selectedPosters: posterSpots
         });
       } else {
-        const activePrice = activeMode === 'magazine' ? magazinePrice : templatePrice;
-        const titleSuffix = activeMode === 'template' ? ' (Digital Template)' : ' (Printed Magazine)';
+        const activePrice = activeMode === 'magazine' ? selectedMagazinePrice : templatePrice;
+        const titleSuffix = activeMode === 'template' ? ' (Digital Template)' : ` (${selectedPageTier.label})`;
+        const minP = selectedPageTier ? (selectedPageTier.minPhotos || 8) : effectiveMin;
+        const maxP = selectedPageTier ? (selectedPageTier.maxPhotos || 12) : effectiveMax;
+        const pRange = (minP > 0 && minP !== maxP) ? `${minP}–${maxP} Photos` : `${maxP} Photos`;
+
         addTemplateToCart({
           ...template,
           title: `${template.title || 'Product'}${titleSuffix}`,
           price: activePrice,
-          purchaseMode: activeMode
+          purchaseMode: activeMode,
+          selectedPages: selectedPageTier ? selectedPageTier.label : `${pages} Pages`,
+          pageCount: selectedPageTier ? selectedPageTier.pages : pages,
+          minPhotos: minP,
+          min_photos: minP,
+          maxPhotos: maxP,
+          max_photos: maxP,
+          requiredPhotoCount: maxP,
+          requiredPhotos: maxP,
+          photoRangeText: pRange
         });
       }
     });
@@ -745,20 +1097,61 @@ export async function renderProductDetailsPage(db) {
           selectedPosters: posterSpots
         });
       } else {
-        const activePrice = activeMode === 'magazine' ? magazinePrice : templatePrice;
-        const titleSuffix = activeMode === 'template' ? ' (Digital Template)' : ' (Printed Magazine)';
+        const activePrice = activeMode === 'magazine' ? selectedMagazinePrice : templatePrice;
+        const titleSuffix = activeMode === 'template' ? ' (Digital Template)' : ` (${selectedPageTier.label})`;
+        const minP = selectedPageTier ? (selectedPageTier.minPhotos || 8) : effectiveMin;
+        const maxP = selectedPageTier ? (selectedPageTier.maxPhotos || 12) : effectiveMax;
+        const pRange = (minP > 0 && minP !== maxP) ? `${minP}–${maxP} Photos` : `${maxP} Photos`;
+
         addTemplateToCart({
           ...template,
           title: `${template.title || 'Product'}${titleSuffix}`,
           price: activePrice,
-          purchaseMode: activeMode
+          purchaseMode: activeMode,
+          selectedPages: selectedPageTier ? selectedPageTier.label : `${pages} Pages`,
+          pageCount: selectedPageTier ? selectedPageTier.pages : pages,
+          minPhotos: minP,
+          min_photos: minP,
+          maxPhotos: maxP,
+          max_photos: maxP,
+          requiredPhotoCount: maxP,
+          requiredPhotos: maxP,
+          photoRangeText: pRange
         });
       }
       window.location.href = '/pages/cart';
     });
 
-    if (loading) loading.hidden = true;
+    if (loading) {
+      loading.hidden = true;
+      loading.setAttribute('hidden', '');
+    }
     detailsContainer.hidden = false;
+    detailsContainer.removeAttribute('hidden');
+
+    // Render Related Magazines Section by Occasion / Category
+    const relatedSection = qs('#related-magazines-section');
+    const relatedGrid = qs('#related-magazines-grid');
+    const relatedTitle = qs('#related-section-title');
+
+    if (relatedGrid) {
+      try {
+        const relatedItems = await fetchRelatedTemplates(db, template, 4);
+        if (relatedItems && relatedItems.length > 0) {
+          const occ = template.occasion || template.category || template.target_audience || '';
+          if (relatedTitle && occ && occ !== 'Magazine') {
+            relatedTitle.textContent = `More ${occ} Magazines`;
+          }
+          relatedGrid.innerHTML = relatedItems.map(item => renderProductCardV2(item)).join('');
+          if (relatedSection) relatedSection.classList.remove('hidden');
+        } else if (relatedSection) {
+          relatedSection.classList.add('hidden');
+        }
+      } catch (relErr) {
+        console.warn('Failed to load related magazines:', relErr);
+      }
+    }
+
     setupLazyCloudinaryImages(detailsContainer);
   } catch (error) {
     console.error('Failed to load product details:', error);

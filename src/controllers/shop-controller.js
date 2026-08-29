@@ -48,18 +48,24 @@ export async function renderShopPage(db) {
   }
   const initialParam = urlParams.get('title') || urlParams.get('category') || urlParams.get('collection');
 
-  // Badge filter chips render — products এ যে badges আছে শুধু সেগুলোই দেখাবে
   const renderBadgeFilterChips = () => {
     const container = qs('#badge-filter-chips');
     if (!container) return;
 
-    // সব products এ কোন কোন badge আছে সেটা collect করো
     const usedBadgeKeys = new Set();
     allTemplates.forEach((t) => {
       normalizeBadges(t.badge).forEach((b) => usedBadgeKeys.add(b));
     });
 
-    const availableBadges = ALL_BADGES.filter((b) => usedBadgeKeys.has(b.key));
+    const badgeMap = new Map();
+    ALL_BADGES.forEach((b) => badgeMap.set(b.key, b));
+
+    const availableBadges = Array.from(usedBadgeKeys).map((rawKey) => {
+      const key = String(rawKey).toLowerCase().replace(/\s+/g, '_');
+      if (badgeMap.has(key)) return badgeMap.get(key);
+      const label = rawKey.replace(/[_-]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+      return { key: rawKey, label, bg: '#C97B5F' };
+    });
 
     if (availableBadges.length === 0) {
       container.hidden = true;

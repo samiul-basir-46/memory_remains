@@ -153,17 +153,27 @@ export async function renderHomePage(db) {
 
     // 3. Magazine row
     const magazineRow = qs('#magazine-row');
-    if (magazineRow && list.length > 0) {
+    const mobileMagCarousel = qs('#mobile-magazine-carousel');
+    if (list.length > 0) {
       const magazineItems = list.filter((t) => {
         const pType = String(t.product_type || t.productType || '').toLowerCase();
         const title = String(t.title || t.name || '').toLowerCase();
         const cat = String(t.category || t.collection || '').toLowerCase();
         return (pType === 'magazine' || pType === 'template' || title.includes('magazine') || title.includes('vogue') || cat.includes('magazine')) && pType !== 'poster' && pType !== 'wall_frame' && pType !== 'sticker';
       });
-      if (magazineItems.length > 0) {
-        magazineRow.innerHTML = magazineItems.slice(0, 8).map(renderProductCard).join('');
-      } else {
-        magazineRow.innerHTML = '';
+      if (magazineRow) {
+        if (magazineItems.length > 0) {
+          magazineRow.innerHTML = magazineItems.slice(0, 8).map(renderProductCard).join('');
+        } else {
+          magazineRow.innerHTML = '';
+        }
+      }
+      if (mobileMagCarousel) {
+        if (magazineItems.length > 0) {
+          mobileMagCarousel.innerHTML = magazineItems.slice(0, 6).map(renderProductCard).join('');
+        } else {
+          mobileMagCarousel.innerHTML = '';
+        }
       }
     }
     const bestSellingEl = qs('#best-selling-highlight');
