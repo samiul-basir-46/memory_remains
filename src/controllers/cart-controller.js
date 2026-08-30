@@ -262,6 +262,323 @@ async function initiateCheckout(db, subtotal) {
   }
 }
 
+function normalizeOccasionType(rawOccasion = '') {
+  const occ = String(rawOccasion).toLowerCase().trim();
+  if (occ.includes('birth')) return 'birthday';
+  if (occ.includes('bf') || occ.includes('gf') || occ.includes('couple') || occ.includes('boyfriend') || occ.includes('girlfriend') || occ.includes('love')) return 'bf_gf';
+  if (occ.includes('anniversary')) return 'anniversary';
+  if (occ.includes('personal')) return 'personal';
+  return 'other'; // Marriage, Parents, Special Day, Farewell, Best Friend, Other
+}
+
+function renderOccasionFormHtml(item, safeIndex) {
+  const occType = normalizeOccasionType(item.occasion || item.category || '');
+  const data = item.occasion_data || {};
+
+  if (occType === 'birthday') {
+    return `
+      <div id="occasion-form-${safeIndex}" class="bg-gradient-to-br from-pink-500/5 via-rose-500/5 to-amber-500/5 p-5 md:p-6 rounded-2xl border border-pink-200 shadow-sm space-y-4 text-left">
+        <div class="flex items-center gap-2 text-primary font-bold text-sm border-b border-pink-100 pb-2">
+          <i class="fa-solid fa-cake-candles text-base text-primary"></i>
+          <span>🎂 Birthday Occasion Information</span>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+          <div>
+            <label class="block text-xs font-bold text-gray-700 mb-1">Name of the birthday person *</label>
+            <input type="text" id="occ-name-${safeIndex}" required value="${escapeHtml(data.person_name || data.name || item.recipient_name || '')}" placeholder="e.g. Riya" class="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 focus:border-primary text-xs outline-none bg-white">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-gray-700 mb-1">Birthday date *</label>
+            <input type="date" id="occ-date-${safeIndex}" required value="${escapeHtml(data.birthday_date || data.date || '')}" class="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 focus:border-primary text-xs outline-none bg-white">
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-gray-700 mb-1">Age *</label>
+          <input type="number" id="occ-age-${safeIndex}" min="1" max="120" required value="${escapeHtml(data.age || '')}" placeholder="e.g. 22" class="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 focus:border-primary text-xs outline-none bg-white">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-gray-700 mb-1">What he/she loves *</label>
+          <textarea id="occ-loves-${safeIndex}" required rows="2" placeholder="e.g. Cats, painting, vintage books, chocolate..." class="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 focus:border-primary text-xs outline-none bg-white resize-none">${escapeHtml(data.loves || '')}</textarea>
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-gray-700 mb-1">Cute notes / messages <span class="text-gray-400 font-normal">(Optional)</span></label>
+          <textarea id="occ-notes-${safeIndex}" rows="2" placeholder="e.g. Happy 22nd Birthday to my favorite human! (Optional)" class="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 focus:border-primary text-xs outline-none bg-white resize-none">${escapeHtml(data.cute_notes || data.notes || '')}</textarea>
+        </div>
+      </div>
+    `;
+  }
+
+  if (occType === 'bf_gf') {
+    return `
+      <div id="occasion-form-${safeIndex}" class="bg-gradient-to-br from-pink-500/5 via-rose-500/5 to-amber-500/5 p-5 md:p-6 rounded-2xl border border-pink-200 shadow-sm space-y-4 text-left">
+        <div class="flex items-center gap-2 text-primary font-bold text-sm border-b border-pink-100 pb-2">
+          <i class="fa-solid fa-heart text-base text-primary"></i>
+          <span>💑 BF / GF (Couple) Information</span>
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-gray-700 mb-1">Names of the couple *</label>
+          <input type="text" id="occ-couple-names-${safeIndex}" required value="${escapeHtml(data.couple_names || data.name || item.recipient_name || '')}" placeholder="e.g. Aayan & Riya" class="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 focus:border-primary text-xs outline-none bg-white">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-gray-700 mb-1">What they mostly love *</label>
+          <textarea id="occ-loves-${safeIndex}" required rows="2" placeholder="e.g. Long drives, coffee dates, listening to music together..." class="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 focus:border-primary text-xs outline-none bg-white resize-none">${escapeHtml(data.loves || '')}</textarea>
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-gray-700 mb-1">Cute notes / messages <span class="text-gray-400 font-normal">(Optional)</span></label>
+          <textarea id="occ-notes-${safeIndex}" rows="2" placeholder="e.g. Happy 2 years of togetherness! (Optional)" class="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 focus:border-primary text-xs outline-none bg-white resize-none">${escapeHtml(data.cute_notes || data.notes || '')}</textarea>
+        </div>
+      </div>
+    `;
+  }
+
+  if (occType === 'anniversary') {
+    return `
+      <div id="occasion-form-${safeIndex}" class="bg-gradient-to-br from-pink-500/5 via-rose-500/5 to-amber-500/5 p-5 md:p-6 rounded-2xl border border-pink-200 shadow-sm space-y-4 text-left">
+        <div class="flex items-center gap-2 text-primary font-bold text-sm border-b border-pink-100 pb-2">
+          <i class="fa-solid fa-ring text-base text-primary"></i>
+          <span>💍 Anniversary Occasion Information</span>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+          <div>
+            <label class="block text-xs font-bold text-gray-700 mb-1">Names of the couple *</label>
+            <input type="text" id="occ-couple-names-${safeIndex}" required value="${escapeHtml(data.couple_names || data.name || item.recipient_name || '')}" placeholder="e.g. Shakib & Mim" class="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 focus:border-primary text-xs outline-none bg-white">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-gray-700 mb-1">Anniversary date *</label>
+            <input type="date" id="occ-date-${safeIndex}" required value="${escapeHtml(data.anniversary_date || data.date || '')}" class="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 focus:border-primary text-xs outline-none bg-white">
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-gray-700 mb-1">What they mostly love *</label>
+          <textarea id="occ-loves-${safeIndex}" required rows="2" placeholder="e.g. Traveling together, cooking, watching movies..." class="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 focus:border-primary text-xs outline-none bg-white resize-none">${escapeHtml(data.loves || '')}</textarea>
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-gray-700 mb-1">Cute notes / messages <span class="text-gray-400 font-normal">(Optional)</span></label>
+          <textarea id="occ-notes-${safeIndex}" rows="2" placeholder="e.g. Happy 5th Anniversary! Forever to go... (Optional)" class="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 focus:border-primary text-xs outline-none bg-white resize-none">${escapeHtml(data.cute_notes || data.notes || '')}</textarea>
+        </div>
+      </div>
+    `;
+  }
+
+  if (occType === 'personal') {
+    return `
+      <div id="occasion-form-${safeIndex}" class="bg-gradient-to-br from-pink-500/5 via-rose-500/5 to-amber-500/5 p-5 md:p-6 rounded-2xl border border-pink-200 shadow-sm space-y-4 text-left">
+        <div class="flex items-center gap-2 text-primary font-bold text-sm border-b border-pink-100 pb-2">
+          <i class="fa-solid fa-user text-base text-primary"></i>
+          <span>👤 Personal Magazine Information</span>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+          <div>
+            <label class="block text-xs font-bold text-gray-700 mb-1">Person's name *</label>
+            <input type="text" id="occ-name-${safeIndex}" required value="${escapeHtml(data.person_name || data.name || item.recipient_name || '')}" placeholder="e.g. Samiul Basir" class="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 focus:border-primary text-xs outline-none bg-white">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-gray-700 mb-1">Instagram username <span class="text-gray-400 font-normal">(Optional)</span></label>
+            <input type="text" id="occ-instagram-${safeIndex}" value="${escapeHtml(data.instagram || '')}" placeholder="e.g. @samiul_basir (Optional)" class="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 focus:border-primary text-xs outline-none bg-white">
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-gray-700 mb-1">What they mostly love *</label>
+          <textarea id="occ-loves-${safeIndex}" required rows="2" placeholder="e.g. Photography, traveling, tech, reading..." class="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 focus:border-primary text-xs outline-none bg-white resize-none">${escapeHtml(data.loves || '')}</textarea>
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-gray-700 mb-1">Cute notes / messages <span class="text-gray-400 font-normal">(Optional)</span></label>
+          <textarea id="occ-notes-${safeIndex}" rows="2" placeholder="e.g. A keepsake of my favorite memories (Optional)" class="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 focus:border-primary text-xs outline-none bg-white resize-none">${escapeHtml(data.cute_notes || data.notes || '')}</textarea>
+        </div>
+      </div>
+    `;
+  }
+
+  // Marriage / Parents / Special Day / Farewell / Best Friend / Other
+  return `
+    <div id="occasion-form-${safeIndex}" class="bg-gradient-to-br from-pink-500/5 via-rose-500/5 to-amber-500/5 p-5 md:p-6 rounded-2xl border border-pink-200 shadow-sm space-y-4 text-left">
+      <div class="flex items-center gap-2 text-primary font-bold text-sm border-b border-pink-100 pb-2">
+        <i class="fa-solid fa-star text-base text-primary"></i>
+        <span>✨ ${escapeHtml(item.occasion || 'Special')} Magazine Information</span>
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+        <div>
+          <label class="block text-xs font-bold text-gray-700 mb-1">Person's / Couple's / Group's Name *</label>
+          <input type="text" id="occ-name-${safeIndex}" required value="${escapeHtml(data.person_name || data.name || item.recipient_name || '')}" placeholder="e.g. Mom & Dad / Besties" class="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 focus:border-primary text-xs outline-none bg-white">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-gray-700 mb-1">Instagram username <span class="text-gray-400 font-normal">(Optional)</span></label>
+          <input type="text" id="occ-instagram-${safeIndex}" value="${escapeHtml(data.instagram || '')}" placeholder="e.g. @insta_handle (Optional)" class="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 focus:border-primary text-xs outline-none bg-white">
+        </div>
+      </div>
+      <div>
+        <label class="block text-xs font-bold text-gray-700 mb-1">What they love *</label>
+        <textarea id="occ-loves-${safeIndex}" required rows="2" placeholder="e.g. Gardening, family dinners, laughing together..." class="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 focus:border-primary text-xs outline-none bg-white resize-none">${escapeHtml(data.loves || '')}</textarea>
+      </div>
+      <div>
+        <label class="block text-xs font-bold text-gray-700 mb-1">Anything else you'd like to add? <span class="text-gray-400 font-normal">(Optional)</span></label>
+        <textarea id="occ-extra-${safeIndex}" rows="2" placeholder="e.g. Any special milestone, memory or quote to include... (Optional)" class="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 focus:border-primary text-xs outline-none bg-white resize-none">${escapeHtml(data.extra_details || '')}</textarea>
+      </div>
+      <div>
+        <label class="block text-xs font-bold text-gray-700 mb-1">Cute notes / messages <span class="text-gray-400 font-normal">(Optional)</span></label>
+        <textarea id="occ-notes-${safeIndex}" rows="2" placeholder="e.g. Wishing you both a lifetime of happiness! (Optional)" class="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 focus:border-primary text-xs outline-none bg-white resize-none">${escapeHtml(data.cute_notes || data.notes || '')}</textarea>
+      </div>
+    </div>
+  `;
+}
+
+function validateAndCollectOccasionData(safeIndex, rawOccasion = '') {
+  const occType = normalizeOccasionType(rawOccasion);
+  const data = {
+    occasion: rawOccasion || 'Personal',
+    occasion_type: occType
+  };
+
+  if (occType === 'birthday') {
+    const name = qs(`#occ-name-${safeIndex}`)?.value.trim();
+    const date = qs(`#occ-date-${safeIndex}`)?.value.trim();
+    const age = qs(`#occ-age-${safeIndex}`)?.value.trim();
+    const loves = qs(`#occ-loves-${safeIndex}`)?.value.trim();
+    const notes = qs(`#occ-notes-${safeIndex}`)?.value.trim();
+
+    if (!name) {
+      createToast('Please enter the name of the birthday person', 'error');
+      qs(`#occ-name-${safeIndex}`)?.focus();
+      qs(`#occ-name-${safeIndex}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return null;
+    }
+    if (!date) {
+      createToast('Please select the birthday date', 'error');
+      qs(`#occ-date-${safeIndex}`)?.focus();
+      qs(`#occ-date-${safeIndex}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return null;
+    }
+    if (!age) {
+      createToast('Please enter the age', 'error');
+      qs(`#occ-age-${safeIndex}`)?.focus();
+      qs(`#occ-age-${safeIndex}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return null;
+    }
+    if (!loves) {
+      createToast('Please enter what the birthday person loves', 'error');
+      qs(`#occ-loves-${safeIndex}`)?.focus();
+      qs(`#occ-loves-${safeIndex}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return null;
+    }
+
+    data.person_name = name;
+    data.birthday_date = date;
+    data.age = age;
+    data.loves = loves;
+    if (notes) data.cute_notes = notes;
+    return data;
+  }
+
+  if (occType === 'bf_gf') {
+    const coupleNames = qs(`#occ-couple-names-${safeIndex}`)?.value.trim();
+    const loves = qs(`#occ-loves-${safeIndex}`)?.value.trim();
+    const notes = qs(`#occ-notes-${safeIndex}`)?.value.trim();
+
+    if (!coupleNames) {
+      createToast('Please enter the names of the couple', 'error');
+      qs(`#occ-couple-names-${safeIndex}`)?.focus();
+      qs(`#occ-couple-names-${safeIndex}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return null;
+    }
+    if (!loves) {
+      createToast('Please enter what they mostly love', 'error');
+      qs(`#occ-loves-${safeIndex}`)?.focus();
+      qs(`#occ-loves-${safeIndex}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return null;
+    }
+
+    data.couple_names = coupleNames;
+    data.loves = loves;
+    if (notes) data.cute_notes = notes;
+    return data;
+  }
+
+  if (occType === 'anniversary') {
+    const coupleNames = qs(`#occ-couple-names-${safeIndex}`)?.value.trim();
+    const date = qs(`#occ-date-${safeIndex}`)?.value.trim();
+    const loves = qs(`#occ-loves-${safeIndex}`)?.value.trim();
+    const notes = qs(`#occ-notes-${safeIndex}`)?.value.trim();
+
+    if (!coupleNames) {
+      createToast('Please enter the names of the couple', 'error');
+      qs(`#occ-couple-names-${safeIndex}`)?.focus();
+      qs(`#occ-couple-names-${safeIndex}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return null;
+    }
+    if (!date) {
+      createToast('Please select the anniversary date', 'error');
+      qs(`#occ-date-${safeIndex}`)?.focus();
+      qs(`#occ-date-${safeIndex}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return null;
+    }
+    if (!loves) {
+      createToast('Please enter what they mostly love', 'error');
+      qs(`#occ-loves-${safeIndex}`)?.focus();
+      qs(`#occ-loves-${safeIndex}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return null;
+    }
+
+    data.couple_names = coupleNames;
+    data.anniversary_date = date;
+    data.loves = loves;
+    if (notes) data.cute_notes = notes;
+    return data;
+  }
+
+  if (occType === 'personal') {
+    const name = qs(`#occ-name-${safeIndex}`)?.value.trim();
+    const instagram = qs(`#occ-instagram-${safeIndex}`)?.value.trim();
+    const loves = qs(`#occ-loves-${safeIndex}`)?.value.trim();
+    const notes = qs(`#occ-notes-${safeIndex}`)?.value.trim();
+
+    if (!name) {
+      createToast("Please enter the person's name", 'error');
+      qs(`#occ-name-${safeIndex}`)?.focus();
+      qs(`#occ-name-${safeIndex}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return null;
+    }
+    if (!loves) {
+      createToast('Please enter what they mostly love', 'error');
+      qs(`#occ-loves-${safeIndex}`)?.focus();
+      qs(`#occ-loves-${safeIndex}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return null;
+    }
+
+    data.person_name = name;
+    if (instagram) data.instagram = instagram;
+    data.loves = loves;
+    if (notes) data.cute_notes = notes;
+    return data;
+  }
+
+  // Other / Marriage / Parents / etc.
+  const name = qs(`#occ-name-${safeIndex}`)?.value.trim();
+  const instagram = qs(`#occ-instagram-${safeIndex}`)?.value.trim();
+  const loves = qs(`#occ-loves-${safeIndex}`)?.value.trim();
+  const extra = qs(`#occ-extra-${safeIndex}`)?.value.trim();
+  const notes = qs(`#occ-notes-${safeIndex}`)?.value.trim();
+
+  if (!name) {
+    createToast("Please enter the person's / couple's / group's name", 'error');
+    qs(`#occ-name-${safeIndex}`)?.focus();
+    qs(`#occ-name-${safeIndex}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return null;
+  }
+  if (!loves) {
+    createToast('Please enter what they love', 'error');
+    qs(`#occ-loves-${safeIndex}`)?.focus();
+    qs(`#occ-loves-${safeIndex}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return null;
+  }
+
+  data.person_name = name;
+  if (instagram) data.instagram = instagram;
+  data.loves = loves;
+  if (extra) data.extra_details = extra;
+  if (notes) data.cute_notes = notes;
+  return data;
+}
+
 function renderPreCheckoutPhotoUpload(db, subtotal, itemIndex = 0) {
   const container = qs('#cart-page-app');
   if (!container) return;
@@ -288,10 +605,10 @@ function renderPreCheckoutPhotoUpload(db, subtotal, itemIndex = 0) {
       <div class="bg-gradient-to-r from-pink-500/10 via-rose-500/10 to-amber-500/10 p-5 rounded-2xl border border-pink-200 flex items-center justify-between gap-4">
         <div>
           <span class="text-[10px] font-extrabold uppercase tracking-wider text-[#C97B5F] bg-pink-100 px-2.5 py-0.5 rounded-full border border-pink-200">
-            ${totalItemsCount > 1 ? `Item ${currentItemNumber} of ${totalItemsCount} • Photo Customization` : 'Step 1 of 3: Photo Customization'}
+            ${totalItemsCount > 1 ? `Item ${currentItemNumber} of ${totalItemsCount} • Magazine Customization` : 'Step 1 of 3: Magazine Customization'}
           </span>
           <h3 class="font-heading text-lg sm:text-xl font-bold text-gray-900 mt-1">${escapeHtml(title)}</h3>
-          <p class="text-xs text-gray-600 mt-0.5">Please upload required photos for this item before proceeding to delivery.</p>
+          <p class="text-xs text-gray-600 mt-0.5">Please provide occasion details and upload photos for this magazine.</p>
         </div>
         <div class="text-right flex-shrink-0">
           <span class="text-xs font-bold text-primary block">Required</span>
@@ -299,6 +616,10 @@ function renderPreCheckoutPhotoUpload(db, subtotal, itemIndex = 0) {
         </div>
       </div>
 
+      <!-- OCCASION INFORMATION FORM -->
+      ${renderOccasionFormHtml(item, itemIndex)}
+
+      <!-- PHOTO UPLOAD SECTION -->
       <div id="pre-checkout-photo-mount"></div>
 
       <div class="text-center pt-2">
@@ -327,7 +648,20 @@ function renderPreCheckoutPhotoUpload(db, subtotal, itemIndex = 0) {
       submitButtonText: isLastUploadItem
         ? `Upload & Continue to Delivery (${minPhotos === maxPhotos ? maxPhotos : `${minPhotos}–${maxPhotos}`} Photos)`
         : `Upload & Next Item Photos (${minPhotos === maxPhotos ? maxPhotos : `${minPhotos}–${maxPhotos}`} Photos)`,
+      onBeforeUpload: () => {
+        const occData = validateAndCollectOccasionData(itemIndex, item.occasion || item.category || 'Personal');
+        if (!occData) return false;
+        const freshCart = getCart();
+        if (freshCart[itemIndex]) {
+          freshCart[itemIndex].occasion_data = occData;
+          freshCart[itemIndex].occasion = item.occasion || item.category || 'Personal';
+          freshCart[itemIndex].recipient_name = occData.person_name || occData.couple_names || '';
+          setCart(freshCart);
+        }
+        return true;
+      },
       onSuccess: (uploadResult) => {
+        const occData = validateAndCollectOccasionData(itemIndex, item.occasion || item.category || 'Personal') || item.occasion_data;
         const freshCart = getCart();
         if (freshCart[itemIndex]) {
           freshCart[itemIndex].photos_uploaded = true;
@@ -341,13 +675,14 @@ function renderPreCheckoutPhotoUpload(db, subtotal, itemIndex = 0) {
           freshCart[itemIndex].back_photo_url = uploadResult.backUrl;
           freshCart[itemIndex].inner_urls = uploadResult.innerUrls;
           freshCart[itemIndex].inner_photo_urls = uploadResult.innerUrls;
-          if (uploadResult.recipientName) {
-            freshCart[itemIndex].recipient_name = uploadResult.recipientName;
-            freshCart[itemIndex].recipientName = uploadResult.recipientName;
+          if (occData) {
+            freshCart[itemIndex].occasion_data = occData;
+            freshCart[itemIndex].occasion = item.occasion || item.category || 'Personal';
+            freshCart[itemIndex].recipient_name = occData.person_name || occData.couple_names || uploadResult.recipientName || '';
           }
           setCart(freshCart);
         }
-        createToast('Photos uploaded successfully!', 'success');
+        createToast('Occasion details & photos saved!', 'success');
         initiateCheckout(db, subtotal);
       }
     });
@@ -991,6 +1326,13 @@ function renderPaymentInstructionsStep(db, checkoutData) {
               product_type: pType,
               productType: pType,
               recipient_name: item.recipient_name || '',
+              occasion: item.occasion || item.category || 'Personal',
+              category: item.category || item.occasion || 'Personal',
+              occasion_data: item.occasion_data || null,
+              occasionData: item.occasion_data || null,
+              specs: item.occasion_data || {},
+              page_count: item.pageCount || item.pages || 8,
+              pageCount: item.pageCount || item.pages || 8,
               required_photo_count: itMax,
               min_photos: itMin,
               max_photos: itMax,

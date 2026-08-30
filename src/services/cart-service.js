@@ -135,6 +135,9 @@ export function addTemplateToCart(template = {}) {
     photoRangeText: template.photoRangeText || (minP > 0 && minP !== maxP ? `${minP}–${maxP} Photos` : `${maxP} Photos`),
     comboQuantity: template.comboQuantity || 5,
     selectedPosters: template.selectedPosters || null,
+    occasion: template.occasion || template.category || template.theme || 'Personal',
+    category: template.category || template.occasion || 'Personal',
+    occasion_data: template.occasion_data || template.occasionData || null,
     template_price: Number(template.template_price || template.templatePrice || 0),
     magazine_price: Number(template.magazine_price || template.magazinePrice || itemPrice),
   };

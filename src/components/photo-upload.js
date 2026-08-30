@@ -470,6 +470,10 @@ export function renderPhotoUploadUI(container, options = {}) {
 
     if (uploadBtn && !isUploading) {
       uploadBtn.addEventListener('click', () => {
+        if (typeof options.onBeforeUpload === 'function') {
+          const canProceed = options.onBeforeUpload();
+          if (canProceed === false) return;
+        }
         const total = getTotalCount();
         if (coverFile && backFile && total >= minPhotos && total <= maxPhotos) {
           startUploadProcess();
