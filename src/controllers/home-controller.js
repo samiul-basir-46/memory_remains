@@ -36,7 +36,7 @@ function renderShowcaseCard(template = {}) {
           <p class="text-xs text-[#8B4A38] mb-6">Incl. of all taxes</p>
           <div class="grid grid-cols-2 gap-4 mb-6">
             <button onclick="addTemplateToCart(${JSON.stringify(template).replace(/"/g, '&quot;')})" type="button" class="py-3 px-4 rounded-xl border-2 border-[#C97B5F] bg-[#FFF5F0] hover:bg-[#FFE8DF] text-[#8B4A38] font-bold text-sm transition-all cursor-pointer text-center active:scale-95 shadow-sm">Add To Cart</button>
-            <button onclick="addTemplateToCart(${JSON.stringify(template).replace(/"/g, '&quot;')}); window.location.href='/pages/cart'" type="button" class="py-3 px-4 rounded-xl bg-[#C97B5F] hover:bg-[#8B4A38] text-[#FFF5F0] font-bold text-sm shadow-md transition-all cursor-pointer text-center active:scale-95">Buy Now</button>
+            <button onclick="addTemplateToCart(${JSON.stringify(template).replace(/"/g, '&quot;')}); window.location.href='/pages/cart?checkout=direct'" type="button" class="py-3 px-4 rounded-xl bg-[#C97B5F] hover:bg-[#8B4A38] text-[#FFF5F0] font-bold text-sm shadow-md transition-all cursor-pointer text-center active:scale-95">Buy Now</button>
           </div>
           <div class="space-y-2.5 text-xs text-[#2C1A14] pt-4 border-t border-[#F4C5B1]">
             <div class="flex items-center gap-2.5"><i class="fa-solid fa-truck text-[#C97B5F] text-sm"></i> <span>Delivered in 3-15 Days</span></div>

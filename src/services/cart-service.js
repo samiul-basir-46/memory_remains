@@ -99,35 +99,54 @@ export function renderCartDrawer() {
 
 export function addTemplateToCart(template = {}) {
   const cart = getCart();
-  const cartKey = `${template.id || template.title}_${template.purchaseMode || 'magazine'}`;
+  const pageNum = Number(template.pageCount || template.pages || 0);
+  const cartKey = `${template.id || template.title}_${template.purchaseMode || 'magazine'}${pageNum > 0 ? `_${pageNum}p` : ''}`;
   const existingIndex = cart.findIndex((i) => i.cartKey === cartKey);
 
   const itemPrice = Number(template.price || template.magazine_price || 0);
   const deliveryCharge = Number(template.delivery_charge || template.deliveryCharge || 0);
-
   const itemPType = template.product_type || template.productType || (template.purchaseMode === 'poster' ? 'poster' : (template.purchaseMode === 'wall_frame' ? 'wall_frame' : (template.purchaseMode === 'sticker' ? 'sticker' : 'magazine')));
 
+  const minP = Number(template.minPhotos || template.min_photos || 0);
+  const maxP = Number(template.maxPhotos || template.max_photos || template.requiredPhotos || template.required_photos || 0);
+
+  const newItem = {
+    cartKey,
+    id: template.id || template.template_id || template.templateId || '',
+    title: template.title || template.name || template.template_name || 'Product',
+    price: itemPrice,
+    deliveryCharge: deliveryCharge,
+    imageUrl: template.imageUrl || FALLBACK_IMAGE,
+    quantity: 1,
+    purchaseMode: template.purchaseMode || itemPType,
+    product_type: itemPType,
+    productType: itemPType,
+    pageCount: pageNum,
+    pages: pageNum,
+    selectedPages: template.selectedPages || (pageNum > 0 ? `${pageNum} Pages` : ''),
+    minPhotos: minP,
+    min_photos: minP,
+    maxPhotos: maxP,
+    max_photos: maxP,
+    requiredPhotos: maxP,
+    required_photos: maxP,
+    requiredPhotoCount: maxP,
+    required_photo_count: maxP,
+    photoRangeText: template.photoRangeText || (minP > 0 && minP !== maxP ? `${minP}–${maxP} Photos` : `${maxP} Photos`),
+    comboQuantity: template.comboQuantity || 5,
+    selectedPosters: template.selectedPosters || null,
+    template_price: Number(template.template_price || template.templatePrice || 0),
+    magazine_price: Number(template.magazine_price || template.magazinePrice || itemPrice),
+  };
+
   if (existingIndex >= 0) {
-    cart[existingIndex].quantity = (cart[existingIndex].quantity || 1) + 1;
-    if (template.selectedPosters) cart[existingIndex].selectedPosters = template.selectedPosters;
+    cart[existingIndex] = {
+      ...cart[existingIndex],
+      ...newItem,
+      quantity: (cart[existingIndex].quantity || 1) + 1
+    };
   } else {
-    cart.push({
-      cartKey,
-      id: template.id || template.template_id || template.templateId || '',
-      title: template.title || template.name || template.template_name || 'Product',
-      price: itemPrice,
-      deliveryCharge: deliveryCharge,
-      imageUrl: template.imageUrl || FALLBACK_IMAGE,
-      quantity: 1,
-      purchaseMode: template.purchaseMode || itemPType,
-      product_type: itemPType,
-      productType: itemPType,
-      requiredPhotos: template.requiredPhotos || 12,
-      comboQuantity: template.comboQuantity || 5,
-      selectedPosters: template.selectedPosters || null,
-      template_price: Number(template.template_price || template.templatePrice || 0),
-      magazine_price: Number(template.magazine_price || template.magazinePrice || itemPrice),
-    });
+    cart.push(newItem);
   }
 
   setCart(cart);

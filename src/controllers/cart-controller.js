@@ -3,7 +3,7 @@ import { formatCurrency, escapeHtml, qs, createToast } from '../utils/ui.js';
 import { imageMarkup } from '../components/product-card.js';
 import { getFirebaseServices } from '../services/firebase-service.js';
 import { renderPhotoUploadUI } from '../components/photo-upload.js';
-import { openAuthModal } from '../services/auth-service.js';
+import { openAuthModal, waitForAuthUser } from '../services/auth-service.js';
 import { getCurrentGpsLocation, detectDeliveryZone } from '../services/location-service.js';
 
 const API_BASE = "https://bkash-sms-gateway.onrender.com";
@@ -20,6 +20,74 @@ function generateShortOrderId() {
   return `ORD-${randomDigits}`;
 }
 
+function doesItemNeedPhotos(item) {
+  if (!item) return false;
+  const pType = item.product_type || item.productType || (item.purchaseMode === 'poster' ? 'poster' : (item.purchaseMode === 'wall_frame' ? 'wall_frame' : (item.purchaseMode === 'sticker' ? 'sticker' : 'magazine')));
+  if (pType === 'template' || item.purchaseMode === 'template' || pType === 'poster' || pType === 'sticker') {
+    return false;
+  }
+  const hasUploaded = Boolean(item.photos_uploaded || item.photosUploaded || (Array.isArray(item.photo_urls) && item.photo_urls.length > 0));
+  return !hasUploaded;
+}
+
+export function resolvePagePhotoLimits(pages, item = {}) {
+  const p = Number(pages || item.pageCount || item.pages || 8);
+  let minPhotos = Number(item.minPhotos || item.min_photos || 0);
+  let maxPhotos = Number(item.maxPhotos || item.max_photos || 0);
+
+  // If already specified by admin in Firestore tier or item, strictly respect admin values!
+  if (minPhotos > 0 && maxPhotos > 0) {
+    return { minPhotos, maxPhotos };
+  }
+
+  // Fallbacks only when unset in admin dashboard
+  if (p === 4) { minPhotos = minPhotos || 8; maxPhotos = maxPhotos || 15; }
+  else if (p === 8) { minPhotos = minPhotos || 15; maxPhotos = maxPhotos || 22; }
+  else if (p === 12) { minPhotos = minPhotos || 25; maxPhotos = maxPhotos || 32; }
+  else if (p === 16) { minPhotos = minPhotos || 35; maxPhotos = maxPhotos || 45; }
+  else if (p === 20) { minPhotos = minPhotos || 50; maxPhotos = maxPhotos || 60; }
+  else if (p === 24) { minPhotos = minPhotos || 60; maxPhotos = maxPhotos || 70; }
+  else {
+    minPhotos = minPhotos || Math.max(1, p * 2);
+    maxPhotos = maxPhotos || Math.max(minPhotos, p * 3);
+  }
+  return { minPhotos, maxPhotos };
+}
+
+function renderCheckoutStepper(activeStep = 1, hasPhotoStep = true) {
+  return `
+    <div class="max-w-2xl mx-auto mb-8 px-2">
+      <div class="flex items-center justify-between relative">
+        <div class="absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-pink-100 w-full z-0"></div>
+        <div class="absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-[#C97B5F] transition-all duration-300 z-0" style="width: ${activeStep === 1 ? '0%' : (activeStep === 2 ? '50%' : '100%')}"></div>
+
+        ${hasPhotoStep ? `
+          <div class="relative z-10 flex flex-col items-center">
+            <div class="w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs shadow-sm transition-all ${activeStep === 1 ? 'bg-[#C97B5F] text-white ring-4 ring-pink-200' : (activeStep > 1 ? 'bg-emerald-600 text-white' : 'bg-white border-2 border-gray-300 text-gray-500')}">
+              ${activeStep > 1 ? '<i class="fa-solid fa-check"></i>' : '1'}
+            </div>
+            <span class="text-[11px] font-bold mt-1.5 ${activeStep === 1 ? 'text-[#C97B5F]' : 'text-gray-600'}">Photos</span>
+          </div>
+        ` : ''}
+
+        <div class="relative z-10 flex flex-col items-center">
+          <div class="w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs shadow-sm transition-all ${activeStep === 2 ? 'bg-[#C97B5F] text-white ring-4 ring-pink-200' : (activeStep > 2 ? 'bg-emerald-600 text-white' : 'bg-white border-2 border-gray-300 text-gray-500')}">
+            ${activeStep > 2 ? '<i class="fa-solid fa-check"></i>' : (hasPhotoStep ? '2' : '1')}
+          </div>
+          <span class="text-[11px] font-bold mt-1.5 ${activeStep === 2 ? 'text-[#C97B5F]' : 'text-gray-600'}">Delivery</span>
+        </div>
+
+        <div class="relative z-10 flex flex-col items-center">
+          <div class="w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs shadow-sm transition-all ${activeStep === 3 ? 'bg-[#C97B5F] text-white ring-4 ring-pink-200' : 'bg-white border-2 border-gray-300 text-gray-500'}">
+            ${hasPhotoStep ? '3' : '2'}
+          </div>
+          <span class="text-[11px] font-bold mt-1.5 ${activeStep === 3 ? 'text-[#C97B5F]' : 'text-gray-600'}">Payment</span>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
 export async function renderCartPage(dbInstance) {
   const db = dbInstance || getFirebaseServices().db;
   const container = qs('#cart-page-app');
@@ -30,6 +98,18 @@ export async function renderCartPage(dbInstance) {
 
   if (existingOrderId) {
     await handlePageRefreshRecovery(db, existingOrderId);
+    return;
+  }
+
+  const isDirectCheckout = urlParams.get('checkout') === 'direct';
+  const cart = getCart();
+
+  if (isDirectCheckout && cart.length > 0) {
+    let subtotal = 0;
+    cart.forEach(item => {
+      subtotal += Number(item.price || 0) * Number(item.quantity || 1);
+    });
+    await initiateCheckout(db, subtotal);
     return;
   }
 
@@ -64,6 +144,10 @@ function renderCartState(db) {
     const lineTotal = itemPrice * itemQty;
     subtotal += lineTotal;
 
+    const { minPhotos: minP, maxPhotos: maxP } = resolvePagePhotoLimits(item.pageCount || item.pages || 8, item);
+    const isMag = item.product_type === 'magazine' || item.purchaseMode === 'magazine' || (!item.purchaseMode && item.product_type !== 'template' && item.product_type !== 'poster');
+    const hasUploadedPhotos = Boolean(item.photos_uploaded || item.photosUploaded || (Array.isArray(item.photo_urls) && item.photo_urls.length > 0));
+
     return `
       <div class="cart-item-card bg-white p-4 md:p-5 rounded-2xl border border-pink-100/80 shadow-sm flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-4">
         <div class="w-20 h-20 rounded-xl bg-[#1a1a1a] overflow-hidden flex-shrink-0">
@@ -71,7 +155,14 @@ function renderCartState(db) {
         </div>
         <div class="flex-1 min-w-0">
           <h4 class="font-heading text-base font-semibold text-[#2A2A2A] mb-1 truncate">${escapeHtml(item.title)}</h4>
-          <p class="text-sm text-text-soft mb-2">Unit Price: <span class="font-semibold text-[#2A2A2A]">৳${itemPrice}</span></p>
+          <p class="text-sm text-text-soft mb-1">Unit Price: <span class="font-semibold text-[#2A2A2A]">৳${itemPrice}</span></p>
+          ${isMag ? `
+            <div class="mb-2 flex items-center gap-2 flex-wrap">
+              <span class="text-[11px] font-bold px-2 py-0.5 rounded-md ${hasUploadedPhotos ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-pink-50 text-pink-900 border border-pink-200'}">
+                ${hasUploadedPhotos ? `✓ ${item.photo_urls ? item.photo_urls.length : 'All'} Photos Attached` : `📸 Requires ${minP === maxP ? maxP : `${minP}–${maxP}`} Photos`}
+              </span>
+            </div>
+          ` : ''}
           <div class="flex items-center gap-3">
             <div class="inline-flex items-center border border-gray-200 rounded-lg overflow-hidden bg-gray-50">
               <button type="button" onclick="window.__updateCartQty(${index}, ${itemQty - 1})" class="w-8 h-8 flex items-center justify-center text-gray-600 hover:bg-gray-200 transition-colors cursor-pointer font-bold text-sm" ${itemQty <= 1 ? 'disabled' : ''}>-</button>
@@ -91,8 +182,6 @@ function renderCartState(db) {
       </div>
     `;
   }).join('');
-
-  const grandTotal = subtotal + DELIVERY_CHARGE;
 
   container.innerHTML = `
     <div class="max-w-4xl mx-auto py-8 px-4">
@@ -144,17 +233,125 @@ function renderCartState(db) {
   };
 
   qs('#start-checkout-btn')?.addEventListener('click', () => {
-    const { auth } = getFirebaseServices();
-    const currentUser = auth?.currentUser;
-
-    if (!currentUser) {
-      createToast('Please sign in to proceed with checkout', 'error');
-      openAuthModal();
-      return;
-    }
-
-    renderCheckoutForm(db, subtotal);
+    initiateCheckout(db, subtotal);
   });
+}
+
+async function initiateCheckout(db, subtotal) {
+  const currentUser = await waitForAuthUser();
+
+  if (!currentUser) {
+    createToast('Please sign in to proceed with checkout', 'error');
+    openAuthModal();
+    return;
+  }
+
+  const cart = getCart();
+  if (cart.length === 0) {
+    renderCartState(db);
+    return;
+  }
+
+  // Check if any item requires photo upload first
+  const unUploadedIndex = cart.findIndex(item => doesItemNeedPhotos(item));
+
+  if (unUploadedIndex >= 0) {
+    renderPreCheckoutPhotoUpload(db, subtotal, unUploadedIndex);
+  } else {
+    renderCheckoutForm(db, subtotal);
+  }
+}
+
+function renderPreCheckoutPhotoUpload(db, subtotal, itemIndex = 0) {
+  const container = qs('#cart-page-app');
+  if (!container) return;
+
+  const cart = getCart();
+  const item = cart[itemIndex];
+  if (!item) {
+    renderCheckoutForm(db, subtotal);
+    return;
+  }
+
+  const itemsNeedingPhotos = cart.filter(it => it.product_type === 'magazine' || it.purchaseMode === 'magazine');
+  const totalItemsCount = itemsNeedingPhotos.length;
+  const currentItemNumber = cart.slice(0, itemIndex + 1).filter(it => it.product_type === 'magazine' || it.purchaseMode === 'magazine').length;
+
+  const pageCount = Number(item.pageCount || item.pages || 8);
+  const { minPhotos, maxPhotos } = resolvePagePhotoLimits(pageCount, item);
+  const title = item.title || 'Custom Magazine';
+
+  container.innerHTML = `
+    <div class="max-w-2xl mx-auto py-8 px-4 space-y-6">
+      ${renderCheckoutStepper(1, true)}
+
+      <div class="bg-gradient-to-r from-pink-500/10 via-rose-500/10 to-amber-500/10 p-5 rounded-2xl border border-pink-200 flex items-center justify-between gap-4">
+        <div>
+          <span class="text-[10px] font-extrabold uppercase tracking-wider text-[#C97B5F] bg-pink-100 px-2.5 py-0.5 rounded-full border border-pink-200">
+            ${totalItemsCount > 1 ? `Item ${currentItemNumber} of ${totalItemsCount} • Photo Customization` : 'Step 1 of 3: Photo Customization'}
+          </span>
+          <h3 class="font-heading text-lg sm:text-xl font-bold text-gray-900 mt-1">${escapeHtml(title)}</h3>
+          <p class="text-xs text-gray-600 mt-0.5">Please upload required photos for this item before proceeding to delivery.</p>
+        </div>
+        <div class="text-right flex-shrink-0">
+          <span class="text-xs font-bold text-primary block">Required</span>
+          <strong class="text-sm sm:text-base font-extrabold text-gray-900">${minPhotos === maxPhotos ? `${maxPhotos} Photos` : `${minPhotos}–${maxPhotos} Photos`}</strong>
+        </div>
+      </div>
+
+      <div id="pre-checkout-photo-mount"></div>
+
+      <div class="text-center pt-2">
+        <button type="button" id="pre-upload-back-to-bag-btn" class="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-primary transition-colors cursor-pointer">
+          <i class="fa-solid fa-arrow-left"></i>
+          <span>Return to Shopping Bag</span>
+        </button>
+      </div>
+    </div>
+  `;
+
+  qs('#pre-upload-back-to-bag-btn')?.addEventListener('click', () => {
+    renderCartState(db);
+  });
+
+  const mountEl = qs('#pre-checkout-photo-mount');
+  if (mountEl) {
+    const isLastUploadItem = (totalItemsCount <= 1 || currentItemNumber >= totalItemsCount);
+    renderPhotoUploadUI(mountEl, {
+      orderId: `PRE-${Date.now()}-${itemIndex}`,
+      minPhotos,
+      maxPhotos,
+      pageCount,
+      recipientName: item.recipient_name || '',
+      isPreCheckout: true,
+      submitButtonText: isLastUploadItem
+        ? `Upload & Continue to Delivery (${minPhotos === maxPhotos ? maxPhotos : `${minPhotos}–${maxPhotos}`} Photos)`
+        : `Upload & Next Item Photos (${minPhotos === maxPhotos ? maxPhotos : `${minPhotos}–${maxPhotos}`} Photos)`,
+      onSuccess: (uploadResult) => {
+        const freshCart = getCart();
+        if (freshCart[itemIndex]) {
+          freshCart[itemIndex].photos_uploaded = true;
+          freshCart[itemIndex].photosUploaded = true;
+          freshCart[itemIndex].photo_urls = uploadResult.allUrls;
+          freshCart[itemIndex].photoUrls = uploadResult.allUrls;
+          freshCart[itemIndex].imageUrls = uploadResult.allUrls;
+          freshCart[itemIndex].cover_url = uploadResult.coverUrl;
+          freshCart[itemIndex].cover_photo_url = uploadResult.coverUrl;
+          freshCart[itemIndex].back_url = uploadResult.backUrl;
+          freshCart[itemIndex].back_photo_url = uploadResult.backUrl;
+          freshCart[itemIndex].inner_urls = uploadResult.innerUrls;
+          freshCart[itemIndex].inner_photo_urls = uploadResult.innerUrls;
+          if (uploadResult.recipientName) {
+            freshCart[itemIndex].recipient_name = uploadResult.recipientName;
+            freshCart[itemIndex].recipientName = uploadResult.recipientName;
+          }
+          setCart(freshCart);
+        }
+        createToast('Photos uploaded successfully!', 'success');
+        initiateCheckout(db, subtotal);
+      }
+    });
+  }
 }
 
 function renderCheckoutForm(db, subtotal) {
@@ -164,20 +361,42 @@ function renderCheckoutForm(db, subtotal) {
   const cart = getCart();
   const hasPhysicalDelivery = cart.some(item => item.product_type === 'poster' || item.product_type === 'wall_frame' || item.product_type === 'sticker' || item.purchaseMode === 'magazine' || (!item.purchaseMode && item.product_type !== 'template'));
   const hasPoster = cart.some(item => item.product_type === 'poster');
-  const hasMagazine = cart.some(item => item.product_type === 'magazine' || item.purchaseMode === 'magazine');
+  const hasMagazine = cart.some(item => item.product_type === 'magazine' || item.purchaseMode === 'magazine' || (!item.purchaseMode && item.product_type !== 'template' && item.product_type !== 'poster'));
+
+  // Collect uploaded photos count
+  let totalUploadedPhotos = 0;
+  cart.forEach(it => {
+    if (Array.isArray(it.photo_urls)) totalUploadedPhotos += it.photo_urls.length;
+  });
 
   let currentDeliveryCharge = hasPhysicalDelivery ? 60 : 0;
   let currentZoneInfo = { zone: 'inside_dhaka', charge: 60, label: 'Inside Dhaka', isInside: true };
 
   container.innerHTML = `
     <div class="max-w-xl mx-auto py-8 px-4">
+      ${renderCheckoutStepper(2, hasMagazine)}
+
       <button type="button" id="back-to-cart-btn" class="mb-6 inline-flex items-center gap-2 text-xs font-semibold text-text-dark hover:text-primary transition-colors cursor-pointer">
         <i class="fa-solid fa-arrow-left"></i>
         <span>Back to Shopping Bag</span>
       </button>
 
-      <div class="bg-white p-6 md:p-8 rounded-2xl border border-pink-100 shadow-xl">
-        <h2 class="font-heading text-2xl text-[#2A2A2A] font-bold mb-6">Checkout Details</h2>
+      <div class="bg-white p-6 md:p-8 rounded-2xl border border-pink-100 shadow-xl space-y-5">
+        <div>
+          <h2 class="font-heading text-2xl text-[#2A2A2A] font-bold">Delivery & Contact Details</h2>
+          <p class="text-xs text-gray-500 mt-1">Please provide your shipping and contact information.</p>
+        </div>
+
+        ${hasMagazine && totalUploadedPhotos > 0 ? `
+          <div class="p-3.5 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between text-xs text-emerald-950">
+            <div class="flex items-center gap-2 font-bold">
+              <i class="fa-solid fa-circle-check text-emerald-600 text-base"></i>
+              <span>${totalUploadedPhotos} Photos Attached</span>
+            </div>
+            <span class="text-[11px] font-semibold text-emerald-700 bg-white px-2 py-0.5 rounded-md border border-emerald-200">Ready for Print</span>
+          </div>
+        ` : ''}
+
         <form id="checkout-submit-form" class="space-y-5">
           <div>
             <label class="block text-xs font-bold text-[#2A2A2A] mb-1.5">Full Name *</label>
@@ -381,7 +600,7 @@ function renderCheckoutForm(db, subtotal) {
         if (saved.address && qs('#cust-address')) qs('#cust-address').value = saved.address;
         if (saved.postalCode && qs('#cust-postal')) qs('#cust-postal').value = saved.postalCode;
       }
-    } catch (_) {}
+    } catch (_) { }
 
     // Attach listeners for real-time address detection
     ['#cust-division', '#cust-district', '#cust-upazila', '#cust-address'].forEach((selector) => {
@@ -433,7 +652,7 @@ function renderCheckoutForm(db, subtotal) {
     r.addEventListener('change', () => {
       paymentBoxes.forEach((b) => {
         const checked = b.querySelector('input').checked;
-        b.className = checked 
+        b.className = checked
           ? 'payment-option-label border-2 border-primary bg-pink-50/50 p-4 rounded-xl cursor-pointer flex flex-col items-center justify-center gap-1.5 transition-all text-center'
           : 'payment-option-label border-2 border-gray-200 bg-white p-4 rounded-xl cursor-pointer flex flex-col items-center justify-center gap-1.5 transition-all text-center';
       });
@@ -444,15 +663,30 @@ function renderCheckoutForm(db, subtotal) {
 
   updateCheckoutZone();
 
-  qs('#checkout-submit-form')?.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const name = qs('#cust-name').value.trim();
-    const phone = qs('#cust-phone').value.trim();
+  const handleProceedToPayment = () => {
+    const name = qs('#cust-name')?.value.trim() || '';
+    const phone = qs('#cust-phone')?.value.trim() || '';
     const selectedMethod = document.querySelector('input[name="payment_method"]:checked')?.value || 'cod';
+
+    if (!name) {
+      createToast('Please enter your full name', 'error');
+      const nameInput = qs('#cust-name');
+      if (nameInput) {
+        nameInput.focus();
+        nameInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      return;
+    }
 
     const phoneRegex = /^01[3-9]\d{8}$/;
     if (!phoneRegex.test(phone)) {
       qs('#phone-error-text')?.classList.remove('hidden');
+      createToast('Please enter a valid 11-digit Bangladeshi mobile number (e.g. 01712345678)', 'error');
+      const phoneInput = qs('#cust-phone');
+      if (phoneInput) {
+        phoneInput.focus();
+        phoneInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
       return;
     }
     qs('#phone-error-text')?.classList.add('hidden');
@@ -467,15 +701,41 @@ function renderCheckoutForm(db, subtotal) {
       const postalCode = qs('#cust-postal')?.value.trim() || '';
       const note = qs('#cust-note')?.value.trim() || '';
 
-      if (!district || !upazila || !address || address.length < 5) {
-        const errBox = qs('#checkout-error-msg');
-        if (errBox) {
-          errBox.textContent = 'Please fill out your complete delivery address including District, Upazila/Area, and Detailed House & Street Address (at least 5 characters).';
-          errBox.classList.remove('hidden');
-          errBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      if (!district) {
+        createToast('Please enter your delivery District (e.g. Dhaka, Gazipur)', 'error');
+        const distInput = qs('#cust-district');
+        if (distInput) {
+          distInput.focus();
+          distInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
         return;
       }
+
+      if (!upazila) {
+        createToast('Please enter your Upazila / Area / Police Station', 'error');
+        const upInput = qs('#cust-upazila');
+        if (upInput) {
+          upInput.focus();
+          upInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        return;
+      }
+
+      if (!address || address.length < 3) {
+        createToast('Please enter your Detailed House & Street Address', 'error');
+        const addrInput = qs('#cust-address');
+        if (addrInput) {
+          addrInput.focus();
+          addrInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        return;
+      }
+
+      // Save to localStorage for convenience next time
+      try {
+        localStorage.setItem('user_delivery_location', JSON.stringify({ division, district, upazila, address, postalCode }));
+        localStorage.setItem('user_contact_info', JSON.stringify({ name, phone }));
+      } catch (_) {}
 
       // Re-run zone detection right before submit for complete safety
       const zoneInfo = detectDeliveryZone({ division, district, upazila, address });
@@ -511,6 +771,16 @@ function renderCheckoutForm(db, subtotal) {
         delivery_info: null
       });
     }
+  };
+
+  qs('#checkout-submit-form')?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    handleProceedToPayment();
+  });
+
+  qs('#place-order-btn')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    handleProceedToPayment();
   });
 }
 
@@ -525,19 +795,24 @@ function renderPaymentInstructionsStep(db, checkoutData) {
   const expectedAmount = isCod ? (deliveryCharge > 0 ? deliveryCharge : 60) : totalAmount;
   const zoneLabel = checkoutData.delivery_zone === 'outside_dhaka' ? 'Outside Dhaka' : (checkoutData.delivery_zone === 'none' ? 'Digital' : 'Inside Dhaka');
 
+  const cart = getCart();
+  const hasMagazine = cart.some(item => item.product_type === 'magazine' || item.purchaseMode === 'magazine' || (!item.purchaseMode && item.product_type !== 'template' && item.product_type !== 'poster'));
+
   container.innerHTML = `
     <div class="max-w-xl mx-auto py-8 px-4">
+      ${renderCheckoutStepper(3, hasMagazine)}
+
       <div class="bg-white p-6 md:p-8 rounded-2xl border border-pink-100 shadow-xl">
         
         <div class="bg-[#FDF0F4] p-5 rounded-2xl border border-pink-200 text-center space-y-3 mb-6">
-          <span class="text-xs text-text-soft block uppercase tracking-wider font-semibold">bKash Merchant / Personal Payment Number</span>
+          <span class="text-xs text-text-soft block uppercase tracking-wider font-semibold">bKash Send Money Payment Number</span>
           <div class="flex items-center justify-center gap-3">
             <span class="text-xs text-text-soft font-medium">bKash Number:</span>
             <strong class="font-bold text-xl text-[#2A2A2A] tracking-wider">${BKASH_NUMBER}</strong>
             <button type="button" id="copy-bkash-num-btn" class="px-3 py-1.5 bg-[#C97B5F] hover:bg-[#8B4A38] text-white text-xs font-bold rounded-lg shadow-sm transition-colors cursor-pointer">Copy</button>
           </div>
           <p class="text-xs sm:text-sm font-semibold text-gray-800 leading-relaxed border-t border-pink-200/60 pt-2.5 max-w-md mx-auto">
-            <strong class="text-primary font-extrabold text-sm sm:text-base">Note:</strong> Please use the Copy button to copy the payment number. Only the payment number will be copied for your safety and to avoid mistakes during payment.
+            <strong class="text-primary font-extrabold text-sm sm:text-base">Note:</strong> Please use the Copy button to copy the payment number for your safety.
           </p>
         </div>
 
@@ -570,7 +845,6 @@ function renderPaymentInstructionsStep(db, checkoutData) {
           <strong class="text-3xl font-bold text-primary">৳${expectedAmount}</strong>
         </div>
 
-
         <div class="space-y-4 mb-6">
           <h4 class="font-heading text-sm font-bold text-[#2A2A2A]">Step-by-step Instructions:</h4>
           <div class="grid grid-cols-3 gap-2 text-center text-xs text-[#2A2A2A]">
@@ -597,7 +871,7 @@ function renderPaymentInstructionsStep(db, checkoutData) {
 
           <div id="verify-error-box" class="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-800 hidden"></div>
 
-          <button type="submit" id="confirm-payment-btn" class="w-full py-3.5 bg-[#C97B5F] text-white font-bold rounded-xl text-sm shadow-md transition-colors cursor-pointer text-center" style="background-color: #C97B5F !important; color: #ffffff !important;">Confirm Payment</button>
+          <button type="submit" id="confirm-payment-btn" class="w-full py-3.5 bg-[#C97B5F] text-white font-bold rounded-xl text-sm shadow-md transition-colors cursor-pointer text-center" style="background-color: #C97B5F !important; color: #ffffff !important;">Confirm Order</button>
         </form>
       </div>
     </div>
@@ -625,6 +899,117 @@ function renderPaymentInstructionsStep(db, checkoutData) {
 
     try {
       const newOrderId = generateShortOrderId();
+      const currentCart = getCart();
+
+      let topCoverUrl = '';
+      let topBackUrl = '';
+      let topInnerUrls = [];
+      let topAllPhotoUrls = [];
+      let topRecipientName = '';
+
+      const expandedItems = [];
+      let itemCounter = 1;
+
+      currentCart.forEach((item) => {
+        const qty = Math.max(1, Number(item.quantity || 1));
+        const pType = item.product_type || item.productType || (item.purchaseMode === 'poster' ? 'poster' : (item.purchaseMode === 'wall_frame' ? 'wall_frame' : (item.purchaseMode === 'sticker' ? 'sticker' : 'magazine')));
+        const isPoster = pType === 'poster';
+        const isFrame = pType === 'wall_frame' || pType === 'frame';
+        const isSticker = pType === 'sticker';
+        const isTemplate = item.purchaseMode === 'template' || pType === 'template';
+
+        const selectedPosters = Array.isArray(item.selectedPosters) ? item.selectedPosters : [];
+        const customUrls = selectedPosters.filter(s => s.type === 'custom_upload' && s.imageUrl).map(s => s.imageUrl);
+        const itemPhotoUrls = Array.isArray(item.photo_urls) ? item.photo_urls : (item.photoUrls || []);
+
+        if (item.cover_url && !topCoverUrl) topCoverUrl = item.cover_url;
+        if (item.back_url && !topBackUrl) topBackUrl = item.back_url;
+        if (Array.isArray(item.inner_urls) && topInnerUrls.length === 0) topInnerUrls = item.inner_urls;
+        if (itemPhotoUrls.length > 0) topAllPhotoUrls.push(...itemPhotoUrls);
+        if (item.recipient_name && !topRecipientName) topRecipientName = item.recipient_name;
+
+        for (let q = 0; q < qty; q++) {
+          const itemNumLabel = qty > 1 ? ` (Item ${q + 1} of ${qty})` : '';
+          const itemTitle = item.title || item.name || item.template_name || (isPoster ? 'Poster Combo' : isFrame ? 'Wall Frame' : isSticker ? 'Sticker' : 'Custom Product');
+          const itemId = item.id || item.template_id || item.templateId || (isPoster ? 'poster-combo' : isFrame ? 'frame-template' : isSticker ? 'sticker-template' : 'custom-item');
+
+          if (isPoster) {
+            expandedItems.push({
+              item_id: `${newOrderId}-${itemCounter}`,
+              template_id: itemId,
+              template_name: `${itemTitle}${itemNumLabel}`,
+              product_type: 'poster',
+              productType: 'poster',
+              combo_quantity: Number(item.comboQuantity || 5),
+              comboQuantity: Number(item.comboQuantity || 5),
+              customization_type: customUrls.length > 0 ? 'custom_upload' : 'catalog',
+              customizationType: customUrls.length > 0 ? 'custom_upload' : 'catalog',
+              photos_uploaded: true,
+              photosUploaded: true,
+              photo_urls: customUrls,
+              photoUrls: customUrls,
+              catalog_preview_url: item.imageUrl || (selectedPosters.length > 0 ? selectedPosters[0].imageUrl : ''),
+              catalogPreviewUrl: item.imageUrl || (selectedPosters.length > 0 ? selectedPosters[0].imageUrl : ''),
+              selected_posters: selectedPosters,
+              selectedPosters: selectedPosters,
+              required_photo_count: Number(item.comboQuantity || 5)
+            });
+          } else if (isFrame) {
+            expandedItems.push({
+              item_id: `${newOrderId}-${itemCounter}`,
+              template_id: itemId,
+              template_name: `${itemTitle}${itemNumLabel}`,
+              product_type: pType,
+              productType: pType,
+              photos_uploaded: itemPhotoUrls.length > 0,
+              photosUploaded: itemPhotoUrls.length > 0,
+              photo_urls: itemPhotoUrls,
+              photoUrls: itemPhotoUrls,
+              recipient_name: item.recipient_name || '',
+              required_photo_count: 1
+            });
+          } else if (isSticker) {
+            expandedItems.push({
+              item_id: `${newOrderId}-${itemCounter}`,
+              template_id: itemId,
+              template_name: `${itemTitle}${itemNumLabel}`,
+              product_type: pType,
+              productType: pType,
+              photos_uploaded: true,
+              photosUploaded: true,
+              photo_urls: item.imageUrl ? [item.imageUrl] : [],
+              photoUrls: item.imageUrl ? [item.imageUrl] : [],
+              recipient_name: item.recipient_name || '',
+              required_photo_count: 1
+            });
+          } else {
+            const { minPhotos: itMin, maxPhotos: itMax } = resolvePagePhotoLimits(item.pageCount || item.pages || 8, item);
+            expandedItems.push({
+              item_id: `${newOrderId}-${itemCounter}`,
+              template_id: itemId,
+              template_name: `${itemTitle}${itemNumLabel}`,
+              product_type: pType,
+              productType: pType,
+              recipient_name: item.recipient_name || '',
+              required_photo_count: itMax,
+              min_photos: itMin,
+              max_photos: itMax,
+              photos_uploaded: isTemplate || Boolean(item.photos_uploaded || itemPhotoUrls.length > 0),
+              photosUploaded: isTemplate || Boolean(item.photosUploaded || itemPhotoUrls.length > 0),
+              photo_urls: itemPhotoUrls,
+              photoUrls: itemPhotoUrls,
+              imageUrls: itemPhotoUrls,
+              cover_url: item.cover_url || '',
+              cover_photo_url: item.cover_url || '',
+              back_url: item.back_url || '',
+              back_photo_url: item.back_url || '',
+              inner_urls: item.inner_urls || [],
+              inner_photo_urls: item.inner_urls || []
+            });
+          }
+          itemCounter++;
+        }
+      });
 
       if (db && typeof db.collection === 'function') {
         const currentUser = (window.firebase && window.firebase.auth) ? window.firebase.auth().currentUser : null;
@@ -634,19 +1019,27 @@ function renderPaymentInstructionsStep(db, checkoutData) {
 
         const deliveryInfo = checkoutData.delivery_info || null;
         const purchaseType = checkoutData.purchase_type || (deliveryInfo ? 'magazine' : 'template');
-
-        const cartItems = getCart();
-        const firstCartItem = cartItems && cartItems.length > 0 ? cartItems[0] : null;
+        const firstCartItem = currentCart && currentCart.length > 0 ? currentCart[0] : null;
         const derivedProductType = firstCartItem ? (firstCartItem.product_type || firstCartItem.productType || purchaseType || 'magazine') : (purchaseType || 'magazine');
-        const isNonMagOrder = derivedProductType !== 'magazine';
+        const hasAllPhotos = expandedItems.length === 0 || expandedItems.every(it => it.photos_uploaded || it.photosUploaded);
 
         const firestoreData = {
           orderId: newOrderId,
           purchaseType: purchaseType,
           product_type: derivedProductType,
           productType: derivedProductType,
-          photos_uploaded: isNonMagOrder,
-          photosUploaded: isNonMagOrder,
+          photos_uploaded: hasAllPhotos,
+          photosUploaded: hasAllPhotos,
+          cover_url: topCoverUrl,
+          cover_photo_url: topCoverUrl,
+          back_url: topBackUrl,
+          back_photo_url: topBackUrl,
+          inner_urls: topInnerUrls,
+          inner_photo_urls: topInnerUrls,
+          photo_urls: topAllPhotoUrls,
+          imageUrls: topAllPhotoUrls,
+          recipient_name: topRecipientName || '',
+          recipientName: topRecipientName || '',
           transactionId: trxId,
           txnId: trxId,
           paymentMethod: checkoutData.payment_method === 'cod' ? 'bKash (COD Advance)' : 'bKash (Full Online)',
@@ -668,6 +1061,10 @@ function renderPaymentInstructionsStep(db, checkoutData) {
             email: currentUser?.email || ''
           },
           deliveryInfo: deliveryInfo,
+          delivery_note: deliveryInfo?.note || '',
+          deliveryNote: deliveryInfo?.note || '',
+          specialNote: deliveryInfo?.note || '',
+          note: deliveryInfo?.note || '',
           delivery_address: deliveryInfo ? {
             address: deliveryInfo.address,
             district: deliveryInfo.district,
@@ -676,614 +1073,192 @@ function renderPaymentInstructionsStep(db, checkoutData) {
             postal_code: deliveryInfo.postalCode || '',
             note: deliveryInfo.note || ''
           } : null,
-          shippingAddress: deliveryInfo ? `${deliveryInfo.address}, ${deliveryInfo.upazila ? deliveryInfo.upazila + ', ' : ''}${deliveryInfo.district}, ${deliveryInfo.division}` : 'N/A (Digital Product Order)',
+          address: deliveryInfo ? `${deliveryInfo.address}, ${deliveryInfo.upazila ? deliveryInfo.upazila + ', ' : ''}${deliveryInfo.district}, ${deliveryInfo.division}${deliveryInfo.postalCode ? ' (Postal: ' + deliveryInfo.postalCode + ')' : ''}` : '',
+          shippingAddress: deliveryInfo ? `${deliveryInfo.address}, ${deliveryInfo.upazila ? deliveryInfo.upazila + ', ' : ''}${deliveryInfo.district}, ${deliveryInfo.division}${deliveryInfo.postalCode ? ' (Postal: ' + deliveryInfo.postalCode + ')' : ''}` : 'N/A (Digital Product Order)',
           paymentInfo: {
             method: 'bKash',
             transactionId: trxId
           },
-          items: (() => {
-            const expanded = [];
-            let itemCounter = 1;
-            getCart().forEach((item) => {
-              const qty = Math.max(1, Number(item.quantity || 1));
-              const pType = item.product_type || item.productType || (item.purchaseMode === 'poster' ? 'poster' : (item.purchaseMode === 'wall_frame' ? 'wall_frame' : (item.purchaseMode === 'sticker' ? 'sticker' : 'magazine')));
-              const isPoster = pType === 'poster';
-              const isFrame = pType === 'wall_frame' || pType === 'frame';
-              const isSticker = pType === 'sticker';
-              const selectedPosters = Array.isArray(item.selectedPosters) ? item.selectedPosters : [];
-              const customUrls = selectedPosters.filter(s => s.type === 'custom_upload' && s.imageUrl).map(s => s.imageUrl);
-              const hasCustomUploads = customUrls.length > 0;
-
-              for (let q = 0; q < qty; q++) {
-                const itemNumLabel = qty > 1 ? ` (Item ${q + 1} of ${qty})` : '';
-                const itemTitle = item.title || item.name || item.template_name || (isPoster ? 'Poster Combo' : isFrame ? 'Wall Frame' : isSticker ? 'Sticker' : 'Custom Product');
-                const itemId = item.id || item.template_id || item.templateId || (isPoster ? 'poster-combo' : isFrame ? 'frame-template' : isSticker ? 'sticker-template' : 'custom-item');
-
-                if (isPoster) {
-                  expanded.push({
-                    item_id: `${newOrderId}-${itemCounter}`,
-                    template_id: itemId,
-                    template_name: `${itemTitle}${itemNumLabel}`,
-                    product_type: 'poster',
-                    productType: 'poster',
-                    combo_quantity: Number(item.comboQuantity || 5),
-                    comboQuantity: Number(item.comboQuantity || 5),
-                    customization_type: hasCustomUploads ? 'custom_upload' : 'catalog',
-                    customizationType: hasCustomUploads ? 'custom_upload' : 'catalog',
-                    photos_uploaded: true,
-                    photosUploaded: true,
-                    photo_urls: customUrls,
-                    photoUrls: customUrls,
-                    catalog_preview_url: item.imageUrl || (selectedPosters.length > 0 ? selectedPosters[0].imageUrl : ''),
-                    catalogPreviewUrl: item.imageUrl || (selectedPosters.length > 0 ? selectedPosters[0].imageUrl : ''),
-                    selected_posters: selectedPosters,
-                    selectedPosters: selectedPosters,
-                    required_photo_count: Number(item.comboQuantity || 5)
-                  });
-                } else if (isFrame) {
-                  expanded.push({
-                    item_id: `${newOrderId}-${itemCounter}`,
-                    template_id: itemId,
-                    template_name: `${itemTitle}${itemNumLabel}`,
-                    product_type: pType,
-                    productType: pType,
-                    photos_uploaded: false,
-                    photosUploaded: false,
-                    photo_urls: [],
-                    photoUrls: [],
-                    recipient_name: item.recipient_name || '',
-                    required_photo_count: 1
-                  });
-                } else if (isSticker) {
-                  expanded.push({
-                    item_id: `${newOrderId}-${itemCounter}`,
-                    template_id: itemId,
-                    template_name: `${itemTitle}${itemNumLabel}`,
-                    product_type: pType,
-                    productType: pType,
-                    photos_uploaded: true,
-                    photosUploaded: true,
-                    photo_urls: item.imageUrl ? [item.imageUrl] : [],
-                    photoUrls: item.imageUrl ? [item.imageUrl] : [],
-                    recipient_name: item.recipient_name || '',
-                    required_photo_count: 1
-                  });
-                } else {
-                  expanded.push({
-                    item_id: `${newOrderId}-${itemCounter}`,
-                    template_id: itemId,
-                    template_name: `${itemTitle}${itemNumLabel}`,
-                    product_type: pType,
-                    productType: pType,
-                    recipient_name: item.recipient_name || '',
-                    required_photo_count: Number(item.required_photo_count || item.photo_count || item.requiredPhotos || 12),
-                    photos_uploaded: pType === 'template'
-                  });
-                }
-                itemCounter++;
-              }
-            });
-            return expanded;
-          })(),
-          requiredImageCount: (() => {
-            let sum = 0;
-            getCart().forEach((item) => {
-              const qty = Math.max(1, Number(item.quantity || 1));
-              const pType = item.product_type || item.productType || '';
-              const isPoster = pType === 'poster';
-              const isFrame = pType === 'wall_frame' || pType === 'frame';
-              const isTemplate = item.purchaseMode === 'template';
-              if (isTemplate) {
-                sum += 0;
-              } else if (isPoster) {
-                sum += Number(item.comboQuantity || 5) * qty;
-              } else if (isFrame) {
-                sum += 1 * qty;
-              } else {
-                sum += Number(item.requiredPhotos || 12) * qty;
-              }
-            });
-            return sum;
-          })(),
-          requiredPhotoCount: (() => {
-            let sum = 0;
-            getCart().forEach((item) => {
-              const qty = Math.max(1, Number(item.quantity || 1));
-              const pType = item.product_type || item.productType || '';
-              const isPoster = pType === 'poster';
-              const isFrame = pType === 'wall_frame' || pType === 'frame';
-              const isTemplate = item.purchaseMode === 'template';
-              if (isTemplate) {
-                sum += 0;
-              } else if (isPoster) {
-                sum += Number(item.comboQuantity || 5) * qty;
-              } else if (isFrame) {
-                sum += 1 * qty;
-              } else {
-                sum += Number(item.requiredPhotos || 12) * qty;
-              }
-            });
-            return sum;
-          })(),
+          items: expandedItems,
           productName: checkoutData.product_name || (purchaseType === 'poster' ? 'Poster Combo Pack Order' : (purchaseType === 'template' ? 'Digital Template Order' : 'Physical Magazine Order')),
           status: 'pending',
           paymentStatus: 'pending',
           createdAt: new Date().toISOString(),
           purchaseDate: serverTimestamp
         };
+
         await db.collection('purchases').doc(newOrderId).set(firestoreData);
       }
 
-      // Safely notify backend gateway (non-blocking if Render server is cold-starting)
+      // Safely notify backend gateway
       try {
         await fetch(`${API_BASE}/submit-order`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             order_id: newOrderId,
+            trx_id: trxId,
             customer_name: checkoutData.customer_name,
             customer_phone: checkoutData.customer_phone,
-            customer_email: currentUser?.email || '',
-            delivery_address: deliveryInfo ? {
-              address: deliveryInfo.address,
-              district: deliveryInfo.district,
-              division: deliveryInfo.division,
-              upazila: deliveryInfo.upazila || '',
-              postal_code: deliveryInfo.postalCode || '',
-              note: deliveryInfo.note || ''
-            } : null,
-            product_amount: checkoutData.product_amount,
-            delivery_charge: checkoutData.delivery_charge,
             payment_method: checkoutData.payment_method,
+            product_amount: productAmount,
+            delivery_charge: deliveryCharge,
+            delivery_zone: checkoutData.delivery_zone,
             expected_amount: expectedAmount,
-            expected_advance: expectedAmount
+            purchase_type: checkoutData.purchase_type,
+            product_name: checkoutData.product_name,
+            photos_uploaded: true,
+            delivery_info: checkoutData.delivery_info
           })
         });
-      } catch (backendErr) {
-        console.warn('Backend API notification warning (Order saved safely in Firestore):', backendErr);
+      } catch (apiErr) {
+        console.warn('Backend gateway notice:', apiErr);
       }
 
-      const newUrl = `${window.location.pathname}?order_id=${encodeURIComponent(newOrderId)}`;
-      window.history.pushState({}, '', newUrl);
+      // Clear the Cart
+      clearCart();
+      updateCartCount();
 
-      currentAttemptCount = 0;
-      startVerificationPolling(db, newOrderId, trxId, checkoutData);
+      // Render Order Placed Success Screen
+      renderPaidSuccessScreen(newOrderId, checkoutData, {
+        status: 'pending',
+        order_id: newOrderId,
+        trx_id: trxId,
+        customer_name: checkoutData.customer_name,
+        customer_phone: checkoutData.customer_phone,
+        delivery_info: checkoutData.delivery_info,
+        photos_uploaded: true,
+        photosUploaded: true,
+        product_type: checkoutData.purchase_type
+      });
+
     } catch (err) {
-      console.error('Order submission error:', err);
+      console.error('Order submission failed:', err);
       if (errorBox) {
-        errorBox.textContent = 'Could not save order. Please check your network connection and try again.';
+        errorBox.textContent = 'Could not create order. Please check your connection and try again.';
         errorBox.classList.remove('hidden');
       }
       if (confirmBtn) {
         confirmBtn.disabled = false;
-        confirmBtn.textContent = 'Confirm Payment';
+        confirmBtn.textContent = 'Confirm Order';
       }
     }
   });
 }
 
-async function startVerificationPolling(db, orderId, trxId, checkoutData) {
-  if (activePollingTimer) {
-    clearTimeout(activePollingTimer);
-    activePollingTimer = null;
-  }
-
-  currentAttemptCount++;
-  renderPendingPollingState(orderId, trxId, currentAttemptCount);
-
-  // Subscribe to real-time Firestore updates so Admin approval instantly triggers Success screen
-  if (db && typeof db.collection === 'function' && !window.__orderSnapshotUnsub) {
-    window.__orderSnapshotUnsub = db.collection('purchases').doc(orderId).onSnapshot((docSnap) => {
-      if (docSnap.exists) {
-        const docData = docSnap.data();
-        const status = (docData.status || docData.paymentStatus || '').toLowerCase();
-        if (['paid', 'confirmed', 'preparing', 'shipped', 'delivered', 'completed'].includes(status)) {
-          if (window.__orderSnapshotUnsub) {
-            window.__orderSnapshotUnsub();
-            window.__orderSnapshotUnsub = null;
-          }
-          if (activePollingTimer) {
-            clearTimeout(activePollingTimer);
-            activePollingTimer = null;
-          }
-          clearCart();
-          updateCartCount();
-          renderPaidSuccessScreen(orderId, checkoutData, docData);
-        }
-      }
-    });
-  }
-
-  try {
-    const res = await fetch(`${API_BASE}/verify-payment`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ order_id: orderId, trx_id: trxId })
-    });
-
-    if (res.ok) {
-      const data = await res.json();
-      handleVerificationResponse(db, data, orderId, trxId, checkoutData);
-    } else {
-      throw new Error(`Server status: ${res.status}`);
-    }
-  } catch (err) {
-    console.warn('Payment verification polling warning (Listening for Firestore Admin update):', err);
-    
-    // Hide scary error message since order is already saved in Firestore and onSnapshot is listening!
-    const errorBox = qs('#verify-status-error');
-    if (errorBox) {
-      errorBox.classList.add('hidden');
-    }
-
-    if (currentAttemptCount < MAX_ATTEMPTS) {
-      activePollingTimer = setTimeout(() => {
-        startVerificationPolling(db, orderId, trxId, checkoutData);
-      }, 15000);
-    } else {
-      renderPollingTimeoutState(db, orderId, trxId);
-    }
-  }
-}
-
-function handleVerificationResponse(db, data, orderId, trxId, checkoutData) {
-  const status = data.status;
-
-  if (status === 'paid') {
-    clearCart();
-    updateCartCount();
-    renderPaidSuccessScreen(orderId, checkoutData, data);
-    return;
-  }
-
-  if (status === 'pending') {
-    if (currentAttemptCount < MAX_ATTEMPTS) {
-      activePollingTimer = setTimeout(() => {
-        startVerificationPolling(db, orderId, trxId, checkoutData);
-      }, 15000);
-    } else {
-      renderPollingTimeoutState(db, orderId, trxId);
-    }
-    return;
-  }
-
-  if (status === 'flagged') {
-    const reason = data.reason || data.flag_reason;
-    const expected = data.expected !== undefined ? data.expected : data.expected_amount;
-    const received = data.received !== undefined ? data.received : data.received_amount;
-
-    if (reason === 'amount_mismatch') {
-      renderAmountMismatchState(orderId, trxId, expected, received);
-    } else if (reason === 'duplicate_trx_reuse') {
-      renderDuplicateTrxState(db, orderId, trxId, checkoutData);
-    } else {
-      renderGenericFlaggedState(orderId, trxId);
-    }
-    return;
-  }
-
-  if (status === 'order_not_found') {
-    renderPollingTimeoutState(db, orderId, trxId);
-    return;
-  }
-}
-
-function renderPendingPollingState(orderId, trxId, attempt) {
+function startVerificationPolling(db, orderId, trxId, checkoutData) {
   const container = qs('#cart-page-app');
   if (!container) return;
 
-  const orderIdEsc = escapeHtml(orderId || '');
-  const trackUrl = `/pages/track-order?order_id=${encodeURIComponent(orderId || '')}`;
-  const myOrdersUrl = `/pages/profile#orders`;
-  const waText = encodeURIComponent(`Hi Petty Bloom! I have a question/issue regarding payment verification for Order ID: ${orderId || ''}`);
-  const waUrl = `https://wa.me/8801632788802?text=${waText}`;
-
   container.innerHTML = `
-    <div class="max-w-xl mx-auto py-8 px-4">
-      <div class="bg-white p-6 md:p-8 rounded-2xl border border-pink-100 shadow-xl text-center space-y-6">
-        <!-- Icon -->
-        <div class="w-18 h-18 bg-pink-50 border-2 border-pink-200 text-[#C97B5F] text-3xl rounded-full flex items-center justify-center mx-auto shadow-sm p-4">
-          <i class="fa-solid fa-box-archive text-3xl text-primary"></i>
-        </div>
-
-        <div>
-          <h3 class="font-heading text-2xl md:text-3xl text-[#2A2A2A] font-bold mb-2">We Have Received Your Order!</h3>
-          <p class="text-xs sm:text-sm text-gray-600 max-w-md mx-auto leading-relaxed">
-            Your payment verification is currently pending. To track live status updates or view your order details, you can visit <strong class="text-[#2A2A2A]">My Orders</strong> page anytime.
-          </p>
-        </div>
-
-        <!-- Pending Verification Badge & Order ID -->
-        <div class="p-4 rounded-xl bg-[#FDF0F4] border border-pink-200 text-xs text-[#2A2A2A] space-y-2 max-w-md mx-auto">
-          <div class="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-100 text-amber-900 border border-amber-300 font-bold rounded-full text-xs">
-            <i class="fa-solid fa-clock text-amber-700 animate-pulse"></i> Payment Verification Pending
-          </div>
-          <p class="text-gray-600 text-xs m-0">Order Reference ID: <strong class="text-[#2A2A2A] font-mono text-sm font-extrabold">${orderIdEsc}</strong></p>
-        </div>
-
-        <!-- WhatsApp Support Box -->
-        <div class="p-4 rounded-2xl bg-emerald-50/80 border border-emerald-200 text-center space-y-2.5 max-w-md mx-auto">
-          <div class="flex items-center justify-center gap-2 text-emerald-900 font-bold text-xs">
-            <i class="fa-brands fa-whatsapp text-lg text-emerald-600"></i>
-            <span>Having any issues with your payment?</span>
-          </div>
-          <p class="text-[11px] text-emerald-800 m-0">If you face any issues or need help with bKash payment verification, message us directly on WhatsApp.</p>
-          <a href="${waUrl}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-[#25D366] hover:bg-[#20ba5a] text-white font-bold text-xs rounded-xl shadow-sm transition-all no-underline active:scale-95">
-            <i class="fa-brands fa-whatsapp text-base"></i> Message us on WhatsApp
-          </a>
-        </div>
-
-        <!-- Primary Action Button -->
-        <div class="pt-2">
-          <a href="${myOrdersUrl}" class="inline-flex items-center justify-center gap-2 px-8 py-3.5 bg-[#C97B5F] hover:bg-[#8B4A38] text-white font-bold rounded-xl text-sm shadow-md transition-all no-underline active:scale-95">
-            <i class="fa-solid fa-list-check text-base"></i> View My Orders
-          </a>
-        </div>
+    <div class="max-w-md mx-auto py-16 px-4 text-center space-y-6">
+      <div class="w-16 h-16 border-4 border-pink-200 border-t-primary rounded-full animate-spin mx-auto"></div>
+      <div>
+        <h3 class="font-heading text-xl font-bold text-[#2A2A2A] mb-1">Verifying Your Payment</h3>
+        <p class="text-text-soft text-sm">Please wait while we verify your transaction ID...</p>
       </div>
     </div>
   `;
-}
 
-function renderPaidSuccessScreen(orderId, checkoutData, data) {
-  const container = qs('#cart-page-app');
-  if (!container) return;
+  currentAttemptCount = 0;
+  if (activePollingTimer) clearInterval(activePollingTimer);
 
-  const orderData = { ...checkoutData, ...data };
-  const customerName = orderData.customer_name || orderData.customerName || 'Valued Customer';
-  const amountPaid = orderData.amount || orderData.pricePaid || orderData.product_amount || 0;
-  const trackingUrl = `${window.location.origin}/pages/track-order?order_id=${encodeURIComponent(orderId)}`;
-  const waSaveText = encodeURIComponent(`Track my order ${orderId} anytime here: ${trackingUrl}`);
-  const waSaveUrl = `https://wa.me/?text=${waSaveText}`;
+  activePollingTimer = setInterval(async () => {
+    currentAttemptCount++;
 
-  const productType = orderData.product_type || (orderData.canva_link || orderData.canvaUrl ? 'template' : 'magazine');
-  const photosUploaded = Boolean(orderData.photos_uploaded || orderData.photosUploaded);
-  const requiredPhotoCount = Number(orderData.required_photo_count || orderData.photo_count || orderData.requiredPhotoCount || 10);
-  const canvaLink = orderData.canva_link || orderData.canvaUrl || orderData.canva_url || orderData.canvaLink || '';
-  const status = (orderData.status || 'paid').toLowerCase();
-
-  const safeOrderId = orderId.replace(/[^a-zA-Z0-9_-]/g, '');
-
-  if (productType === 'template') {
-    if ((status === 'delivered' || status === 'completed') && canvaLink) {
-      container.innerHTML = `
-        <div class="max-w-xl mx-auto py-8 px-4">
-          <div class="bg-white p-6 md:p-8 rounded-2xl border border-pink-100 shadow-xl space-y-6 text-center">
-            <div class="w-16 h-16 bg-emerald-50 border-2 border-emerald-200 text-emerald-500 text-3xl rounded-full flex items-center justify-center mx-auto shadow-sm">
-              <i class="fa-solid fa-circle-check"></i>
-            </div>
-
-            <div class="bg-gradient-to-r from-pink-50 to-purple-50 p-6 rounded-2xl border border-pink-200 text-center space-y-4 shadow-sm">
-              <div class="w-12 h-12 bg-pink-100 text-primary rounded-full flex items-center justify-center text-xl mx-auto">
-                <i class="fa-solid fa-wand-magic-sparkles"></i>
-              </div>
-              <h3 class="font-heading text-2xl font-bold text-[#2A2A2A]">🎉 Your template is ready!</h3>
-              <div class="flex flex-col sm:flex-row gap-3 justify-center pt-2">
-                <a href="${escapeHtml(canvaLink)}" target="_blank" rel="noopener noreferrer" class="px-6 py-3.5 bg-[#C97B5F] hover:bg-[#8B4A38] text-white font-bold text-sm rounded-xl shadow-md transition-colors no-underline inline-flex items-center justify-center gap-2">
-                  <i class="fa-solid fa-arrow-up-right-from-square"></i>
-                  <span>Open in Canva</span>
-                </a>
-                <button type="button" id="copy-canva-btn-${safeOrderId}" class="px-6 py-3.5 bg-white border border-gray-300 hover:bg-gray-50 text-[#2A2A2A] font-bold text-sm rounded-xl shadow-sm transition-colors cursor-pointer inline-flex items-center justify-center gap-2">
-                  <i class="fa-regular fa-copy"></i>
-                  <span id="copy-canva-text-${safeOrderId}">Copy Link</span>
-                </button>
-              </div>
-            </div>
-
-            <div class="bg-gray-50 p-5 rounded-2xl border border-gray-200 text-left space-y-3 text-sm text-[#2A2A2A]">
-              <div class="flex justify-between">
-                <span class="text-text-soft">Customer Name</span>
-                <strong class="font-semibold">${escapeHtml(customerName)}</strong>
-              </div>
-              <div class="flex justify-between">
-                <span class="text-text-soft">Order ID</span>
-                <strong class="font-semibold">${escapeHtml(orderId)}</strong>
-              </div>
-              <div class="flex justify-between border-t border-gray-200 pt-3">
-                <span class="text-text-soft">Amount Paid</span>
-                <strong class="text-primary text-base font-bold">৳${amountPaid}</strong>
-              </div>
-            </div>
-
-            <a href="/collections/paid-products" class="inline-flex items-center justify-center w-full py-3.5 bg-[#C97B5F] hover:bg-[#8B4A38] text-white font-bold text-sm rounded-xl shadow-md transition-colors no-underline">Continue Shopping</a>
-          </div>
-        </div>
-      `;
-
-      qs(`#copy-canva-btn-${safeOrderId}`)?.addEventListener('click', () => {
-        navigator.clipboard.writeText(canvaLink);
-        const txt = qs(`#copy-canva-text-${safeOrderId}`);
-        if (txt) txt.textContent = 'Link Copied!';
-        setTimeout(() => { if (txt) txt.textContent = 'Copy Link'; }, 2000);
-      });
+    if (currentAttemptCount > MAX_ATTEMPTS) {
+      clearInterval(activePollingTimer);
+      renderPollingTimeoutState(db, orderId, trxId);
       return;
     }
 
-    container.innerHTML = `
-      <div class="max-w-xl mx-auto py-8 px-4">
-        <div class="bg-white p-6 md:p-8 rounded-2xl border border-pink-100 shadow-xl space-y-6 text-center">
-          <div class="w-16 h-16 bg-emerald-50 border-2 border-emerald-200 text-emerald-500 text-3xl rounded-full flex items-center justify-center mx-auto shadow-sm">
-            <i class="fa-solid fa-circle-check"></i>
-          </div>
+    try {
+      const res = await fetch(`${API_BASE}/order-status/${encodeURIComponent(orderId)}`);
+      if (res.ok) {
+        const data = await res.json();
+        const status = data.status;
 
-          <div>
-            <h2 class="font-heading text-2xl md:text-3xl text-[#2A2A2A] font-bold mb-2">Payment Confirmed!</h2>
-            <p class="text-emerald-700 font-bold text-sm">✅ Payment confirmed! We're preparing your Canva template link.</p>
-          </div>
+        if (status === 'paid' || status === 'confirmed' || status === 'completed') {
+          clearInterval(activePollingTimer);
+          clearCart();
+          updateCartCount();
+          renderPaidSuccessScreen(orderId, checkoutData, data);
+        } else if (status === 'flagged') {
+          clearInterval(activePollingTimer);
+          const reason = data.reason || data.flag_reason;
+          const expected = data.expected !== undefined ? data.expected : data.expected_amount;
+          const received = data.received !== undefined ? data.received : data.received_amount;
 
-          <div class="bg-gray-50 p-5 rounded-2xl border border-gray-200 text-left space-y-3 text-sm text-[#2A2A2A]">
-            <div class="flex justify-between">
-              <span class="text-text-soft">Customer Name</span>
-              <strong class="font-semibold">${escapeHtml(customerName)}</strong>
-            </div>
-            <div class="flex justify-between">
-              <span class="text-text-soft">Order ID</span>
-              <strong class="font-semibold">${escapeHtml(orderId)}</strong>
-            </div>
-            <div class="flex justify-between border-t border-gray-200 pt-3">
-              <span class="text-text-soft">Amount Paid</span>
-              <strong class="text-primary text-base font-bold">৳${amountPaid}</strong>
-            </div>
-          </div>
+          if (reason === 'amount_mismatch') {
+            renderAmountMismatchState(orderId, trxId, expected, received);
+          } else if (reason === 'duplicate_trx_reuse') {
+            renderDuplicateTrxState(db, orderId, trxId, checkoutData);
+          } else {
+            renderGenericFlaggedState(orderId, trxId);
+          }
+        }
+      }
+    } catch (_) { }
+  }, 5000);
+}
 
-          <div class="p-4 rounded-xl bg-[#FDF0F4] border border-pink-200 text-xs text-[#2A2A2A] space-y-3 text-center">
-            <p class="font-semibold">You can track this order anytime at <a href="${trackingUrl}" class="text-primary underline font-bold">${escapeHtml(trackingUrl)}</a></p>
-            <div class="flex flex-col sm:flex-row gap-2 justify-center pt-1">
-              <button type="button" id="copy-tracking-link-btn" class="px-4 py-2 bg-white border border-pink-200 text-primary font-bold text-xs rounded-lg shadow-sm hover:bg-pink-50 transition-colors cursor-pointer">Copy Tracking Link</button>
-              <a href="${waSaveUrl}" target="_blank" rel="noreferrer" class="px-4 py-2 bg-[#25d366] hover:bg-[#20bd5a] text-white font-bold text-xs rounded-lg shadow-sm transition-colors no-underline inline-flex items-center justify-center gap-1.5">
-                <i class="fa-brands fa-whatsapp text-sm"></i>
-                <span>Save via WhatsApp</span>
-              </a>
-            </div>
-          </div>
+function renderPaidSuccessScreen(orderId, checkoutData, data = {}) {
+  const container = qs('#cart-page-app');
+  if (!container) return;
 
-          <a href="/collections/paid-products" class="inline-flex items-center justify-center w-full py-3.5 bg-[#C97B5F] hover:bg-[#8B4A38] text-white font-bold text-sm rounded-xl shadow-md transition-colors no-underline">Continue Shopping</a>
-        </div>
-      </div>
-    `;
-
-    qs('#copy-tracking-link-btn')?.addEventListener('click', () => {
-      navigator.clipboard.writeText(trackingUrl);
-      const btn = qs('#copy-tracking-link-btn');
-      if (btn) btn.textContent = 'Link Copied!';
-      setTimeout(() => { if (btn) btn.textContent = 'Copy Tracking Link'; }, 2000);
-    });
-    return;
-  }
-
-  if (status === 'completed') {
-    container.innerHTML = `
-      <div class="max-w-xl mx-auto py-8 px-4">
-        <div class="bg-white p-6 md:p-8 rounded-2xl border border-pink-100 shadow-xl space-y-6 text-center">
-          <div class="w-16 h-16 bg-emerald-50 border-2 border-emerald-200 text-emerald-500 text-3xl rounded-full flex items-center justify-center mx-auto shadow-sm">
-            <i class="fa-solid fa-circle-check"></i>
-          </div>
-
-          <div>
-            <h2 class="font-heading text-2xl md:text-3xl text-[#2A2A2A] font-bold mb-2">Order Complete!</h2>
-            <p class="text-emerald-700 font-bold text-sm">✅ Your magazine order is complete!</p>
-          </div>
-
-          <div class="bg-gray-50 p-5 rounded-2xl border border-gray-200 text-left space-y-3 text-sm text-[#2A2A2A]">
-            <div class="flex justify-between">
-              <span class="text-text-soft">Customer Name</span>
-              <strong class="font-semibold">${escapeHtml(customerName)}</strong>
-            </div>
-            <div class="flex justify-between">
-              <span class="text-text-soft">Order ID</span>
-              <strong class="font-semibold">${escapeHtml(orderId)}</strong>
-            </div>
-            <div class="flex justify-between border-t border-gray-200 pt-3">
-              <span class="text-text-soft">Amount Paid</span>
-              <strong class="text-primary text-base font-bold">৳${amountPaid}</strong>
-            </div>
-          </div>
-
-          <a href="/collections/paid-products" class="inline-flex items-center justify-center w-full py-3.5 bg-[#C97B5F] hover:bg-[#8B4A38] text-white font-bold text-sm rounded-xl shadow-md transition-colors no-underline">Continue Shopping</a>
-        </div>
-      </div>
-    `;
-    return;
-  }
-
-  if (photosUploaded) {
-    container.innerHTML = `
-      <div class="max-w-xl mx-auto py-8 px-4">
-        <div class="bg-white p-6 md:p-8 rounded-2xl border border-pink-100 shadow-xl space-y-6 text-center">
-          <div class="w-16 h-16 bg-emerald-50 border-2 border-emerald-200 text-emerald-500 text-3xl rounded-full flex items-center justify-center mx-auto shadow-sm">
-            <i class="fa-solid fa-circle-check"></i>
-          </div>
-
-          <div>
-            <h2 class="font-heading text-2xl md:text-3xl text-[#2A2A2A] font-bold mb-2">Payment Confirmed!</h2>
-            <p class="text-emerald-700 font-bold text-sm">✅ Photos received — your magazine is being prepared</p>
-          </div>
-
-          <div class="bg-gray-50 p-5 rounded-2xl border border-gray-200 text-left space-y-3 text-sm text-[#2A2A2A]">
-            <div class="flex justify-between">
-              <span class="text-text-soft">Customer Name</span>
-              <strong class="font-semibold">${escapeHtml(customerName)}</strong>
-            </div>
-            <div class="flex justify-between">
-              <span class="text-text-soft">Order ID</span>
-              <strong class="font-semibold">${escapeHtml(orderId)}</strong>
-            </div>
-            <div class="flex justify-between border-t border-gray-200 pt-3">
-              <span class="text-text-soft">Amount Paid</span>
-              <strong class="text-primary text-base font-bold">৳${amountPaid}</strong>
-            </div>
-          </div>
-
-          <div class="p-4 rounded-xl bg-[#FDF0F4] border border-pink-200 text-xs text-[#2A2A2A] space-y-3 text-center">
-            <p class="font-semibold">You can track this order anytime at <a href="${trackingUrl}" class="text-primary underline font-bold">${escapeHtml(trackingUrl)}</a></p>
-            <div class="flex flex-col sm:flex-row gap-2 justify-center pt-1">
-              <button type="button" id="copy-tracking-link-btn" class="px-4 py-2 bg-white border border-pink-200 text-primary font-bold text-xs rounded-lg shadow-sm hover:bg-pink-50 transition-colors cursor-pointer">Copy Tracking Link</button>
-              <a href="${waSaveUrl}" target="_blank" rel="noreferrer" class="px-4 py-2 bg-[#25d366] hover:bg-[#20bd5a] text-white font-bold text-xs rounded-lg shadow-sm transition-colors no-underline inline-flex items-center justify-center gap-1.5">
-                <i class="fa-brands fa-whatsapp text-sm"></i>
-                <span>Save via WhatsApp</span>
-              </a>
-            </div>
-          </div>
-
-          <a href="/collections/paid-products" class="inline-flex items-center justify-center w-full py-3.5 bg-[#C97B5F] hover:bg-[#8B4A38] text-white font-bold text-sm rounded-xl shadow-md transition-colors no-underline">Continue Shopping</a>
-        </div>
-      </div>
-    `;
-
-    qs('#copy-tracking-link-btn')?.addEventListener('click', () => {
-      navigator.clipboard.writeText(trackingUrl);
-      const btn = qs('#copy-tracking-link-btn');
-      if (btn) btn.textContent = 'Link Copied!';
-      setTimeout(() => { if (btn) btn.textContent = 'Copy Tracking Link'; }, 2000);
-    });
-    return;
-  }
+  const safeOrderId = escapeHtml(orderId || '');
+  const customerName = checkoutData?.customer_name || data?.customer_name || 'Customer';
+  const waText = encodeURIComponent(`Order ID: ${orderId}, I have placed my order and uploaded my photos.`);
+  const waUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${waText}`;
 
   container.innerHTML = `
-    <div class="max-w-2xl mx-auto py-8 px-4 space-y-6">
-      <div class="bg-white p-6 md:p-8 rounded-2xl border border-pink-100 shadow-xl space-y-4 text-center">
-        <div class="w-14 h-14 bg-emerald-50 border-2 border-emerald-200 text-emerald-500 text-2xl rounded-full flex items-center justify-center mx-auto shadow-sm">
+    <div class="max-w-xl mx-auto py-8 px-4">
+      <div class="bg-white p-6 md:p-8 rounded-2xl border border-pink-100 shadow-xl space-y-6 text-center">
+        <div class="w-16 h-16 bg-emerald-50 border-2 border-emerald-200 text-emerald-500 text-3xl rounded-full flex items-center justify-center mx-auto shadow-sm">
           <i class="fa-solid fa-circle-check"></i>
         </div>
+
         <div>
-          <h2 class="font-heading text-2xl md:text-3xl text-[#2A2A2A] font-bold mb-1">Payment Confirmed!</h2>
-          <p class="text-text-soft text-sm">Please upload your photos below to start processing your magazine.</p>
+          <span class="text-xs font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200 inline-block mb-2">Order Confirmed</span>
+          <h2 class="font-heading text-2xl md:text-3xl text-[#2A2A2A] font-bold mb-1">Thank You, ${escapeHtml(customerName)}!</h2>
+          <p class="text-text-soft text-sm">Your order and photos have been received successfully. We will process your magazine with care.</p>
         </div>
-        <div class="bg-gray-50 p-4 rounded-xl border border-gray-200 text-left space-y-2 text-xs text-[#2A2A2A]">
+
+        <div class="bg-gray-50 p-5 rounded-2xl border border-gray-200 text-left space-y-2.5 text-xs text-[#2A2A2A]">
           <div class="flex justify-between">
-            <span class="text-text-soft">Order ID</span>
-            <strong class="font-semibold">${escapeHtml(orderId)}</strong>
+            <span class="text-text-soft font-medium">Order ID</span>
+            <strong class="font-bold text-sm text-[#C97B5F]">${safeOrderId}</strong>
           </div>
+          ${data.trx_id || checkoutData?.transactionId ? `
+            <div class="flex justify-between">
+              <span class="text-text-soft font-medium">Transaction ID</span>
+              <strong class="font-semibold">${escapeHtml(data.trx_id || checkoutData?.transactionId || '')}</strong>
+            </div>
+          ` : ''}
           <div class="flex justify-between">
-            <span class="text-text-soft">Customer Name</span>
-            <strong class="font-semibold">${escapeHtml(customerName)}</strong>
+            <span class="text-text-soft font-medium">Photo Status</span>
+            <span class="font-bold text-emerald-700">✓ Photos Uploaded & Attached</span>
           </div>
+          <div class="flex justify-between border-t border-gray-200 pt-2.5">
+            <span class="text-text-soft font-medium">Order Status</span>
+            <span class="px-2.5 py-0.5 bg-amber-100 text-amber-800 text-[11px] font-bold rounded-full">⏳ Processing</span>
+          </div>
+        </div>
+
+        <div class="space-y-3">
+          <a href="/pages/profile#orders" class="w-full py-3.5 bg-[#C97B5F] hover:bg-[#8B4A38] text-white font-bold text-sm rounded-xl shadow-md transition-colors inline-flex items-center justify-center gap-2 no-underline" style="background-color: #C97B5F !important; color: #ffffff !important;">
+            <i class="fa-solid fa-box-archive"></i>
+            <span>View Order in My Account</span>
+          </a>
+
+          <a href="${waUrl}" target="_blank" rel="noreferrer" class="w-full py-3 bg-[#25d366] hover:bg-[#20bd5a] text-white font-bold text-sm rounded-xl shadow-sm transition-colors inline-flex items-center justify-center gap-2 no-underline">
+            <i class="fa-brands fa-whatsapp text-lg"></i>
+            <span>Contact on WhatsApp</span>
+          </a>
         </div>
       </div>
-
-      <div id="checkout-photo-upload-mount"></div>
     </div>
   `;
-
-  const uploadMount = qs('#checkout-photo-upload-mount');
-  if (uploadMount) {
-    const firstItem = Array.isArray(orderData.items) && orderData.items.length > 0 ? orderData.items[0] : {};
-    const minPhotos = Number(orderData.minPhotos || orderData.min_photos || firstItem.minPhotos || firstItem.min_photos || orderData.requiredPhotoCount || 8);
-    const maxPhotos = Number(orderData.maxPhotos || orderData.max_photos || firstItem.maxPhotos || firstItem.max_photos || orderData.requiredPhotoCount || minPhotos || 12);
-    const pageCount = Number(orderData.pageCount || orderData.pages || firstItem.pageCount || firstItem.pages || 0);
-    const recipientName = orderData.recipient_name || orderData.recipientName || firstItem.recipient_name || firstItem.recipientName || '';
-
-    renderPhotoUploadUI(uploadMount, {
-      orderId,
-      minPhotos,
-      maxPhotos,
-      pageCount,
-      recipientName,
-      requiredPhotoCount,
-      onSuccess: () => {
-        renderPaidSuccessScreen(orderId, checkoutData, { ...data, photos_uploaded: true, photosUploaded: true });
-      }
-    });
-  }
 }
 
 function renderPollingTimeoutState(db, orderId, trxId) {
@@ -1304,7 +1279,7 @@ function renderPollingTimeoutState(db, orderId, trxId) {
 
         <div>
           <h2 class="font-heading text-2xl md:text-3xl text-[#2A2A2A] font-bold mb-2">Order Placed Successfully!</h2>
-          <p class="text-text-soft text-sm">Your order and Transaction ID have been recorded. Our admin team will verify your payment and process your order shortly.</p>
+          <p class="text-text-soft text-sm">Your order and Transaction ID have been recorded. Our team will verify your payment and process your order shortly.</p>
         </div>
 
         <div class="bg-gray-50 p-5 rounded-2xl border border-gray-200 text-left space-y-3 text-sm text-[#2A2A2A]">
@@ -1333,7 +1308,7 @@ function renderPollingTimeoutState(db, orderId, trxId) {
         </div>
 
         <div class="space-y-3">
-          <a href="/pages/profile#orders" class="w-full py-3.5 bg-[#C97B5F] hover:bg-[#8B4A38] text-white font-bold text-sm rounded-xl shadow-md transition-colors inline-flex items-center justify-center gap-2 no-underline">
+          <a href="/pages/profile#orders" class="w-full py-3.5 bg-[#C97B5F] hover:bg-[#8B4A38] text-white font-bold text-sm rounded-xl shadow-md transition-colors inline-flex items-center justify-center gap-2 no-underline" style="background-color: #C97B5F !important; color: #ffffff !important;">
             <i class="fa-solid fa-box-archive"></i>
             <span>Track Order in My Account</span>
           </a>
@@ -1397,7 +1372,7 @@ function renderDuplicateTrxState(db, orderId, trxId, checkoutData) {
         </div>
 
         <div class="space-y-3">
-          <button type="button" id="re-enter-trx-btn" class="w-full py-3.5 bg-[#C97B5F] hover:bg-[#8B4A38] text-white font-bold text-sm rounded-xl shadow-md transition-colors cursor-pointer text-center">Try Another Transaction ID</button>
+          <button type="button" id="re-enter-trx-btn" class="w-full py-3.5 bg-[#C97B5F] hover:bg-[#8B4A38] text-white font-bold text-sm rounded-xl shadow-md transition-colors cursor-pointer text-center" style="background-color: #C97B5F !important; color: #ffffff !important;">Try Another Transaction ID</button>
 
           <a href="${waUrl}" target="_blank" rel="noreferrer" class="w-full py-3 bg-[#25d366] hover:bg-[#20bd5a] text-white font-bold text-sm rounded-xl shadow-sm transition-colors inline-flex items-center justify-center gap-2 no-underline">
             <i class="fa-brands fa-whatsapp text-lg"></i>

@@ -1,6 +1,6 @@
 import { fetchTemplateById, fetchTemplates, fetchRelatedTemplates, DEFAULT_FEATURED_TEMPLATES, inferCollection, comparePrice, discountPercent } from '../services/templates-service.js';
 import { renderProductDetailsSkeleton, renderEmptyState, renderErrorState } from '../components/skeleton.js';
-import { addTemplateToCart } from '../services/cart-service.js';
+import { addTemplateToCart, clearCart } from '../services/cart-service.js';
 import { imageMarkup, renderProductCardV2 } from '../components/product-card.js';
 import { buildCloudinaryDeliveryUrl, setupLazyCloudinaryImages } from '../utils/cloudinary.js';
 import { escapeHtml, formatCurrency, qs, qsa } from '../utils/ui.js';
@@ -8,12 +8,12 @@ import { escapeHtml, formatCurrency, qs, qsa } from '../utils/ui.js';
 const FALLBACK_IMAGE = '/assets/product_placeholder.png';
 
 const MAGAZINE_PAGE_TIERS = [
-  { pages: 4, label: '4 Pages', price: 259 },
-  { pages: 8, label: '8 Pages', price: 499 },
-  { pages: 12, label: '12 Pages', price: 699 },
-  { pages: 16, label: '16 Pages', price: 849 },
-  { pages: 20, label: '20 Pages', price: 999 },
-  { pages: 24, label: '24 Pages', price: 1149 }
+  { pages: 4, label: '4 Pages', price: 259, base_price: 259, minPhotos: 8, maxPhotos: 12 },
+  { pages: 8, label: '8 Pages', price: 499, base_price: 499, minPhotos: 15, maxPhotos: 20 },
+  { pages: 12, label: '12 Pages', price: 699, base_price: 699, minPhotos: 22, maxPhotos: 30 },
+  { pages: 16, label: '16 Pages', price: 849, base_price: 849, minPhotos: 35, maxPhotos: 45 },
+  { pages: 20, label: '20 Pages', price: 999, base_price: 999, minPhotos: 45, maxPhotos: 55 },
+  { pages: 24, label: '24 Pages', price: 1149, base_price: 1149, minPhotos: 55, maxPhotos: 65 }
 ];
 
 export async function renderProductDetailsPage(db) {
@@ -138,10 +138,10 @@ export async function renderProductDetailsPage(db) {
 
     const getActivePhotoInfo = () => {
       if (isMagazine && selectedPageTier) {
-        const minP = Number(selectedPageTier.minPhotos || 8);
-        const maxP = Number(selectedPageTier.maxPhotos || 12);
-        const rangeText = (minP > 0 && minP !== maxP) ? `${minP}–${maxP} Photos` : `${maxP} Photos`;
-        return { minP, maxP, rangeText };
+        const minP = Number(selectedPageTier.minPhotos || selectedPageTier.min_photos || 0);
+        const maxP = Number(selectedPageTier.maxPhotos || selectedPageTier.max_photos || 0);
+        const rangeText = (minP > 0 && minP !== maxP) ? `${minP}–${maxP} Photos` : `${maxP || minP} Photos`;
+        return { minP: minP || effectiveMin, maxP: maxP || effectiveMax, rangeText };
       }
       return { minP: effectiveMin, maxP: effectiveMax, rangeText: photoRangeDisplay };
     };
@@ -395,25 +395,27 @@ export async function renderProductDetailsPage(db) {
 
       pagesGrid.innerHTML = availablePageTiers.map(tier => {
         const isSelected = tier.pages === selectedPageTier.pages;
-        const tierPrice = tier.price;
-        const tierOfferPrice = offerPct > 0 ? Math.round(tierPrice * (1 - offerPct / 100)) : tierPrice;
-        const minP = tier.minPhotos || 8;
-        const maxP = tier.maxPhotos || 12;
-        const photoHint = (minP > 0 && minP !== maxP) ? `${minP}–${maxP} Photos` : `${maxP} Photos`;
+        const tierPrice = Number(tier.price || tier.base_price || 499);
+        const tierOfferPrice = Number(tier.offer_price || tier.offerPrice || (offerPct > 0 ? Math.round(tierPrice * (1 - offerPct / 100)) : tierPrice));
+        const hasDiscount = (offerPct > 0 || (tierOfferPrice > 0 && tierOfferPrice < tierPrice));
+        const minP = Number(tier.minPhotos || tier.min_photos || 0);
+        const maxP = Number(tier.maxPhotos || tier.max_photos || 0);
+        const photoHint = (minP > 0 && minP !== maxP) ? `${minP}–${maxP} Photos` : `${maxP || minP} Photos`;
 
         return `
           <button type="button" class="page-tier-btn p-3 rounded-xl border-2 text-center transition-all duration-200 cursor-pointer ${isSelected ? 'border-[#C97B5F] bg-[#C97B5F] text-white font-bold shadow-md ring-2 ring-[#C97B5F]/30 scale-[1.03]' : 'border-gray-200 bg-white hover:border-[#C97B5F]/60 text-gray-800'}" data-page="${tier.pages}">
             <div class="text-xs font-extrabold ${isSelected ? 'text-white' : 'text-gray-800'}">${escapeHtml(tier.label || `${tier.pages} Pages`)}</div>
             <div class="text-[10px] font-semibold ${isSelected ? 'text-white/85' : 'text-gray-500'} mt-0.5">${escapeHtml(photoHint)}</div>
             <div class="text-xs font-bold ${isSelected ? 'text-white/95' : 'text-[#C97B5F]'} mt-1">
-              ${offerPct > 0 ? `<span class="line-through opacity-75 text-[10px] mr-1 ${isSelected ? 'text-white/75' : 'text-gray-400'}">৳${tierPrice}</span>৳${tierOfferPrice}` : `৳${tierPrice}`}
+              ${hasDiscount ? `<span class="line-through opacity-75 text-[10px] mr-1 ${isSelected ? 'text-white/75' : 'text-gray-400'}">৳${tierPrice}</span>৳${tierOfferPrice}` : `৳${tierPrice}`}
             </div>
           </button>
         `;
       }).join('');
 
       if (selectedPageBadge) {
-        const currentTierOfferPrice = offerPct > 0 ? Math.round(selectedPageTier.price * (1 - offerPct / 100)) : selectedPageTier.price;
+        const tierPrice = Number(selectedPageTier.price || selectedPageTier.base_price || 499);
+        const currentTierOfferPrice = Number(selectedPageTier.offer_price || selectedPageTier.offerPrice || (offerPct > 0 ? Math.round(tierPrice * (1 - offerPct / 100)) : tierPrice));
         const { rangeText } = getActivePhotoInfo();
         selectedPageBadge.textContent = `${selectedPageTier.label || `${selectedPageTier.pages} Pages`} • ${rangeText} (৳${currentTierOfferPrice})`;
       }
@@ -424,7 +426,9 @@ export async function renderProductDetailsPage(db) {
           const foundTier = availablePageTiers.find(t => t.pages === pageNum);
           if (foundTier) {
             selectedPageTier = foundTier;
-            selectedMagazinePrice = foundTier.price;
+            const tPrice = Number(foundTier.price || foundTier.base_price || 499);
+            const tOfferPrice = Number(foundTier.offer_price || foundTier.offerPrice || (offerPct > 0 ? Math.round(tPrice * (1 - offerPct / 100)) : tPrice));
+            selectedMagazinePrice = (offerPct > 0 || (foundTier.offer_price > 0 && foundTier.offer_price < tPrice)) ? tOfferPrice : tPrice;
             updatePhotoRequirementBadges();
             renderPagesSelector();
             renderSpecificationsTable();
@@ -773,12 +777,19 @@ export async function renderProductDetailsPage(db) {
       if (activeMode === 'magazine') {
         const isOfferExplicitlyDisabled = template.hasOffer === false || template.has_offer === false;
         const offerPct = isOfferExplicitlyDisabled ? 0 : Number(template.offerPercentage || template.offer_percentage || template.discountPercent || template.discount_percent || 0);
+        const tierBasePrice = Number(selectedPageTier.price || selectedPageTier.base_price || 499);
+        const tierOfferPrice = Number(selectedPageTier.offer_price || selectedPageTier.offerPrice || (offerPct > 0 ? Math.round(tierBasePrice * (1 - offerPct / 100)) : tierBasePrice));
+
         if (offerPct > 0) {
-          compare = selectedMagazinePrice;
-          activePrice = Math.round(selectedMagazinePrice * (1 - offerPct / 100));
+          compare = tierBasePrice;
+          activePrice = tierOfferPrice;
           discount = offerPct;
+        } else if (tierOfferPrice > 0 && tierOfferPrice < tierBasePrice) {
+          compare = tierBasePrice;
+          activePrice = tierOfferPrice;
+          discount = Math.round(((tierBasePrice - tierOfferPrice) / tierBasePrice) * 100);
         } else {
-          activePrice = selectedMagazinePrice;
+          activePrice = tierBasePrice;
           compare = 0;
           discount = 0;
         }
@@ -1062,9 +1073,11 @@ export async function renderProductDetailsPage(db) {
       } else {
         const activePrice = activeMode === 'magazine' ? selectedMagazinePrice : templatePrice;
         const titleSuffix = activeMode === 'template' ? ' (Digital Template)' : ` (${selectedPageTier.label})`;
-        const minP = selectedPageTier ? (selectedPageTier.minPhotos || 8) : effectiveMin;
-        const maxP = selectedPageTier ? (selectedPageTier.maxPhotos || 12) : effectiveMax;
-        const pRange = (minP > 0 && minP !== maxP) ? `${minP}–${maxP} Photos` : `${maxP} Photos`;
+        const minP = selectedPageTier ? Number(selectedPageTier.minPhotos || selectedPageTier.min_photos || 0) : effectiveMin;
+        const maxP = selectedPageTier ? Number(selectedPageTier.maxPhotos || selectedPageTier.max_photos || 0) : effectiveMax;
+        const finalMin = minP > 0 ? minP : effectiveMin;
+        const finalMax = maxP > 0 ? maxP : effectiveMax;
+        const pRange = (finalMin > 0 && finalMin !== finalMax) ? `${finalMin}–${finalMax} Photos` : `${finalMax} Photos`;
 
         addTemplateToCart({
           ...template,
@@ -1073,12 +1086,12 @@ export async function renderProductDetailsPage(db) {
           purchaseMode: activeMode,
           selectedPages: selectedPageTier ? selectedPageTier.label : `${pages} Pages`,
           pageCount: selectedPageTier ? selectedPageTier.pages : pages,
-          minPhotos: minP,
-          min_photos: minP,
-          maxPhotos: maxP,
-          max_photos: maxP,
-          requiredPhotoCount: maxP,
-          requiredPhotos: maxP,
+          minPhotos: finalMin,
+          min_photos: finalMin,
+          maxPhotos: finalMax,
+          max_photos: finalMax,
+          requiredPhotoCount: finalMax,
+          requiredPhotos: finalMax,
           photoRangeText: pRange
         });
       }
@@ -1099,9 +1112,11 @@ export async function renderProductDetailsPage(db) {
       } else {
         const activePrice = activeMode === 'magazine' ? selectedMagazinePrice : templatePrice;
         const titleSuffix = activeMode === 'template' ? ' (Digital Template)' : ` (${selectedPageTier.label})`;
-        const minP = selectedPageTier ? (selectedPageTier.minPhotos || 8) : effectiveMin;
-        const maxP = selectedPageTier ? (selectedPageTier.maxPhotos || 12) : effectiveMax;
-        const pRange = (minP > 0 && minP !== maxP) ? `${minP}–${maxP} Photos` : `${maxP} Photos`;
+        const minP = selectedPageTier ? Number(selectedPageTier.minPhotos || selectedPageTier.min_photos || 0) : effectiveMin;
+        const maxP = selectedPageTier ? Number(selectedPageTier.maxPhotos || selectedPageTier.max_photos || 0) : effectiveMax;
+        const finalMin = minP > 0 ? minP : effectiveMin;
+        const finalMax = maxP > 0 ? maxP : effectiveMax;
+        const pRange = (finalMin > 0 && finalMin !== finalMax) ? `${finalMin}–${finalMax} Photos` : `${finalMax} Photos`;
 
         addTemplateToCart({
           ...template,
@@ -1110,16 +1125,17 @@ export async function renderProductDetailsPage(db) {
           purchaseMode: activeMode,
           selectedPages: selectedPageTier ? selectedPageTier.label : `${pages} Pages`,
           pageCount: selectedPageTier ? selectedPageTier.pages : pages,
-          minPhotos: minP,
-          min_photos: minP,
-          maxPhotos: maxP,
-          max_photos: maxP,
-          requiredPhotoCount: maxP,
-          requiredPhotos: maxP,
+          pages: selectedPageTier ? selectedPageTier.pages : pages,
+          minPhotos: finalMin,
+          min_photos: finalMin,
+          maxPhotos: finalMax,
+          max_photos: finalMax,
+          requiredPhotoCount: finalMax,
+          requiredPhotos: finalMax,
           photoRangeText: pRange
         });
       }
-      window.location.href = '/pages/cart';
+      window.location.href = '/pages/cart?checkout=direct';
     });
 
     if (loading) {

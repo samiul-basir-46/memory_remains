@@ -1,6 +1,26 @@
 import { getFirebaseServices } from './firebase-service.js';
 import { createToast, qs } from '../utils/ui.js';
 
+export function waitForAuthUser(timeoutMs = 2500) {
+  const { auth } = getFirebaseServices();
+  if (!auth) return Promise.resolve(null);
+  if (auth.currentUser) return Promise.resolve(auth.currentUser);
+
+  return new Promise((resolve) => {
+    let unsubscribe = null;
+    const timer = setTimeout(() => {
+      if (unsubscribe) unsubscribe();
+      resolve(auth.currentUser || null);
+    }, timeoutMs);
+
+    unsubscribe = auth.onAuthStateChanged((user) => {
+      clearTimeout(timer);
+      if (unsubscribe) unsubscribe();
+      resolve(user);
+    });
+  });
+}
+
 export function openAuthModal() {
   const modal = qs('#auth-modal');
   const overlay = qs('#auth-modal-overlay');

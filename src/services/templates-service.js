@@ -174,80 +174,200 @@ export function normalizeTemplateData(docId, data = {}) {
   const occasion = data.occasion || data.theme || data.target_audience || data.targetAudience || '';
   const features = Array.isArray(data.features) ? data.features : (Array.isArray(data.highlights) ? data.highlights : (typeof data.features === 'string' ? data.features.split('\n').map(s => s.trim()).filter(Boolean) : []));
 
-function getDefaultTierPhotos(pages) {
-  switch (Number(pages)) {
-    case 4: return { minPhotos: 8, maxPhotos: 12 };
-    case 8: return { minPhotos: 15, maxPhotos: 20 };
-    case 12: return { minPhotos: 22, maxPhotos: 30 };
-    case 16: return { minPhotos: 35, maxPhotos: 45 };
-    case 20: return { minPhotos: 45, maxPhotos: 55 };
-    case 24: return { minPhotos: 55, maxPhotos: 65 };
-    default: {
-      const p = Number(pages) || 8;
-      return { minPhotos: Math.max(1, p * 2), maxPhotos: Math.max(p * 2, p * 3) };
-    }
+function getStandardTierPhotos(p) {
+  switch (Number(p)) {
+    case 4: return { min: 8, max: 12 };
+    case 8: return { min: 15, max: 20 };
+    case 12: return { min: 22, max: 30 };
+    case 16: return { min: 35, max: 45 };
+    case 20: return { min: 45, max: 55 };
+    case 24: return { min: 55, max: 65 };
+    default: return { min: Math.max(1, p * 2), max: Math.max(p * 2, p * 3) };
   }
 }
 
-  // Normalize Magazine Page Tiers from Admin Firestore
+function resolveTierPhotos(p, data = {}) {
+  const std = getStandardTierPhotos(p);
+
+  // Check if document has specific map for page photos (e.g. data.pagePhotos["12"] or data.page_photos["12"])
+  const pMap = data.pagePhotos || data.page_photos || data.pageLimits || data.page_limits || data.pagePhotoLimits || data.page_photo_limits || {};
+  const pagePhotoConfig = pMap[p] || pMap[String(p)];
+
+  let min = 0;
+  let max = 0;
+
+  if (pagePhotoConfig) {
+    if (typeof pagePhotoConfig === 'object') {
+      min = Number(pagePhotoConfig.min_photos || pagePhotoConfig.minPhotos || pagePhotoConfig.min || 0);
+      max = Number(pagePhotoConfig.max_photos || pagePhotoConfig.maxPhotos || pagePhotoConfig.max || 0);
+    } else if (Array.isArray(pagePhotoConfig)) {
+      min = Number(pagePhotoConfig[0] || 0);
+      max = Number(pagePhotoConfig[1] || min);
+    } else if (typeof pagePhotoConfig === 'string' && pagePhotoConfig.includes('-')) {
+      const parts = pagePhotoConfig.split('-').map(Number);
+      min = parts[0] || 0;
+      max = parts[1] || min;
+    }
+  }
+
+  // If p is the primary product pageCount, check top-level min_photos & max_photos
+  if ((!min || !max) && Number(data.pageCount || data.pages || data.page_count) === Number(p)) {
+    min = Number(data.min_photos || data.minPhotos || data.minImageCount || min);
+    max = Number(data.max_photos || data.maxPhotos || data.maxImageCount || data.requiredPhotos || data.required_photos || max);
+  }
+
+  return {
+    minPhotos: min > 0 ? min : std.min,
+    maxPhotos: max > 0 ? max : std.max
+  };
+}
+
+function normalizeSingleTier(t) {
+  if (!t || typeof t !== 'object') return null;
+  const p = Number(t.pages || t.page || t.page_count || t.pageCount || t.totalPages || t.total_pages || 8);
+  const std = getStandardTierPhotos(p);
+
+  const tPrice = Number(
+    t.base_price ??
+    t.basePrice ??
+    t.price ??
+    t.regular_price ??
+    t.regularPrice ??
+    0
+  );
+
+  const tOfferPrice = Number(
+    t.offer_price ??
+    t.offerPrice ??
+    t.discount_price ??
+    t.discountPrice ??
+    t.sale_price ??
+    t.salePrice ??
+    0
+  );
+
+  const tMin = Number(
+    t.min_photos ??
+    t.minPhotos ??
+    t.min_photo ??
+    t.minPhoto ??
+    t.min_pic ??
+    t.minPic ??
+    t.min_pics ??
+    t.minPics ??
+    t.min_images ??
+    t.minImages ??
+    t.min_photo_count ??
+    t.minPhotoCount ??
+    t.min_photos_count ??
+    t.minPhotosCount ??
+    t.min_image_count ??
+    t.minImageCount ??
+    t.minimum_photos ??
+    t.minimumPhotos ??
+    t.minimum ??
+    t.min ??
+    0
+  );
+
+  const tMax = Number(
+    t.max_photos ??
+    t.maxPhotos ??
+    t.max_photo ??
+    t.maxPhoto ??
+    t.max_pic ??
+    t.maxPic ??
+    t.max_pics ??
+    t.maxPics ??
+    t.max_images ??
+    t.maxImages ??
+    t.max_photo_count ??
+    t.maxPhotoCount ??
+    t.max_photos_count ??
+    t.maxPhotosCount ??
+    t.max_image_count ??
+    t.maxImageCount ??
+    t.maximum_photos ??
+    t.maximumPhotos ??
+    t.maximum ??
+    t.max ??
+    t.photos ??
+    t.photo_count ??
+    t.photoCount ??
+    t.required_photos ??
+    t.requiredPhotos ??
+    t.required_photo_count ??
+    t.requiredPhotoCount ??
+    0
+  );
+
+  const finalMin = tMin > 0 ? tMin : (tMax > 0 ? tMax : std.min);
+  const finalMax = tMax > 0 ? tMax : (tMin > 0 ? tMin : std.max);
+
+  return {
+    pages: p,
+    label: t.label || `${p} Pages`,
+    price: tPrice,
+    base_price: tPrice,
+    basePrice: tPrice,
+    offer_price: tOfferPrice,
+    offerPrice: tOfferPrice,
+    minPhotos: finalMin,
+    min_photos: finalMin,
+    maxPhotos: finalMax,
+    max_photos: finalMax
+  };
+}
+
+  // Normalize Magazine Page Tiers dynamically from Admin Firestore
   let pageTiers = [];
-  if (Array.isArray(data.pageTiers) && data.pageTiers.length > 0) {
-    pageTiers = data.pageTiers.map(t => {
-      const p = Number(t.pages || 8);
-      const def = getDefaultTierPhotos(p);
-      return {
-        pages: p,
-        label: t.label || `${p} Pages`,
-        price: Number(t.price || 499),
-        minPhotos: Number(t.minPhotos || t.min_photos || def.minPhotos),
-        maxPhotos: Number(t.maxPhotos || t.max_photos || def.maxPhotos)
-      };
-    });
-  } else if (Array.isArray(data.page_tiers) && data.page_tiers.length > 0) {
-    pageTiers = data.page_tiers.map(t => {
-      const p = Number(t.pages || 8);
-      const def = getDefaultTierPhotos(p);
-      return {
-        pages: p,
-        label: t.label || `${p} Pages`,
-        price: Number(t.price || 499),
-        minPhotos: Number(t.minPhotos || t.min_photos || def.minPhotos),
-        maxPhotos: Number(t.maxPhotos || t.max_photos || def.maxPhotos)
-      };
-    });
+  const rawTierList = data.pageTiers || data.page_tiers || data.tiers || data.pricing_tiers || data.pricingTiers || data.page_pricing_tiers || data.pagePricingTiers || data.page_limits || data.pageLimits || data.magazine_page_tiers || data.magazinePageTiers;
+
+  if (Array.isArray(rawTierList) && rawTierList.length > 0) {
+    pageTiers = rawTierList.map(normalizeSingleTier).filter(Boolean);
   } else if (data.pagePrices && typeof data.pagePrices === 'object' && Object.keys(data.pagePrices).length > 0) {
     pageTiers = Object.entries(data.pagePrices).map(([pg, pr]) => {
       const p = Number(pg);
-      const def = getDefaultTierPhotos(p);
+      const prNum = Number(pr);
+      const { minPhotos, maxPhotos } = resolveTierPhotos(p, data);
       return {
         pages: p,
         label: `${p} Pages`,
-        price: Number(pr),
-        minPhotos: def.minPhotos,
-        maxPhotos: def.maxPhotos
+        price: prNum,
+        base_price: prNum,
+        basePrice: prNum,
+        minPhotos: minPhotos,
+        min_photos: minPhotos,
+        maxPhotos: maxPhotos,
+        max_photos: maxPhotos
       };
     });
   } else if (data.page_prices && typeof data.page_prices === 'object' && Object.keys(data.page_prices).length > 0) {
     pageTiers = Object.entries(data.page_prices).map(([pg, pr]) => {
       const p = Number(pg);
-      const def = getDefaultTierPhotos(p);
+      const prNum = Number(pr);
+      const { minPhotos, maxPhotos } = resolveTierPhotos(p, data);
       return {
         pages: p,
         label: `${p} Pages`,
-        price: Number(pr),
-        minPhotos: def.minPhotos,
-        maxPhotos: def.maxPhotos
+        price: prNum,
+        base_price: prNum,
+        basePrice: prNum,
+        minPhotos: minPhotos,
+        min_photos: minPhotos,
+        maxPhotos: maxPhotos,
+        max_photos: maxPhotos
       };
     });
   } else {
-    // Default standard tiers
+    // Default standard tiers matching admin dashboard
     pageTiers = [
-      { pages: 4, label: '4 Pages', price: 259, minPhotos: 8, maxPhotos: 12 },
-      { pages: 8, label: '8 Pages', price: 499, minPhotos: 15, maxPhotos: 20 },
-      { pages: 12, label: '12 Pages', price: 699, minPhotos: 22, maxPhotos: 30 },
-      { pages: 16, label: '16 Pages', price: 849, minPhotos: 35, maxPhotos: 45 },
-      { pages: 20, label: '20 Pages', price: 999, minPhotos: 45, maxPhotos: 55 },
-      { pages: 24, label: '24 Pages', price: 1149, minPhotos: 55, maxPhotos: 65 },
+      { pages: 4, label: '4 Pages', price: 259, base_price: 259, minPhotos: 8, maxPhotos: 12 },
+      { pages: 8, label: '8 Pages', price: 499, base_price: 499, minPhotos: 15, maxPhotos: 20 },
+      { pages: 12, label: '12 Pages', price: 699, base_price: 699, minPhotos: 22, maxPhotos: 30 },
+      { pages: 16, label: '16 Pages', price: 849, base_price: 849, minPhotos: 35, maxPhotos: 45 },
+      { pages: 20, label: '20 Pages', price: 999, base_price: 999, minPhotos: 45, maxPhotos: 55 },
+      { pages: 24, label: '24 Pages', price: 1149, base_price: 1149, minPhotos: 55, maxPhotos: 65 }
     ];
   }
   pageTiers.sort((a, b) => a.pages - b.pages);
@@ -661,14 +781,7 @@ export async function fetchTemplateById(db, targetId) {
   const cleanId = String(targetId).trim();
   const normId = normalizeText(cleanId);
 
-  // 1. Check in-memory / localStorage cache first
-  const cached = getCachedTemplates();
-  if (cached && cached.length > 0) {
-    const foundCached = cached.find((t) => String(t.id) === cleanId || String(t.id).toLowerCase() === normId || normalizeText(t.title) === normId);
-    if (foundCached) return normalizeTemplateData(foundCached.id, foundCached);
-  }
-
-  // 2. Query Firestore only if not found in cache
+  // 1. Always query Firestore directly first so changes from Admin Dashboard appear instantly!
   if (db) {
     const collectionsToTry = ['templates', 'catalog_frames', 'catalog_posters', 'catalog_stickers', 'products'];
     for (const colName of collectionsToTry) {
@@ -692,6 +805,13 @@ export async function fetchTemplateById(db, targetId) {
     } catch (err) {
       console.warn('fetchTemplateById fallback search failed:', err);
     }
+  }
+
+  // 2. Check in-memory / localStorage cache only if Firestore is offline
+  const cached = getCachedTemplates();
+  if (cached && cached.length > 0) {
+    const foundCached = cached.find((t) => String(t.id) === cleanId || String(t.id).toLowerCase() === normId || normalizeText(t.title) === normId);
+    if (foundCached) return normalizeTemplateData(foundCached.id, foundCached);
   }
 
   const foundDefault = DEFAULT_FEATURED_TEMPLATES.find((t) => String(t.id) === cleanId || String(t.id).toLowerCase() === normId);
