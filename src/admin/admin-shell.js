@@ -5,6 +5,7 @@ import { openAnnouncementDialog } from './dialogs/announcement-dialog.js';
 
 // Import Tabs
 import { renderOrdersTab } from './tabs/orders-tab.js';
+import { renderUnmatchedPaymentsTab } from './tabs/unmatched-payments-tab.js';
 import { renderCatalogTab } from './tabs/catalog-tab.js';
 import { renderCategoriesTab } from './tabs/categories-tab.js';
 import { renderCollectionsTab } from './tabs/collections-tab.js';
@@ -206,7 +207,7 @@ export function renderDashboardShell(rootContainer) {
         </header>
 
         <!-- Main Body Tab Content -->
-        <main class="flex-1 p-3 sm:p-5 overflow-hidden">
+        <main class="flex-1 p-2 sm:p-4 md:p-5 overflow-hidden">
           <div class="w-full h-full bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden flex flex-col" id="tab-viewport">
             <!-- Rendered by active tab module -->
           </div>
@@ -354,9 +355,18 @@ function renderActiveTabContent(viewport) {
   const index = adminState.getState().activeTabIndex;
 
   // 0: Pending, 1: Paid, 2: Flagged, 3: Unmatched, 4: Completed, 5: Cancelled
-  if (index >= 0 && index <= 5) {
-    const statusMap = ['pending', 'paid', 'flagged', 'unmatched', 'completed', 'cancelled'];
-    renderOrdersTab(viewport, statusMap[index]);
+  if (index === 0) {
+    renderOrdersTab(viewport, 'pending');
+  } else if (index === 1) {
+    renderOrdersTab(viewport, 'paid');
+  } else if (index === 2) {
+    renderOrdersTab(viewport, 'flagged');
+  } else if (index === 3) {
+    renderUnmatchedPaymentsTab(viewport);
+  } else if (index === 4) {
+    renderOrdersTab(viewport, 'completed');
+  } else if (index === 5) {
+    renderOrdersTab(viewport, 'cancelled');
   } else if (index === 6) {
     renderCatalogTab(viewport);
   } else if (index === 7) {
