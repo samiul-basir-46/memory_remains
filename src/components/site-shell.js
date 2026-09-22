@@ -485,8 +485,9 @@ export function renderSiteShell(pageId) {
         </span>
         <span class="text-[#FFE8DF]/90 text-[11px] font-medium">• COD Advance Payment: ৳60 (Inside Dhaka) | ৳110 (Outside Dhaka)</span>
       </div>
-      <div class="text-[#FFE8DF]/70">
-        © ${new Date().getFullYear()} Petty Bloom. All rights reserved.
+      <div class="text-[#FFE8DF]/70 flex items-center gap-2">
+        <span>© ${new Date().getFullYear()} Petty Bloom. All rights reserved.</span>
+        <a href="/pages/admin/" class="text-[#FFE8DF]/40 hover:text-[#F4C5B1] transition-colors ml-1" title="Admin Portal"><i class="fa-solid fa-lock text-[10px]"></i></a>
       </div>
     </div>
 

@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Petty Bloom | Admin Web Portal</title>
+  <link rel="icon" type="image/png" href="/assets/favicon-circle.png">
+  <link rel="shortcut icon" type="image/png" href="/assets/favicon-circle.png">
+  <link rel="apple-touch-icon" href="/assets/favicon-circle.png">
+
+  <!-- Google Fonts: Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Font Awesome 6 Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+  <!-- Tailwind CSS CDN configured for Admin Design System -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Plus Jakarta Sans', 'system-ui', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              teal: '#0F766E',
+              tealHover: '#0D9488',
+              tealLight: '#CCFBF1',
+              tealDark: '#115E59',
+            },
+            slateCard: '#1E293B',
+            slateDark: '#0F172A',
+            slateBorder: '#334155',
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Admin Styles -->
+  <link rel="stylesheet" href="/src/styles/admin.css">
+
+  <!-- JSZip & FileSaver for Batch Zip Downloads -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
+  <!-- Firebase v10.8 Compat Libraries -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-storage-compat.js"></script>
+</head>
+<body class="admin-body min-h-screen bg-[#F8FAFC] text-[#0F172A] antialiased">
+  <!-- Dynamic Admin App Root -->
+  <div id="admin-root" class="min-h-screen">
+    <!-- Rendered dynamically by admin-main.js -->
+    <div class="flex items-center justify-center min-h-screen bg-[#0F172A]">
+      <div class="flex flex-col items-center gap-4">
+        <div class="w-12 h-12 border-4 border-[#0F766E] border-t-transparent rounded-full animate-spin"></div>
+        <p class="text-sm font-semibold text-slate-300 tracking-wider">LOADING ADMIN PORTAL...</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dynamic Modals Layer -->
+  <div id="admin-modals"></div>
+
+  <!-- Toast Notification Container -->
+  <div id="admin-toast-container"></div>
+
+  <!-- Main Admin Bootstrap Script -->
+  <script type="module" src="/src/admin/admin-main.js"></script>
+</body>
+</html>
