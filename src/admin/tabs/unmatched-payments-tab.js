@@ -272,7 +272,7 @@ function openMatchPaymentModal(trxId, amount) {
               type="text" 
               id="match-order-id-input" 
               required 
-              placeholder="e.g. ORD-1024 or full order ID" 
+              placeholder="e.g. PB-74JSIN or full order ID" 
               class="w-full px-3.5 py-2.5 text-xs font-mono border border-slate-300 rounded-xl focus:outline-none focus:border-teal-600 focus:ring-1 focus:ring-teal-600"
             >
             <p class="text-[11px] text-slate-400 mt-1">

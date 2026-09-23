@@ -271,8 +271,8 @@ export function renderSteadfastTab(container) {
             >
             <div>
               <div class="flex items-center gap-2">
-                <span class="font-bold text-xs text-slate-900 font-mono">#${order.orderId}</span>
-                <span class="text-xs font-semibold text-slate-700">${order.customerName}</span>
+                <span class="font-bold text-xs text-slate-900">${order.customerName}</span>
+                <span class="font-bold text-xs text-slate-500 font-mono">#${order.orderCode || order.orderId}</span>
                 <span class="px-2 py-0.5 rounded text-[10px] font-bold ${order.status === 'paid' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}">
                   ${order.status}
                 </span>
@@ -367,8 +367,8 @@ export function renderSteadfastTab(container) {
             <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-sky-50 text-sky-700 border border-sky-200 font-mono">
               ${order.trackingNumber}
             </span>
-            <span class="text-xs font-bold text-slate-900">#${order.orderId}</span>
-            <span class="text-xs text-slate-600">${order.customerName}</span>
+            <span class="text-xs font-bold text-slate-900">${order.customerName}</span>
+            <span class="text-xs text-slate-500 font-mono">#${order.orderCode || order.orderId}</span>
           </div>
           <p class="text-xs text-slate-500 mt-1">${order.shippingAddress} • ${order.customerPhone}</p>
         </div>

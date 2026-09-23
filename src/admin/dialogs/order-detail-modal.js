@@ -1,6 +1,7 @@
 import { adminApi } from '../admin-api.js';
 import { adminState } from '../admin-state.js';
 import { createSteadfastOrder, checkSteadfastStatusByTrackingCode } from '../../services/steadfast-service.js';
+import { formatOrderCopySummary } from '../summary-helper.js';
 
 export function openOrderDetailModal(order, onStatusChange) {
   const modalContainer = document.getElementById('admin-modals');
@@ -55,6 +56,18 @@ export function openOrderDetailModal(order, onStatusChange) {
   else if (occLower.includes('personal')) occasionEmoji = '👤';
   else if (occLower.includes('farewell')) occasionEmoji = '🎓';
 
+  // Clean phone for WhatsApp
+  const rawPhone = order.whatsappNumber || order.customerPhone || '';
+  const digitsOnly = rawPhone.replace(/[^0-9]/g, '');
+  const waPhone = digitsOnly.length > 11 && digitsOnly.startsWith('8801')
+    ? digitsOnly
+    : digitsOnly.startsWith('88') && digitsOnly.length === 13
+    ? digitsOnly
+    : digitsOnly.length === 11
+    ? `88${digitsOnly}`
+    : digitsOnly;
+  const waLink = waPhone.length >= 11 ? `https://wa.me/${waPhone}` : null;
+
   const modalHtml = `
     <div id="order-modal-backdrop" class="admin-modal-backdrop fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-2 sm:p-6 overflow-y-auto">
       <div class="admin-modal-card w-full max-w-4xl bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[94vh] sm:max-h-[92vh]">
@@ -67,20 +80,32 @@ export function openOrderDetailModal(order, onStatusChange) {
             </div>
             <div class="min-w-0">
               <div class="flex flex-wrap items-center gap-1.5 sm:gap-2">
-                <h3 class="text-sm sm:text-base font-bold text-slate-900 truncate">Order #${order.orderId}</h3>
-                <button class="text-slate-400 hover:text-teal-600 transition-colors text-xs flex-shrink-0" title="Copy Order ID" onclick="navigator.clipboard.writeText('${order.orderId}'); adminState.showToast('info', 'Order ID copied!');">
+                <h3 class="text-sm sm:text-base font-extrabold text-slate-900 truncate">${order.customerName}</h3>
+                <span class="px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 font-mono text-xs font-bold border border-slate-200 flex items-center gap-1 flex-shrink-0" title="Full Order ID: ${order.orderId}">
+                  #${order.orderCode || order.orderId}
+                </span>
+                <button class="text-slate-400 hover:text-teal-600 transition-colors text-xs flex-shrink-0" title="Copy Full Order ID" onclick="navigator.clipboard.writeText('${order.orderId}'); adminState.showToast('info', 'Order ID copied: ${order.orderId}');">
                   <i class="fa-regular fa-copy"></i>
                 </button>
                 <span class="px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-bold ${statusStyle.bg} ${statusStyle.text} border ${statusStyle.border} whitespace-nowrap flex-shrink-0">
                   ${statusStyle.label}
                 </span>
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${order.orderSource === 'form' ? 'bg-pink-50 text-pink-700 border border-pink-200' : 'bg-slate-100 text-slate-700 border border-slate-200'} whitespace-nowrap flex-shrink-0">
+                  <i class="fa-solid ${order.orderSource === 'form' ? 'fa-shapes text-pink-500' : 'fa-globe text-slate-500'} text-[9px] mr-1"></i>${order.orderSource === 'form' ? 'Custom Form' : 'Web Store'}
+                </span>
               </div>
               <p class="text-[11px] sm:text-xs text-slate-500 font-medium truncate">${dateStr}</p>
             </div>
           </div>
-          <button id="close-order-modal-btn" class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 flex items-center justify-center transition-colors flex-shrink-0">
-            <i class="fa-solid fa-xmark text-base sm:text-lg"></i>
-          </button>
+          <div class="flex items-center gap-1.5 flex-shrink-0">
+            <button id="modal-copy-summary-btn" class="px-2.5 py-1.5 bg-white hover:bg-slate-100 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 flex items-center gap-1 shadow-xs transition-colors" title="Copy Order Summary">
+              <i class="fa-regular fa-copy text-teal-600 text-xs"></i>
+              <span class="hidden sm:inline">Copy Summary</span>
+            </button>
+            <button id="close-order-modal-btn" class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 flex items-center justify-center transition-colors flex-shrink-0">
+              <i class="fa-solid fa-xmark text-base sm:text-lg"></i>
+            </button>
+          </div>
         </div>
 
         <!-- Modal Body Scrollable -->
@@ -91,26 +116,66 @@ export function openOrderDetailModal(order, onStatusChange) {
             
             <!-- Customer Info Box -->
             <div class="bg-slate-50 border border-slate-200/80 rounded-xl p-4 space-y-3">
-              <div class="flex items-center gap-2 text-xs font-bold text-slate-700 uppercase tracking-wider">
-                <i class="fa-solid fa-user text-teal-600"></i> Customer Details
+              <div class="flex items-center justify-between text-xs font-bold text-slate-700 uppercase tracking-wider">
+                <span class="flex items-center gap-1.5"><i class="fa-solid fa-user text-teal-600"></i> Customer Details</span>
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold ${order.orderSource === 'form' ? 'bg-pink-100 text-pink-700 border border-pink-200' : 'bg-slate-200 text-slate-700'}">${order.orderSource === 'form' ? 'Custom Form' : 'Web Order'}</span>
               </div>
               <div>
                 <div class="text-sm font-bold text-slate-900">${order.customerName}</div>
-                <div class="text-xs text-slate-600 flex items-center gap-1.5 mt-0.5">
-                  <i class="fa-solid fa-phone text-slate-400 text-[10px]"></i>
-                  <a href="tel:${order.customerPhone}" class="text-teal-700 font-semibold hover:underline">${order.customerPhone}</a>
-                  <button class="text-slate-400 hover:text-slate-700 text-xs ml-1" title="Copy Phone" onclick="navigator.clipboard.writeText('${order.customerPhone}'); adminState.showToast('info', 'Phone number copied');">
-                    <i class="fa-regular fa-copy"></i>
-                  </button>
+                <div class="text-xs text-slate-600 flex flex-wrap items-center gap-2 mt-1.5">
+                  ${order.customerPhone ? `
+                    <div class="flex items-center gap-1">
+                      <i class="fa-solid fa-phone text-slate-400 text-[10px]"></i>
+                      <a href="tel:${order.customerPhone}" class="text-teal-700 font-semibold hover:underline">${order.customerPhone}</a>
+                      <button class="text-slate-400 hover:text-slate-700 text-xs ml-0.5" title="Copy Phone" onclick="navigator.clipboard.writeText('${order.customerPhone}'); adminState.showToast('info', 'Phone number copied');">
+                        <i class="fa-regular fa-copy"></i>
+                      </button>
+                    </div>
+                  ` : ''}
+
+                  ${waLink ? `
+                    <a href="${waLink}" target="_blank" rel="noopener noreferrer" class="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-emerald-100/80 text-emerald-800 hover:bg-emerald-200 border border-emerald-300 flex items-center gap-1 transition-colors" title="Chat on WhatsApp">
+                      <i class="fa-brands fa-whatsapp text-emerald-600"></i> WhatsApp
+                    </a>
+                  ` : ''}
+
+                  ${order.igUsername ? `
+                    <a href="https://instagram.com/${order.igUsername}" target="_blank" rel="noopener noreferrer" class="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-pink-100/80 text-pink-800 hover:bg-pink-200 border border-pink-300 flex items-center gap-1 transition-colors" title="Instagram Profile">
+                      <i class="fa-brands fa-instagram text-pink-600"></i> @${order.igUsername}
+                    </a>
+                  ` : ''}
                 </div>
-                ${order.customerEmail ? `<div class="text-xs text-slate-500 mt-0.5"><i class="fa-solid fa-envelope text-slate-400 text-[10px] mr-1"></i>${order.customerEmail}</div>` : ''}
+                ${order.customerEmail ? `<div class="text-xs text-slate-500 mt-1"><i class="fa-solid fa-envelope text-slate-400 text-[10px] mr-1"></i>${order.customerEmail}</div>` : ''}
               </div>
 
-              <div class="pt-2 border-t border-slate-200/60">
-                <span class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block mb-0.5">Delivery Address</span>
-                <p class="text-xs text-slate-800 leading-relaxed font-medium bg-white p-2.5 rounded-lg border border-slate-200 select-all">
-                  ${order.shippingAddress || '<span class="text-slate-400 italic">No delivery address provided</span>'}
-                </p>
+              <!-- Delivery Details Box -->
+              <div class="pt-2.5 border-t border-slate-200/60 space-y-1.5">
+                <div class="flex items-center justify-between">
+                  <span class="text-[11px] font-bold text-slate-600 uppercase tracking-wider">Delivery Details</span>
+                  ${order.deliveryDate ? `
+                    ${order.urgency?.isOverdue ? `
+                      <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-rose-100 text-rose-800 border border-rose-300 animate-pulse">
+                        <i class="fa-solid fa-triangle-exclamation"></i> OVERDUE (${order.deliveryDate})
+                      </span>
+                    ` : order.urgency?.isUrgent ? `
+                      <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                        <i class="fa-solid fa-fire text-amber-600"></i> URGENT (${order.deliveryDate})
+                      </span>
+                    ` : `
+                      <span class="px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-200 text-slate-700">
+                        Target: ${order.deliveryDate}
+                      </span>
+                    `}
+                  ` : ''}
+                </div>
+
+                <div class="text-xs text-slate-800 font-medium bg-white p-2.5 rounded-lg border border-slate-200 select-all space-y-1">
+                  <div><strong>Address:</strong> ${order.shippingAddress || 'No address provided'}</div>
+                  ${order.city ? `<div><strong>City / Area:</strong> ${order.city}</div>` : ''}
+                  ${order.location ? `<div><strong>Zone:</strong> ${order.location === 'inside' ? 'Inside Dhaka (৳60)' : 'Outside Dhaka (৳110)'}</div>` : ''}
+                  ${order.recipientName && order.recipientName !== order.customerName ? `<div><strong>Recipient:</strong> ${order.recipientName} ${order.contactNumber ? `(Contact: ${order.contactNumber})` : ''}</div>` : ''}
+                </div>
+
                 ${order.deliveryNote ? `<p class="text-xs text-amber-800 bg-amber-50 p-2 rounded border border-amber-200 mt-2"><i class="fa-solid fa-note-sticky mr-1"></i><strong>Note:</strong> ${order.deliveryNote}</p>` : ''}
               </div>
             </div>
@@ -450,6 +515,20 @@ export function openOrderDetailModal(order, onStatusChange) {
     });
   }
 
+  // Copy Order Summary Button
+  const copySummaryBtn = document.getElementById('modal-copy-summary-btn');
+  if (copySummaryBtn) {
+    copySummaryBtn.addEventListener('click', async () => {
+      const summaryText = formatOrderCopySummary(order);
+      try {
+        await navigator.clipboard.writeText(summaryText);
+        adminState.showToast('success', `Copied: ${summaryText}`);
+      } catch (_) {
+        adminState.showToast('info', 'Failed to copy summary');
+      }
+    });
+  }
+
   // Save Note Button
   const saveNoteBtn = document.getElementById('modal-save-note-btn');
   if (saveNoteBtn) {
@@ -468,21 +547,27 @@ export function openOrderDetailModal(order, onStatusChange) {
   const dispatchBtn = document.getElementById('modal-dispatch-steadfast-btn');
   if (dispatchBtn) {
     dispatchBtn.addEventListener('click', async () => {
-      if (!order.shippingAddress || !order.customerPhone) {
+      const targetPhone = order.contactNumber || order.whatsappNumber || order.customerPhone;
+      if (!order.shippingAddress || !targetPhone) {
         adminState.showToast('error', 'Missing customer phone or delivery address!');
         return;
       }
-      if (!confirm(`Dispatch Order #${order.orderId} to Steadfast Courier? COD: ৳${order.status === 'paid' ? 0 : order.expectedAmount}`)) return;
+      const codAmt = (order.status === 'paid' || order.status === 'confirmed') ? 0 : order.expectedAmount;
+      if (!confirm(`Dispatch Order #${order.orderId} to Steadfast Courier? COD Amount: ৳${codAmt}`)) return;
 
       dispatchBtn.disabled = true;
       try {
+        const prodDesc = (order.items && order.items.length > 0)
+          ? order.items.map(i => i.templateName).join(' + ')
+          : (order.templateName || order.productType || 'Custom Prints');
+
         const res = await createSteadfastOrder({
           invoice: order.orderId,
-          recipient_name: order.customerName,
-          recipient_phone: order.customerPhone,
+          recipient_name: order.recipientName || order.customerName,
+          recipient_phone: targetPhone,
           recipient_address: order.shippingAddress,
-          cod_amount: (order.status === 'paid' || order.status === 'confirmed') ? 0 : order.expectedAmount,
-          item_description: order.templateName || order.productType || 'Custom Prints',
+          cod_amount: codAmt,
+          item_description: prodDesc,
           note: order.deliveryNote || ''
         });
 
