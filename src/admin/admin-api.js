@@ -430,7 +430,7 @@ export class AdminApiService {
       }
     }
 
-    // 4. Guaranteed REST sync & polling from pettybloomform
+    // 4. Guaranteed initial REST sync from pettybloomform
     const syncFromRest = async () => {
       try {
         const restOrders = await this.fetchFormOrdersRest();
@@ -439,12 +439,10 @@ export class AdminApiService {
           emitMergedOrders();
         }
       } catch (e) {
-        console.warn('REST poll notice:', e);
+        console.warn('REST sync notice:', e);
       }
     };
     syncFromRest();
-    const intervalId = setInterval(syncFromRest, 5000);
-    unsubs.push(() => clearInterval(intervalId));
 
     return () => {
       unsubs.forEach(unsub => {
@@ -908,7 +906,7 @@ export class AdminApiService {
       } catch (e) { console.warn(e); }
     }
 
-    // 4. Guaranteed REST sync & polling for counts from pettybloomform
+    // 4. Guaranteed initial REST sync for counts from pettybloomform
     const syncCountsFromRest = async () => {
       try {
         const restOrders = await this.fetchFormOrdersRest();
@@ -917,12 +915,10 @@ export class AdminApiService {
           recomputeOrderCounts();
         }
       } catch (e) {
-        console.warn('REST count poll notice:', e);
+        console.warn('REST count sync notice:', e);
       }
     };
     syncCountsFromRest();
-    const countIntervalId = setInterval(syncCountsFromRest, 6000);
-    unsubs.push(() => clearInterval(countIntervalId));
 
     // Unmatched payments count listener from 'payments' collection
     if (db) {
